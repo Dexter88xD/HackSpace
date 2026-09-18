@@ -1,0 +1,20 @@
+{
+	"customFileOrder.rules": {
+		".": {
+			"order": [
+				"Makefile",
+				"docker-compose.yml",
+				".env",
+				".env.example",
+				"frontend",
+				"backend",
+				"service_ai",
+				"infrastructure",
+				"docs",
+				".gitignore",
+				"README.md",
+				".vscode"
+			]
+		}
+	}
+}
