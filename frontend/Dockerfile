@@ -13,4 +13,5 @@ COPY . .
 EXPOSE 5173
 
 # --host is required so Vite's dev server is reachable from outside the container
-CMD ["npm", "run", "dev", "--", "--host"]
+# -- is a separator to pass arguments to the npm script
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

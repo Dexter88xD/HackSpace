@@ -1,2 +1,14 @@
-body { margin: 0; font-family: system-ui, sans-serif; color: #17202a; background: #f4f7f5; }
-main { max-width: 72rem; margin: 10vh auto; padding: 2rem; }
+@import "tailwindcss";
+
+body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    color: #17202a;
+    background: #f4f7f5;
+}
+
+main {
+    max-width: 72rem;
+    margin: 10vh auto;
+    padding: 2rem;
+}
