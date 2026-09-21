@@ -8,7 +8,7 @@
 				".env.example",
 				"frontend",
 				"backend",
-				"service_ai",
+				"ai_service",
 				"infrastructure",
 				"docs",
 				".gitignore",
