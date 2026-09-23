@@ -4,7 +4,8 @@ import { Entity,
 	CreateDateColumn,
 	UpdateDateColumn,
 	OneToMany,
-	OneToOne } from 'typeorm'
+	OneToOne, 
+	JoinColumn } from 'typeorm'
 
 import { User } from './user.entity'
 import { UserSkill } from './user-skill.entity'
@@ -14,7 +15,7 @@ export class UserProfile {
 	@PrimaryGeneratedColumn()
 	id! : number;
 
-	@Column()
+	@Column({ nullable: true })
 	bio! : string;
 
 	@Column()
@@ -32,6 +33,7 @@ export class UserProfile {
 	@UpdateDateColumn()
 	updated_at! : Date;
 
+	@JoinColumn()
 	@OneToOne(() => User, (user) => user.profile)
 	user! : User;
 

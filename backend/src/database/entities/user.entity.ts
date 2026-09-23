@@ -31,7 +31,7 @@ export class User {
 	@Column()
 	otp_hash! : string;
 
-	@CreateDateColumn()
+	@Column()
 	otp_expires_at! : Date;
 
 	@CreateDateColumn()
@@ -43,6 +43,6 @@ export class User {
 	@OneToOne(() => UserProfile, (profile) => profile.user)
 	profile! : UserProfile;
 
-	@ManyToOne(() => UserRole, (role) => role.user)
+	@ManyToOne(() => UserRole, (role) => role.users)
 	role! : UserRole;
 }
