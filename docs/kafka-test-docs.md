@@ -35,8 +35,8 @@ graph TD
 
     PostName -- "1. emits message" --> TopicName
     TopicName -- "2. consumed by" --> FastConsumer
-    FastConsumer -. "3. formats string" .-> FastProducer
-    FastProducer -- "4. produces JSON" --> TopicGreeting
+    FastConsumer -. "3. formats plain string" .-> FastProducer
+    FastProducer -- "4. produces UTF-8 string" --> TopicGreeting
     TopicGreeting -- "5. consumed by" --> NestConsumer
     NestConsumer -- "6. pushes to" --> MemoryArray
     GetGreetings -- "7. fetches from" --> MemoryArray
@@ -53,7 +53,7 @@ The core Kafka server operating in KRaft mode, acting as both a broker and its o
 *   **Configuration Highlights:**
     *   `KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1`: Critical for single-node development. Without this, the `__consumer_offsets` topic fails to build, permanently breaking consumer groups.
     *   `KAFKA_PROCESS_ROLES: broker,controller`: Enables KRaft mode.
-*   **Healthcheck:** Pings the broker via `kafka-topics.sh` every 10 seconds to ensure the process is ready to accept connections.
+    *   **Healthcheck:** Lists topics via `kafka-topics.sh` every 10 seconds to ensure the process is ready to accept connections.
 
 ### 2. `init-kafka`
 An ephemeral bootstrap container responsible for automatically creating required topics before any microservice connects.
@@ -79,10 +79,10 @@ This ensures that the application servers remain suspended until `init-kafka` su
 
 ## Developer Guidelines & Troubleshooting
 
-When developing or modifying the Kafka integration between NestJS and FastAPI, observe the following constraints:
+When developing or modifying the Kafka integration between NestJS and FastAPI, observe the following behavior and constraints:
 
-*   **Group Coordinator Failures:** If you see `GroupCoordinatorNotAvailableError` infinitely looping in FastAPI or NestJS, the Kafka volume is likely corrupted by a previous misconfiguration. Fix it by destroying the container and its volume entirely to force a clean cluster format:
-    `docker compose down -v && docker compose up -d`
-*   **Payload Serialization:** Python's `aiokafka` producer must serialize dictionaries into JSON bytes (e.g., `json.dumps({"value": "data"}).encode('utf-8')`). If raw strings are sent, the NestJS `@EventPattern()` will fail to parse the payload as an object, resulting in `undefined` variables.
-*   **NestJS Historical Offsets:** By default, NestJS ignores messages published before it joined the consumer group. Ensure `fromBeginning: true` is set in the `subscribe` options of the NestJS Kafka client configuration to prevent dropped messages during container restarts.
+*   **Payload contract:** `POST /demo/send-name` emits the request's `name` as a plain string on `name`. The AI consumer decodes it, prefixes it with `Hello` and a space, and the producer's serializer encodes that plain string as UTF-8 bytes on `greeting`. NestJS receives it as a string through `@Payload()` and stores it in the in-memory greetings array. Do not document or test this path as a JSON-object payload unless the producer and consumer are changed together.
+*   **Group Coordinator Failures:** The Compose file does not declare a persistent volume for Kafka. If broker metadata or consumer groups become unhealthy, recreate the broker and topic-initializer containers without removing unrelated database or MinIO data:
+    `docker compose stop broker init-kafka && docker compose rm -f broker init-kafka && docker compose up -d broker init-kafka backend ai_service`
+*   **NestJS historical offsets:** The `DemoModule` Kafka client sets `subscribe.fromBeginning: true`, but the server-side Kafka microservice in `backend/src/main.ts` does not. The `@EventPattern('greeting')` consumer therefore uses the server's default offset behavior; add `fromBeginning` to that server configuration if replaying earlier messages after a new consumer group is required.
 *   **Microservice Registration:** NestJS requires `await app.startAllMicroservices()` in `main.ts`. Omitting this will silently disable all `@EventPattern` decorators without throwing an error.

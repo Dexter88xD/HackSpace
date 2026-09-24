@@ -6,7 +6,17 @@ describe('DemoService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [DemoService],
+      providers: [
+        DemoService,
+        {
+          provide: 'KAFKA_SERVICE',
+          useValue: {
+            connect: jest.fn(),
+            close: jest.fn(),
+            emit: jest.fn(),
+          },
+        },
+      ],
     }).compile();
 
     service = module.get<DemoService>(DemoService);
