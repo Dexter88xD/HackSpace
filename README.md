@@ -45,3 +45,4 @@ after changing database initialization variables such as `POSTGRES_DB`,
 ## Development
 
 Use feature branches and pull requests. Backend schema changes belong in TypeORM migrations. Keep shared API changes documented in `docs/api_contracts.yml`.
+

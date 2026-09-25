@@ -12,7 +12,10 @@
     "strict": true,
     "jsx": "react-jsx",
     "skipLibCheck": true,
-    "noEmit": true
+    "noEmit": true,
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": [
     "src",
