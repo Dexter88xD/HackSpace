@@ -19,7 +19,6 @@ export const login = async (data: LoginFormData) => {
 }
 
 export const resend = async (email: string) => {
-    console.log("test")
     const response = await api.post('/auth/resend-code', {email});
     return response.data;
 }

@@ -35,11 +35,11 @@ services:
 
   ai_service:
     build:
-      context: ./service_ai
+      context: ./ai_service
     ports:
       - "8000:8000"
     volumes:
-      - ./service_ai:/app
+      - ./ai_service:/app
     env_file:
       - .env
     depends_on:

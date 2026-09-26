@@ -27,7 +27,7 @@ export class AuthService {
   // hashes the password and verification OTP, creates and saves the user, then sends the OTP by email.
   async register(registerDto: RegisterDto) {
     if (registerDto.password !== registerDto.confirmPassword)
-      throw new BadRequestException();
+      throw new BadRequestException('Passwords do not match');
     const normalizedEmail = registerDto.email.trim().toLowerCase();
     const existingUser = await this.userRepository.findOne({
       where: [{ email: normalizedEmail }, { username: registerDto.username }],
@@ -151,9 +151,9 @@ export class AuthService {
     return {
       id: user.id,
       username: user.username,
-      full_name: user.full_name,
+      fullName: user.full_name,
       email: user.email,
-      email_verified: user.email_verified,
+      emailVerified: user.email_verified,
     };
   }
 }
