@@ -1,38 +1,57 @@
-.DEFAULT_GOAL := help
-.PHONY: help up backend ai frontend down logs db db-reset
+COMPOSE = docker compose -f docker-compose.yml --env-file .env
+
+.DEFAULT_GOAL := all
+.PHONY: help up backend ai frontend down logs db db-reset all
+
+all: up
+
+up:
+	$(COMPOSE) up -d --build
 
 help:
+	@echo "make all      Start the entire stack"
 	@echo "make up       Start PostgreSQL and MinIO"
 	@echo "make backend  Start infrastructure and the backend"
 	@echo "make ai       Start infrastructure and the AI service"
 	@echo "make frontend Start infrastructure and the frontend"
+	@echo "make broker   Start Kafka broker"
 	@echo "make down     Stop the stack"
 	@echo "make logs     Follow service logs"
 	@echo "make db       Open a PostgreSQL shell"
 	@echo "make db-reset Stop stack and delete the PostgreSQL volume"
+	@echo "make ps       Show the status of the stack"
+	@echo "make re       Restart the stack"
 
-up:
-	docker compose up -d db minio
+storage:
+	$(COMPOSE) up -d --build db minio
 
 backend:
-	docker compose up --build db minio backend
+	$(COMPOSE) up -d --build db minio backend
 
 ai:
-	docker compose up --build db minio ai_service
+	$(COMPOSE) up -d --build ai_service
 
 frontend:
-	docker compose up --build db minio frontend
+	$(COMPOSE) up -d --build db minio frontend
+
+broker:
+	$(COMPOSE) up -d --build broker
 
 down:
-	docker compose down
+	$(COMPOSE) down
 
 logs:
-	docker compose logs -f
+	$(COMPOSE) logs -f
 
 db:
-	docker compose exec -T db sh -c 'psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"'
+	$(COMPOSE) exec -T db sh -c 'psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"'
 
 db-reset:
-	docker compose down --remove-orphans
+	$(COMPOSE) down --remove-orphans
 	volume="$$(docker volume ls -q --filter label=com.docker.compose.volume=db_data)"; \
 	if [ -n "$$volume" ]; then docker volume rm "$$volume"; fi
+
+ps:
+	$(COMPOSE) ps
+
+re: down up
