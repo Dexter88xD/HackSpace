@@ -28,8 +28,8 @@ services:
         condition: service_started
       init-kafka:
         condition: service_completed_successfully
-      minio:
-        condition: service_started
+      # minio:
+      #   condition: service_started
     networks:
       - hackspace_network
 
@@ -61,22 +61,22 @@ services:
     networks:
       - hackspace_network
 
-  minio:
-    image: quay.io/minio/minio:latest
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-    volumes:
-      - minio_data:/data
-    ports:
-      - "9000:9000"   # API
-      - "9001:9001"   # web console
-    networks:
-      - hackspace_network
+  # minio:
+  #   image: quay.io/minio/minio:latest
+  #   command: server /data --console-address ":9001"
+  #   environment:
+  #     MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+  #     MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+  #   volumes:
+  #     - minio_data:/data
+  #   ports:
+  #     - "9000:9000"   # API
+  #     - "9001:9001"   # web console
+  #   networks:
+  #     - hackspace_network
 
   broker:
-    image: apache/kafka:latest
+    image: apache/kafka:4.3.1
     container_name: broker
     ports:
       - 9092:9092
@@ -103,7 +103,7 @@ services:
       - hackspace_network
 
   init-kafka:
-    image: apache/kafka:latest
+    image: apache/kafka:4.3.1
     container_name: init-kafka
     depends_on:
       broker:
@@ -115,7 +115,7 @@ services:
     command: bash /kafka-init.sh
 
   kafka-ui:
-    image: provectuslabs/kafka-ui:latest
+    image: provectuslabs/kafka-ui:v0.7.2
     container_name: kafka-ui
     environment:
       KAFKA_CLUSTERS_0_NAME: local
@@ -131,7 +131,7 @@ services:
 
 volumes:
   db_data:
-  minio_data:
+  # minio_data:
 
 networks:
   hackspace_network:
