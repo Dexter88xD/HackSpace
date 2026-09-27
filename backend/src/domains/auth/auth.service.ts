@@ -8,12 +8,13 @@ import { RegisterDto } from './dto/register/register.dto';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { randomInt } from 'crypto';
-import { EmailService } from '../email/email.service';
+import { EmailService } from '../../email/email.service';
 import { OtpVerificationDto } from './dto/otp-verification/otp-verification.dto';
 import { LoginDto } from './dto/login/login.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from '../database/entities/user.entity';
+import { User } from '../../database/entities/user.entity';
 import { Repository } from 'typeorm';
+import { use } from 'passport';
 @Injectable()
 export class AuthService {
   constructor(
@@ -29,8 +30,9 @@ export class AuthService {
     if (registerDto.password !== registerDto.confirmPassword)
       throw new BadRequestException('Passwords do not match');
     const normalizedEmail = registerDto.email.trim().toLowerCase();
+    const normalizedUsername = registerDto.username.trim().toLowerCase();
     const existingUser = await this.userRepository.findOne({
-      where: [{ email: normalizedEmail }, { username: registerDto.username }],
+      where: [{ email: normalizedEmail }, { username: normalizedUsername }],
     });
     if (existingUser) {
       if (existingUser.email === normalizedEmail)
@@ -43,7 +45,7 @@ export class AuthService {
     const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
     const user = this.userRepository.create({
       full_name: registerDto.fullName,
-      username: registerDto.username,
+      username: normalizedUsername,
       email: normalizedEmail,
       password_hash: passwordHash,
       otp_hash: otpHash,
@@ -59,9 +61,9 @@ export class AuthService {
   // Normalizes the email, finds and validates the user's verification request and OTP,
   // marks the email as verified, clears the OTP data, and saves the updated user.
   async verify(otpVerificationDto: OtpVerificationDto) {
-    const normalziedEmail = otpVerificationDto.email.trim().toLowerCase();
+    const normalizedEmail = otpVerificationDto.email.trim().toLowerCase();
     const user = await this.userRepository.findOne({
-      where: { email: normalziedEmail },
+      where: { email: normalizedEmail },
     });
     if (!user) throw new UnauthorizedException('Invalid verification request');
     if (user.email_verified)
@@ -88,9 +90,12 @@ export class AuthService {
   // Normalizes the email, finds the user and verifies the password, checks that the email is verified,
   // generates a JWT access token for the authenticated user, and returns the token.
   async signin(loginDto: LoginDto) {
-    const normalizedEmail = loginDto.email.trim().toLowerCase();
+    const normalizedIdentifier = loginDto.identifier.trim().toLowerCase();
     const user = await this.userRepository.findOne({
-      where: { email: normalizedEmail },
+      where: [
+        { email: normalizedIdentifier },
+        { username: normalizedIdentifier },
+      ],
     });
     if (!user || !(await bcrypt.compare(loginDto.password, user.password_hash)))
       throw new UnauthorizedException({
@@ -101,6 +106,7 @@ export class AuthService {
       throw new UnauthorizedException({
         message: 'Please verify your email first',
         code: 'EMAIL_NOT_VERIFIED',
+        email: user.email,
       });
     const accessToken = this.jwtService.sign({
       sub: user.id,

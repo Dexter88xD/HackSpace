@@ -2,13 +2,13 @@ import { Module } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtModule } from '@nestjs/jwt';
-import { EmailModule } from '../email/email.module';
-import { EmailService } from '../email/email.service';
+import { EmailModule } from '../../email/email.module';
+import { EmailService } from '../../email/email.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from '../database/entities/user.entity';
-import { UserProfile } from '../database/entities/user-profile.entity';
-import { UserSkill } from '../database/entities/user-skill.entity';
-import { UserRole } from '../database/entities/user-role.entity';
+import { User } from '../../database/entities/user.entity';
+import { UserProfile } from '../../database/entities/user-profile.entity';
+import { UserSkill } from '../../database/entities/user-skill.entity';
+import { UserRole } from '../../database/entities/user-role.entity';
 import { JwtStrategy } from './strategies/jwt.strategy';
 // AuthModule wires together the authentication layer: registers JwtModule to sign 7-day access tokens
 // using JWT_SECRET, imports EmailModule for verification/password-related emails, registers the User

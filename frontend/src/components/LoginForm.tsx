@@ -50,7 +50,7 @@ export function LoginForm({
     onError: (error, variables) => {
       if(axios.isAxiosError(error)) {
         if(error.response?.data.code === 'EMAIL_NOT_VERIFIED') {
-          sessionStorage.setItem('verificationEmail', variables.email);
+          sessionStorage.setItem('verificationEmail', error.response.data.email);
           navigate('/verify-otp')
         } 
       }
@@ -96,12 +96,12 @@ export function LoginForm({
                 Or continue with
               </FieldSeparator>
               <Field>
-                <FieldLabel htmlFor="email">Email</FieldLabel>
+                <FieldLabel htmlFor="identifier">Username or email</FieldLabel>
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="m@example.com"
-                  {...form.register('email')}
+                  id="identier"
+                  type="text"
+                  placeholder="username or email"
+                  {...form.register('identifier')}
                 />
               </Field>
               <Field>

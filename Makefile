@@ -28,6 +28,9 @@ storage:
 backend:
 	$(COMPOSE) up -d --build db backend
 
+migration:
+	docker compose exec backend npm run typeorm migration:run -- -d src/database/data-source.ts
+
 ai:
 	$(COMPOSE) up -d --build ai_service
 
