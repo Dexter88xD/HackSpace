@@ -4,17 +4,16 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { RegisterDto } from './dto/register/register.dto';
+import { RegisterDto } from './dto/register.dto';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { randomInt } from 'crypto';
 import { EmailService } from '../../email/email.service';
-import { OtpVerificationDto } from './dto/otp-verification/otp-verification.dto';
-import { LoginDto } from './dto/login/login.dto';
+import { OtpVerificationDto } from './dto/otp-verification.dto';
+import { LoginDto } from './dto/login.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../../database/entities/user.entity';
 import { Repository } from 'typeorm';
-import { use } from 'passport';
 @Injectable()
 export class AuthService {
   constructor(
@@ -24,7 +23,7 @@ export class AuthService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  // Validates the registration data, normalizes the email, checks for existing email/username,
+  // Validates the registration data, normalizes the email and username, checks for existing email/username,
   // hashes the password and verification OTP, creates and saves the user, then sends the OTP by email.
   async register(registerDto: RegisterDto) {
     if (registerDto.password !== registerDto.confirmPassword)
@@ -87,8 +86,9 @@ export class AuthService {
     };
   }
 
-  // Normalizes the email, finds the user and verifies the password, checks that the email is verified,
-  // generates a JWT access token for the authenticated user, and returns the token.
+  // Normalizes the identifier (Email or Username), finds the user and verifies the password,
+  // checks that the email is verified, generates a JWT access token
+  // for the authenticated user, and returns the token.
   async signin(loginDto: LoginDto) {
     const normalizedIdentifier = loginDto.identifier.trim().toLowerCase();
     const user = await this.userRepository.findOne({

@@ -10,6 +10,8 @@ import { UserProfile } from '../../database/entities/user-profile.entity';
 import { UserSkill } from '../../database/entities/user-skill.entity';
 import { UserRole } from '../../database/entities/user-role.entity';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { StringValue } from 'ms';
+
 // AuthModule wires together the authentication layer: registers JwtModule to sign 7-day access tokens
 // using JWT_SECRET, imports EmailModule for verification/password-related emails, registers the User
 // and related entities with TypeORM so their repositories can be injected into AuthService, exposes
@@ -19,7 +21,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     JwtModule.register({
       secret: process.env.JWT_SECRET,
       signOptions: {
-        expiresIn: '7d',
+        expiresIn: process.env.JWT_EXPIRES_IN as StringValue,
       },
     }),
     EmailModule,

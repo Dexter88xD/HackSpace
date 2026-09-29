@@ -29,7 +29,7 @@ backend:
 	$(COMPOSE) up -d --build db backend
 
 migration:
-	docker compose exec backend npm run typeorm migration:run -- -d src/database/data-source.ts
+	${COMPOSE} exec backend npm run typeorm migration:run -- -d src/database/data-source.ts
 
 ai:
 	$(COMPOSE) up -d --build ai_service
@@ -38,8 +38,8 @@ frontend:
 	$(COMPOSE) up -d --build db frontend
 
 lint:
-	cd backend && npm run lint
-	cd frontend && npm run lint
+	$(COMPOSE) exec backend npm run lint
+	$(COMPOSE) exec frontend npm run lint
 
 broker:
 	$(COMPOSE) up -d --build broker

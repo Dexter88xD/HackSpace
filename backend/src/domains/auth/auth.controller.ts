@@ -1,9 +1,9 @@
 import { Body, Controller, Post, Get, Req } from '@nestjs/common';
-import { RegisterDto } from './dto/register/register.dto';
+import { RegisterDto } from './dto/register.dto';
 import { AuthService } from './auth.service';
-import { OtpVerificationDto } from './dto/otp-verification/otp-verification.dto';
-import { LoginDto } from './dto/login/login.dto';
-import { ResendVerificationDto } from './dto/resend-verification-code/resend-verification.dto';
+import { OtpVerificationDto } from './dto/otp-verification.dto';
+import { LoginDto } from './dto/login.dto';
+import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { ApiResponse } from '@nestjs/swagger';
 import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
