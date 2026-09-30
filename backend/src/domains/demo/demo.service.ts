@@ -5,7 +5,9 @@ import { ClientKafka } from '@nestjs/microservices';
 export class DemoService {
   greetings: string[] = [];
 
-  constructor(@Inject('KAFKA_SERVICE') private readonly kafkaClient: ClientKafka) {}
+  constructor(
+    @Inject('KAFKA_SERVICE') private readonly kafkaClient: ClientKafka,
+  ) {}
 
   async onModuleInit() {
     // Connects to the broker immediately when the app starts

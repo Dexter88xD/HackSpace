@@ -23,16 +23,23 @@ help:
 	@echo "make re       Restart the stack"
 
 storage:
-	$(COMPOSE) up -d --build db minio
+	$(COMPOSE) up -d --build db
 
 backend:
-	$(COMPOSE) up -d --build db minio backend
+	$(COMPOSE) up -d --build db backend
+
+migration:
+	${COMPOSE} exec backend npm run typeorm migration:run -- -d src/database/data-source.ts
 
 ai:
 	$(COMPOSE) up -d --build ai_service
 
 frontend:
-	$(COMPOSE) up -d --build db minio frontend
+	$(COMPOSE) up -d --build db frontend
+
+lint:
+	$(COMPOSE) exec backend npm run lint
+	$(COMPOSE) exec frontend npm run lint
 
 broker:
 	$(COMPOSE) up -d --build broker

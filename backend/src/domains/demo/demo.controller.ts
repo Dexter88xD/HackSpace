@@ -1,16 +1,18 @@
 import { Controller, Get, Post, Body } from '@nestjs/common';
 import { DemoService } from './demo.service';
-import { EventPattern, Payload, Ctx, KafkaContext } from '@nestjs/microservices';
+import {
+  EventPattern,
+  Payload,
+  Ctx,
+  KafkaContext,
+} from '@nestjs/microservices';
 
 @Controller('demo')
 export class DemoController {
   constructor(private readonly demoService: DemoService) {}
 
   @EventPattern('greeting')
-  handleGreeting(
-    @Payload() message: string,
-    @Ctx() context: KafkaContext
-  ) {
+  handleGreeting(@Payload() message: string, @Ctx() context: KafkaContext) {
     // NestJS automatically parses the JSON payload for you
     console.log(`Received message payload:`, message);
 
