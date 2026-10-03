@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Get, Req } from '@nestjs/common';
+import { Body, Controller, Post, Get, Req, Res } from '@nestjs/common';
 import { RegisterDto } from './dto/register.dto';
 import { AuthService } from './auth.service';
 import { OtpVerificationDto } from './dto/otp-verification.dto';
@@ -8,6 +8,7 @@ import { ApiResponse } from '@nestjs/swagger';
 import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import type { AuthenticatedRequest } from './interfaces/authenticated-request.interface';
+import type { Response } from 'express';
 
 @Controller('auth')
 export class AuthController {
@@ -45,8 +46,20 @@ export class AuthController {
     },
   })
   @Post('signin')
-  signin(@Body() loginDto: LoginDto) {
-    return this.authService.signin(loginDto);
+  async signin(
+    @Body() loginDto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { accessToken } = await this.authService.signin(loginDto);
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: false, //TODO: false is only for development; use true in production
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+    return {
+      message: 'Signed in successfully',
+    };
   }
 
   @Post('resend-code')
