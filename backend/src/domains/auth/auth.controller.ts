@@ -8,6 +8,7 @@ import { ApiResponse } from '@nestjs/swagger';
 import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import type { AuthenticatedRequest } from './interfaces/authenticated-request.interface';
+
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -15,6 +16,7 @@ export class AuthController {
   register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
   }
+
   @Post('verify')
   verify(@Body() otpVerificationDto: OtpVerificationDto) {
     return this.authService.verify(otpVerificationDto);
@@ -46,10 +48,12 @@ export class AuthController {
   signin(@Body() loginDto: LoginDto) {
     return this.authService.signin(loginDto);
   }
+
   @Post('resend-code')
   resendOtp(@Body() resendVerificationDto: ResendVerificationDto) {
     return this.authService.resendOtp(resendVerificationDto.email);
   }
+
   @Get('me')
   @UseGuards(JwtAuthGuard)
   getMe(@Req() req: AuthenticatedRequest) {
