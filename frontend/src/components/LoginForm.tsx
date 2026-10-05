@@ -43,11 +43,11 @@ export function LoginForm({
   })
   const loginMutation = useMutation({
     mutationFn: login,
-    onSuccess: (data, _) => {
+    onSuccess: (data) => {
       localStorage.setItem("accessToken", data.accessToken);
       navigate('/');
     },
-    onError: (error, variables) => {
+    onError: (error) => {
       if(axios.isAxiosError(error)) {
         if(error.response?.data.code === 'EMAIL_NOT_VERIFIED') {
           sessionStorage.setItem('verificationEmail', error.response.data.email);
