@@ -15,7 +15,7 @@ export class DemoController {
   handleGreeting(@Payload() message: string, @Ctx() context: KafkaContext) {
     // NestJS automatically parses the JSON payload for you
     console.log(`Received message payload:`, message);
-
+    console.log(context);
     this.demoService.addGreeting(message);
   }
 
