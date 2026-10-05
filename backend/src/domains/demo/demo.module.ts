@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { DemoService } from './demo.service';
 import { DemoController } from './demo.controller';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { logLevel } from '@nestjs/microservices/external/kafka.interface';
 
 @Module({
   imports: [
