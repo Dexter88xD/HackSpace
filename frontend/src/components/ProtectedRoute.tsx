@@ -6,22 +6,18 @@ import { Spinner } from "./ui/spinner";
 
 type ProtectedRouteProps = {
     children: React.ReactNode;
-}
-// Protects authenticated routes by checking for an access token, validating it through the /me query,
-// displaying a loading spinner while the user is being verified, and redirecting to login when the token
-// is missing or invalid. Once authentication is confirmed, the protected content is rendered.
+};
+
+// Protects authenticated routes by validating the user's HttpOnly authentication
+// cookie through /auth/me, displaying a loading spinner while authentication is
+// being checked, and redirecting unauthenticated users to the login page.
 export default function ProtectedRoute({children} : ProtectedRouteProps) {
-    const accessToken = localStorage.getItem('accessToken');
     const meQuery = useQuery({
     queryKey: ['me'],
     queryFn: getMe,
-    enabled: !!accessToken,
     retry: false,
   });
 
-  if (!accessToken) {
-    return <Navigate to="/login" replace />;
-  }
   if (meQuery.isPending) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -31,10 +27,8 @@ export default function ProtectedRoute({children} : ProtectedRouteProps) {
   }
 
   if (meQuery.isError) {
-    localStorage.removeItem('accessToken');
     return <Navigate to="/login" replace />;
   }
-    if(!accessToken)
-        return <Navigate to="login" replace/>
-    return children;
+
+  return children;
 }

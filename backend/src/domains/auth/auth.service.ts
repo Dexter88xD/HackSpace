@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { RegisterDto } from './dto/register.dto';
@@ -14,6 +15,7 @@ import { LoginDto } from './dto/login.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../../database/entities/user.entity';
 import { Repository } from 'typeorm';
+import { RoleName, UserRole } from '../../database/entities/user-role.entity';
 @Injectable()
 export class AuthService {
   constructor(
@@ -21,6 +23,8 @@ export class AuthService {
     private readonly emailService: EmailService,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(UserRole)
+    private readonly roleRepository: Repository<UserRole>,
   ) {}
 
   // Validates the registration data, normalizes the email and username, checks for existing email/username,
@@ -42,6 +46,12 @@ export class AuthService {
     const otp = randomInt(100000, 1000000).toString();
     const otpHash = await bcrypt.hash(otp, 12);
     const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    const defaultRole = await this.roleRepository.findOne({
+      where: { role_name: RoleName.ROLE_USER },
+    });
+    if (!defaultRole) {
+      throw new InternalServerErrorException('Unexpected server error');
+    }
     const user = this.userRepository.create({
       full_name: registerDto.fullName,
       username: normalizedUsername,
@@ -49,6 +59,7 @@ export class AuthService {
       password_hash: passwordHash,
       otp_hash: otpHash,
       otp_expires_at: otpExpiresAt,
+      role: defaultRole,
     });
     await this.userRepository.save(user);
     await this.emailService.sendVerificationMail(normalizedEmail, otp);

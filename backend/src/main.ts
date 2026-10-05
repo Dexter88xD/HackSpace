@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import cookieParser from 'cookie-parser';
 
 // Creates the Nest application, configures Swagger/OpenAPI documentation with the HackSpace API metadata
 // and exposes it at /api, enables global request validation with whitelist/forbidNonWhitelisted to reject
@@ -28,6 +29,7 @@ async function bootstrap() {
   );
   app.enableCors({
     origin: 'http://localhost:5173',
+    credentials: true,
   });
 
   // 1. Configure the consumer
@@ -38,6 +40,8 @@ async function bootstrap() {
       consumer: { groupId: 'demo-consumer-group' },
     },
   });
+
+  app.use(cookieParser());
 
   await app.startAllMicroservices();
 

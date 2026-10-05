@@ -43,9 +43,7 @@ export function LoginForm({
   })
   const loginMutation = useMutation({
     mutationFn: login,
-    onSuccess: (data) => {
-      localStorage.setItem("accessToken", data.accessToken);
-      navigate('/');
+    onSuccess: () => {
     },
     onError: (error) => {
       if(axios.isAxiosError(error)) {

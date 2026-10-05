@@ -24,13 +24,6 @@ export const resend = async (email: string) => {
 }
 
 export async function getMe() {
-  const token = localStorage.getItem('accessToken');
-
-  const response = await api.get('/auth/me', {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
+  const response = await api.get('/auth/me');
   return response.data;
 }
