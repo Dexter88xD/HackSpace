@@ -5,8 +5,10 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  OneToOne,
 } from 'typeorm';
 import { HackathonPhase } from './hackathon-phase.entity';
+import { HackathonSettings } from './hackathon-settings.entity';
 
 @Entity('hackathons')
 export class Hackathon {
@@ -39,4 +41,7 @@ export class Hackathon {
 
   @OneToMany(() => HackathonPhase, (phase) => phase.hackathon)
   phases!: HackathonPhase[];
+
+  @OneToOne(() => HackathonSettings, (settings) => settings.hackathon)
+  settings!: HackathonSettings;
 }

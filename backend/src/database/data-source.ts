@@ -6,6 +6,7 @@ import { UserProfile } from './entities/user-profile.entity';
 import { UserSkill } from './entities/user-skill.entity';
 import { Hackathon } from './entities/hackathon.entity';
 import { HackathonPhase } from './entities/hackathon-phase.entity';
+import { HackathonSettings } from './entities/hackathon-settings.entity';
 
 loadEnv({ path: '../.env' });
 
@@ -24,6 +25,7 @@ export default new DataSource({
     UserSkill,
     Hackathon,
     HackathonPhase,
+    HackathonSettings
   ],
 
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
