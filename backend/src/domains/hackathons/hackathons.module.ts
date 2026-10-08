@@ -4,11 +4,13 @@ import { Hackathon } from '../../database/entities/hackathon.entity';
 import { HackathonsService } from './hackathons.service';
 import { HackathonPhase } from '../../database/entities/hackathon-phase.entity';
 import { HackathonSettings } from '../../database/entities/hackathon-settings.entity';
+import { HackathonsController } from './hackathons.controller';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Hackathon, HackathonPhase, HackathonSettings]),
   ],
+  controllers: [HackathonsController],
   providers: [HackathonsService],
   exports: [HackathonsService],
 })
