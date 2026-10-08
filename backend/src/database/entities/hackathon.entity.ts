@@ -4,7 +4,9 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
+import { HackathonPhase } from './hackathon-phase.entity';
 
 @Entity('hackathons')
 export class Hackathon {
@@ -34,4 +36,7 @@ export class Hackathon {
 
   @UpdateDateColumn({ type: 'timestamp' })
   updated_at!: Date;
+
+  @OneToMany(() => HackathonPhase, (phase) => phase.hackathon)
+  phases!: HackathonPhase[];
 }
