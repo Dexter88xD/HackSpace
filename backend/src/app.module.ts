@@ -5,12 +5,13 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './domains/auth/auth.module';
 import { EmailModule } from './email/email.module';
+import { DemoModule } from './domains/demo/demo.module';
+import { HackathonsModule } from './domains/hackathons/hackathons.module';
 
 // Configures the application by loading environment variables globally, establishing the PostgreSQL
 // database connection through TypeORM with automatic entity loading and migrations required for schema
 // changes, and importing the authentication and email modules. The AppController and AppService handle
 // the application's base endpoints and services.
-import { DemoModule } from './domains/demo/demo.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -30,6 +31,7 @@ import { DemoModule } from './domains/demo/demo.module';
     AuthModule,
     EmailModule,
     DemoModule,
+    HackathonsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
