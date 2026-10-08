@@ -25,7 +25,7 @@ export default new DataSource({
     UserSkill,
     Hackathon,
     HackathonPhase,
-    HackathonSettings
+    HackathonSettings,
   ],
 
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
