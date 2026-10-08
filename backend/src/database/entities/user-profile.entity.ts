@@ -17,8 +17,11 @@ export class UserProfile {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ nullable: true })
-  bio!: string;
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  bio!: string | null;
 
   @Column()
   avatar_url!: string;
