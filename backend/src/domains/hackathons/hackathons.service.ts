@@ -47,8 +47,7 @@ export class HackathonsService {
       const hackathonSettings = manager.create(HackathonSettings, {
         min_team_members: 1,
         max_team_members: 5,
-        additional_file: false,
-        additional_files_limit: 0,
+        files_limit: 0,
         file_max_size: 0,
         hackathon: savedHackathon,
       });

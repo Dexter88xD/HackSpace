@@ -9,7 +9,7 @@ import {
 import { Hackathon } from './hackathon.entity';
 
 @Check(`"min_team_members" >= 1 AND "max_team_members" >= "min_team_members"`)
-@Check(`"additional_files_limit" >= 0 AND "file_max_size" >= 0`)
+@Check(`"files_limit" >= 0 AND "file_max_size" >= 0`)
 @Entity('hackathon_settings')
 export class HackathonSettings {
   @PrimaryGeneratedColumn()
@@ -21,11 +21,8 @@ export class HackathonSettings {
   @Column()
   max_team_members!: number;
 
-  @Column({ default: false })
-  additional_file!: boolean;
-
   @Column({ default: 0 })
-  additional_files_limit!: number;
+  files_limit!: number;
 
   @Column({ default: 0 })
   file_max_size!: number;
