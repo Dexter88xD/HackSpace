@@ -9,7 +9,7 @@ import { RegisterDto } from './dto/register.dto';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { randomInt } from 'crypto';
-import { EmailService } from '../../email/email.service';
+import { EmailService } from '../../shared/email/email.service';
 import { OtpVerificationDto } from './dto/otp-verification.dto';
 import { LoginDto } from './dto/login.dto';
 import { InjectRepository } from '@nestjs/typeorm';
