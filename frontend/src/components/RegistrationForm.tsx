@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useMutation } from "@tanstack/react-query";
-import { register } from "@/api/auth";
+import { register, startOAuth } from "@/api/auth";
 import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -143,8 +143,19 @@ export function RegistrationForm({
                     ? "Creating..."
                     : "Create Account"}
                 </Button>
-                <Button variant="outline" type="button">
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => startOAuth("google")}
+                >
                   Sign up with Google
+                </Button>
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => startOAuth("42")}
+                >
+                  Sign up with 42 Intra
                 </Button>
                 <FieldDescription className="px-6 text-center">
                   Already have an account? <Link to={'/login'} className="underline underline-offset-4">Sign in</Link>

@@ -4,6 +4,7 @@ import {
   Injectable,
   InternalServerErrorException,
   UnauthorizedException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { RegisterDto } from './dto/register.dto';
 import * as bcrypt from 'bcrypt';
@@ -16,6 +17,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../../database/entities/user.entity';
 import { Repository } from 'typeorm';
 import { RoleName, UserRole } from '../../database/entities/user-role.entity';
+import {
+  OAuthIdentity,
+  OAuthProvider,
+} from '../../database/entities/oauth-identity.entity';
+import { randomBytes } from 'crypto';
 @Injectable()
 export class AuthService {
   constructor(
@@ -25,6 +31,8 @@ export class AuthService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(UserRole)
     private readonly roleRepository: Repository<UserRole>,
+    @InjectRepository(OAuthIdentity)
+    private readonly oauthIdentityRepository: Repository<OAuthIdentity>,
   ) {}
 
   // Validates the registration data, normalizes the email and username, checks for existing email/username,
@@ -173,4 +181,274 @@ export class AuthService {
       emailVerified: user.email_verified,
     };
   }
+
+  getOAuthAuthorizationUrl(providerName: string) {
+    const provider = this.getProvider(providerName);
+    const state = randomBytes(32).toString('hex');
+    const url = new URL(provider.authorizationUrl);
+    url.searchParams.set('client_id', provider.clientId);
+    url.searchParams.set('redirect_uri', provider.callbackUrl);
+    url.searchParams.set('scope', provider.scope);
+    if (provider.responseType) {
+      url.searchParams.set('response_type', provider.responseType);
+    }
+    url.searchParams.set('state', state);
+    return { url: url.toString(), state };
+  }
+
+  async authenticateWithOAuth(providerName: string, code: string) {
+    const provider = this.getProvider(providerName);
+    const profile = await provider.fetchProfile(code);
+    if (!profile.email || !profile.emailVerified) {
+      throw new UnauthorizedException(
+        'The OAuth provider did not return a verified email address',
+      );
+    }
+
+    let identity = await this.oauthIdentityRepository.findOne({
+      where: {
+        provider: provider.provider,
+        provider_user_id: profile.providerUserId,
+      },
+      relations: { user: true },
+    });
+    let user: User | null | undefined = identity?.user;
+
+    if (!user) {
+      user = await this.userRepository.findOne({
+        where: { email: profile.email.toLowerCase() },
+      });
+      if (!user) {
+        const defaultRole = await this.roleRepository.findOne({
+          where: { role_name: RoleName.ROLE_USER },
+        });
+        if (!defaultRole) {
+          throw new InternalServerErrorException('Unexpected server error');
+        }
+        const username = await this.getAvailableUsername(
+          profile.username || profile.email.split('@')[0],
+        );
+        user = this.userRepository.create({
+          username,
+          full_name: profile.fullName || username,
+          email: profile.email.toLowerCase(),
+          email_verified: true,
+          password_hash: await bcrypt.hash(randomBytes(32).toString('hex'), 12),
+          role: defaultRole,
+        });
+        user = await this.userRepository.save(user);
+      } else if (!user.email_verified) {
+        user.email_verified = true;
+        user = await this.userRepository.save(user);
+      }
+
+      identity = this.oauthIdentityRepository.create({
+        provider: provider.provider,
+        provider_user_id: profile.providerUserId,
+        user,
+      });
+      await this.oauthIdentityRepository.save(identity);
+    }
+
+    return this.jwtService.sign({ sub: user.id });
+  }
+
+  private getProvider(providerName: string) {
+    const provider = providerName.toLowerCase() as OAuthProvider;
+    const configs: Record<
+      OAuthProvider,
+      {
+        provider: OAuthProvider;
+        clientId: string;
+        clientSecret: string;
+        authorizationUrl: string;
+        tokenUrl: string;
+        callbackUrl: string;
+        scope: string;
+        responseType?: string;
+        fetchProfile: (code: string) => Promise<OAuthProfile>;
+      }
+    > = {
+      [OAuthProvider.GOOGLE]: this.googleProvider(),
+      [OAuthProvider.INTRA42]: this.intraProvider(),
+    };
+    const selected = configs[provider];
+    if (!selected?.clientId || !selected.clientSecret || !selected.callbackUrl) {
+      throw new ServiceUnavailableException(
+        'OAuth provider is not configured',
+      );
+    }
+    return selected;
+  }
+
+  private googleProvider() {
+    const clientId = process.env.GOOGLE_CLIENT_ID || '';
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET || '';
+    const callbackUrl =
+      process.env.GOOGLE_CALLBACK_URL ||
+      'http://localhost:3000/auth/oauth/google/callback';
+    return {
+      provider: OAuthProvider.GOOGLE,
+      clientId,
+      clientSecret,
+      authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
+      tokenUrl: 'https://oauth2.googleapis.com/token',
+      callbackUrl,
+      scope: 'openid email profile',
+      responseType: 'code',
+      fetchProfile: (code: string) =>
+        this.fetchGoogleProfile(code, clientId, clientSecret, callbackUrl),
+    };
+  }
+
+  private intraProvider() {
+    const clientId = process.env.INTRA42_CLIENT_ID || '';
+    const clientSecret = process.env.INTRA42_CLIENT_SECRET || '';
+    const callbackUrl =
+      process.env.INTRA42_CALLBACK_URL ||
+      'http://localhost:3000/auth/oauth/42/callback';
+    return {
+      provider: OAuthProvider.INTRA42,
+      clientId,
+      clientSecret,
+      authorizationUrl: 'https://api.intra.42.fr/oauth/authorize',
+      tokenUrl: 'https://api.intra.42.fr/oauth/token',
+      callbackUrl,
+      scope: 'public',
+      responseType: 'code',
+      fetchProfile: (code: string) =>
+        this.fetchIntraProfile(code, clientId, clientSecret, callbackUrl),
+    };
+  }
+
+  private async fetchGoogleProfile(
+    code: string,
+    clientId: string,
+    clientSecret: string,
+    redirectUri: string,
+  ): Promise<OAuthProfile> {
+    const token = await this.exchangeCode(
+      'https://oauth2.googleapis.com/token',
+      {
+        grant_type: 'authorization_code',
+        client_id: clientId,
+        client_secret: clientSecret,
+        code,
+        redirect_uri: redirectUri,
+      },
+      'Google',
+    );
+    const user = await this.fetchJson<{
+      sub: string;
+      email?: string;
+      email_verified?: boolean;
+      name?: string;
+      given_name?: string;
+    }>(
+      'https://openidconnect.googleapis.com/v1/userinfo',
+      { Authorization: 'Bearer ' + token },
+      'Google',
+    );
+    return {
+      providerUserId: user.sub,
+      username: user.email?.split('@')[0] || user.sub,
+      fullName: user.name || user.given_name || user.email || user.sub,
+      email: user.email || null,
+      emailVerified: user.email_verified === true,
+    };
+  }
+
+  private async fetchIntraProfile(
+    code: string,
+    clientId: string,
+    clientSecret: string,
+    redirectUri: string,
+  ): Promise<OAuthProfile> {
+    const token = await this.exchangeCode(
+      'https://api.intra.42.fr/oauth/token',
+      {
+        grant_type: 'authorization_code',
+        client_id: clientId,
+        client_secret: clientSecret,
+        code,
+        redirect_uri: redirectUri,
+      },
+      '42 Intra',
+    );
+    const user = await this.fetchJson<{
+      id: number;
+      login: string;
+      email: string;
+      displayname?: string;
+      first_name?: string;
+      last_name?: string;
+    }>(
+      'https://api.intra.42.fr/v2/me',
+      {
+        Authorization: 'Bearer ' + token,
+      },
+      '42 Intra',
+    );
+    return {
+      providerUserId: String(user.id),
+      username: user.login,
+      fullName:
+        user.displayname ||
+        `${user.first_name || ''} ${user.last_name || ''}`.trim() ||
+        user.login,
+      email: user.email,
+      emailVerified: true,
+    };
+  }
+
+  private async exchangeCode(
+    url: string,
+    body: Record<string, string>,
+    provider: string,
+  ): Promise<string> {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams(body).toString(),
+    });
+    if (!response.ok)
+      throw new UnauthorizedException(`${provider} OAuth failed`);
+    const data = (await response.json()) as { access_token?: string };
+    if (!data.access_token)
+      throw new UnauthorizedException(`${provider} OAuth failed`);
+    return data.access_token;
+  }
+
+  private async fetchJson<T>(
+    url: string,
+    headers: Record<string, string>,
+    provider: string,
+  ): Promise<T> {
+    const response = await fetch(url, { headers });
+    if (!response.ok)
+      throw new UnauthorizedException(`${provider} OAuth failed`);
+    return (await response.json()) as T;
+  }
+
+  private async getAvailableUsername(value: string) {
+    const base = value.toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 24) || 'user';
+    let username = base;
+    let suffix = 1;
+    while (await this.userRepository.findOne({ where: { username } })) {
+      username = `${base.slice(0, 24 - String(suffix).length - 1)}_${suffix}`;
+      suffix += 1;
+    }
+    return username;
+  }
+}
+
+interface OAuthProfile {
+  providerUserId: string;
+  username: string;
+  fullName: string;
+  email: string | null;
+  emailVerified: boolean;
 }

@@ -57,6 +57,18 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
+## OAuth development setup
+
+The backend supports Google and 42 Intra OAuth:
+
+- Start: `GET /auth/oauth/google` or `GET /auth/oauth/42`
+- Callback: `/auth/oauth/google/callback` or `/auth/oauth/42/callback`
+
+
+The callback sets the existing `accessToken` HttpOnly cookie and redirects to
+`FRONTEND_URL`. Cancelled or failed authentication redirects to
+`/login?oauthError=...`.
+
 ## Deployment
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.

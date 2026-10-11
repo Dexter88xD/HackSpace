@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Get, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, Logger, Param, Post, Query, Req, Res } from '@nestjs/common';
 import { RegisterDto } from './dto/register.dto';
 import { AuthService } from './auth.service';
 import { OtpVerificationDto } from './dto/otp-verification.dto';
@@ -12,6 +12,8 @@ import type { Response } from 'express';
 
 @Controller('auth')
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(private readonly authService: AuthService) {}
   @Post('register')
   register(@Body() registerDto: RegisterDto) {
@@ -71,6 +73,62 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   getMe(@Req() req: AuthenticatedRequest) {
     return this.authService.getMe(req.user.userId);
+  }
+
+  @Get('oauth/:provider')
+  oauthStart(@Param('provider') provider: string, @Res() res: Response) {
+    const { url, state } = this.authService.getOAuthAuthorizationUrl(provider);
+    res.cookie('oauthState', state, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 10 * 60 * 1000,
+    });
+    return res.redirect(url);
+  }
+
+  @Get('oauth/:provider/callback')
+  async oauthCallback(
+    @Param('provider') provider: string,
+    @Query('code') code: string | undefined,
+    @Query('state') state: string | undefined,
+    @Query('error') error: string | undefined,
+    @Req() req: AuthenticatedRequest,
+    @Res() res: Response,
+  ) {
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const redirectToLogin = (reason: string) =>
+      res.redirect(
+        `${frontendUrl}/login?oauthError=${encodeURIComponent(reason)}`,
+      );
+
+    if (error) return redirectToLogin('OAuth authentication was cancelled');
+    const requestState = req.cookies?.oauthState;
+    res.clearCookie('oauthState');
+    if (!code || !state || state !== requestState) {
+      return redirectToLogin('Invalid OAuth request');
+    }
+
+    try {
+      const accessToken = await this.authService.authenticateWithOAuth(
+        provider,
+        code,
+      );
+      res.cookie('accessToken', accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+      return res.redirect(frontendUrl);
+    } catch (error: unknown) {
+      this.logger.warn(
+        `OAuth callback failed: ${
+          error instanceof Error ? error.message : 'unknown error'
+        }`,
+      );
+      return redirectToLogin('OAuth authentication failed');
+    }
   }
   // TODO: Saad — create the forgot-password endpoint and implement the password reset flow.
 }
