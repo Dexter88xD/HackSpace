@@ -273,10 +273,12 @@ export class AuthService {
       [OAuthProvider.INTRA42]: this.intraProvider(),
     };
     const selected = configs[provider];
-    if (!selected?.clientId || !selected.clientSecret || !selected.callbackUrl) {
-      throw new ServiceUnavailableException(
-        'OAuth provider is not configured',
-      );
+    if (
+      !selected?.clientId ||
+      !selected.clientSecret ||
+      !selected.callbackUrl
+    ) {
+      throw new ServiceUnavailableException('OAuth provider is not configured');
     }
     return selected;
   }
@@ -434,7 +436,11 @@ export class AuthService {
   }
 
   private async getAvailableUsername(value: string) {
-    const base = value.toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 24) || 'user';
+    const base =
+      value
+        .toLowerCase()
+        .replace(/[^a-z0-9_]/g, '_')
+        .slice(0, 24) || 'user';
     let username = base;
     let suffix = 1;
     while (await this.userRepository.findOne({ where: { username } })) {

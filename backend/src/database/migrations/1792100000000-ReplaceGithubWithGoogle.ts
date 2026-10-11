@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class ReplaceGithubWithGoogle1792100000000
-  implements MigrationInterface
-{
+export class ReplaceGithubWithGoogle1792100000000 implements MigrationInterface {
   name = 'ReplaceGithubWithGoogle1792100000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
