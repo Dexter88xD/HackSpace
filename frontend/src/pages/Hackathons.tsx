@@ -1,5 +1,5 @@
 function Hackathons() {
-    return <h1>Hackathons</h1>;
+  return <h1>Hackathons</h1>;
 }
 
 export default Hackathons;
