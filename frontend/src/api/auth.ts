@@ -2,6 +2,7 @@ import { RegisterFormData } from "@/schemas/register.schema";
 import api from "./client";
 import { VerificationFormData } from "@/schemas/verification.schema";
 import { LoginFormData } from "@/schemas/login.schema";
+import { AuthenticatedUser } from "@/types/auth";
 
 export const register = async (data: RegisterFormData) => {
     const response = await api.post('/auth/register', data);
@@ -19,11 +20,11 @@ export const login = async (data: LoginFormData) => {
 }
 
 export const resend = async (email: string) => {
-    const response = await api.post('/auth/resend-code', {email});
+    const response = await api.post('/auth/resend-code', { email });
     return response.data;
 }
 
-export async function getMe() {
-  const response = await api.get('/auth/me');
-  return response.data;
+export async function getMe(): Promise<AuthenticatedUser> {
+    const response = await api.get<AuthenticatedUser>('/auth/me');
+    return response.data;
 }

@@ -6,6 +6,7 @@ import Register from "./pages/Register";
 import { OtpVerification } from "./pages/OtpVerification";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
+import HackathonManagement from "./pages/admin/HackathonManagement";
 function App() {
   return (
     <BrowserRouter>
@@ -26,6 +27,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Hackathons />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/hackathons"
+            element={
+              <ProtectedRoute requiredRole="ROLE_ADMIN">
+                <HackathonManagement />
               </ProtectedRoute>
             }
           />

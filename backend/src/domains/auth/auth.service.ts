@@ -161,6 +161,7 @@ export class AuthService {
   async getMe(userId: number) {
     const user = await this.userRepository.findOne({
       where: { id: userId },
+      relations: { role: true },
     });
     if (!user) {
       throw new UnauthorizedException('User not found');
@@ -169,6 +170,7 @@ export class AuthService {
       id: user.id,
       username: user.username,
       fullName: user.full_name,
+      role: user.role.role_name,
       email: user.email,
       emailVerified: user.email_verified,
     };
