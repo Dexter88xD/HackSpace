@@ -1,6 +1,7 @@
 import HackathonTable from "@/components/admin/HackathonTable";
 import { Plus } from "lucide-react";
 import type { Hackathon } from "@/types/hackathon";
+import { Link } from "react-router-dom";
 
 const hackathons: Hackathon[] = [
   {
@@ -34,15 +35,15 @@ function HackathonManagement() {
           </p>
         </div>
 
-        <button
-          type="button"
-          className="inline-flex w-fit shrink-0 items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900"
+        <Link
+          to="/admin/hackathons/new"
+          className="inline-flex w-fit items-center gap-2 rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-700"
         >
           <Plus size={18} />
           Create Hackathon
-        </button>
+        </Link>
       </div>
-      <HackathonTable hackathons={ hackathons }/>
+      <HackathonTable hackathons={hackathons} />
     </section>
   );
 }

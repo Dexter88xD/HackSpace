@@ -1,5 +1,6 @@
 import type { Hackathon } from "@/types/hackathon";
 import { CalendarX } from "lucide-react";
+import { Link } from "react-router-dom";
 
 type HackathonTableProps = {
   hackathons: Hackathon[];
@@ -79,12 +80,12 @@ function HackathonTable({ hackathons }: HackathonTableProps) {
                     })}
                   </td>
                   <td className="px-6 py-4">
-                    <button
-                      type="button"
+                    <Link
+                      to={`/admin/hackathons/${hackathon.id}/edit`}
                       className="font-medium text-gray-900 hover:underline"
                     >
                       Edit
-                    </button>
+                    </Link>
                   </td>
                 </tr>
               ))
