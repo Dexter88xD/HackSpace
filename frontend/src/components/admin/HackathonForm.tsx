@@ -9,6 +9,8 @@ import { Link } from "react-router-dom";
 
 type HackathonFormProps = {
   hackathon?: Hackathon;
+  onSubmit: (data: HackathonFormValues) => void | Promise<void>;
+  isSubmitting?: boolean;
 };
 
 function toDateTimeLocal(iso: string): string {
@@ -19,7 +21,11 @@ function toDateTimeLocal(iso: string): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-function HackathonForm({ hackathon }: HackathonFormProps) {
+function HackathonForm({
+  hackathon,
+  onSubmit,
+  isSubmitting = false,
+}: HackathonFormProps) {
   const isEditing = !!hackathon;
   const {
     register,
@@ -36,9 +42,6 @@ function HackathonForm({ hackathon }: HackathonFormProps) {
     },
   });
 
-  function onSubmit(data: HackathonFormValues) {
-    console.log(data);
-  }
   return (
     <form
       noValidate
@@ -150,9 +153,14 @@ function HackathonForm({ hackathon }: HackathonFormProps) {
 
         <button
           type="submit"
-          className="rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-700"
+          disabled={isSubmitting}
+          className="rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isEditing ? "Save Changes" : "Create Hackathon"}
+          {isSubmitting
+            ? "Saving..."
+            : isEditing
+              ? "Save Changes"
+              : "Create Hackathon"}
         </button>
       </div>
     </form>
