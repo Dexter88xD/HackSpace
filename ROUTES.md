@@ -10,7 +10,7 @@ by Vite at `http://localhost:5173`; backend URLs are served by NestJS at
 | --- | --- | --- | --- |
 | `/` | Home | Protected | Current authenticated landing page (placeholder content) |
 | `/hackathons` | Hackathons | Protected | Hackathon listing page (placeholder content) |
-| `/login` | Login | Public | Password login plus GitHub and 42 Intra OAuth |
+| `/login` | Login | Public | Password login plus Google and 42 Intra OAuth |
 | `/register` | Register | Public | Account registration |
 | `/verify-otp` | OTP verification | Public | Email verification after registration or an unverified login |
 
@@ -26,8 +26,8 @@ All endpoints below are relative to `http://localhost:3000`.
 | `POST` | `/auth/resend-code` | Public | Send a new email verification code |
 | `POST` | `/auth/signin` | Public | Sign in with username/email and password; sets the `accessToken` cookie |
 | `GET` | `/auth/me` | Cookie | Return the currently authenticated user |
-| `GET` | `/auth/oauth/github` | Public | Start GitHub OAuth |
-| `GET` | `/auth/oauth/github/callback` | OAuth callback | Complete GitHub OAuth and redirect to the frontend |
+| `GET` | `/auth/oauth/google` | Public | Start Google OAuth |
+| `GET` | `/auth/oauth/google/callback` | OAuth callback | Complete Google OAuth and redirect to the frontend |
 | `GET` | `/auth/oauth/42` | Public | Start 42 Intra OAuth |
 | `GET` | `/auth/oauth/42/callback` | OAuth callback | Complete 42 Intra OAuth and redirect to the frontend |
 | `GET` | `/demo/greetings` | Public | Demo endpoint for stored Kafka greetings |
@@ -39,7 +39,7 @@ All endpoints below are relative to `http://localhost:3000`.
 | --- | --- |
 | `http://localhost:3000/api` | Swagger UI for the NestJS API |
 | `http://localhost:5173` | React/Vite frontend |
-| `http://localhost:3000/auth/oauth/github` | GitHub OAuth start URL used by the login UI |
+| `http://localhost:3000/auth/oauth/google` | Google OAuth start URL used by the login UI |
 | `http://localhost:3000/auth/oauth/42` | 42 Intra OAuth start URL used by the login UI |
 
 The OAuth provider credentials and callback URLs are configured in the

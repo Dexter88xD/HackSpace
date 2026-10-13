@@ -59,9 +59,9 @@ export function RegistrationForm({
         <form onSubmit={form.handleSubmit((data) => onSubmit(data))}>
           <FieldGroup>
             <Field>
-              <FieldLabel htmlFor="name">Full Name</FieldLabel>
+              <FieldLabel htmlFor="full-name">Full Name</FieldLabel>
               <Input
-                id="name"
+                id="full-name"
                 type="text"
                 placeholder="Full Name"
                 {...form.register("fullName")}
@@ -71,9 +71,9 @@ export function RegistrationForm({
               <FieldError>{form.formState.errors.fullName.message}</FieldError>
             )}
             <Field>
-              <FieldLabel htmlFor="name">Username</FieldLabel>
+              <FieldLabel htmlFor="username">Username</FieldLabel>
               <Input
-                id="name"
+                id="username"
                 type="text"
                 placeholder="Username"
                 {...form.register("username")}

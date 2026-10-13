@@ -112,9 +112,9 @@ export class AuthController {
         `${frontendUrl}/login?oauthError=${encodeURIComponent(reason)}`,
       );
 
-    if (error) return redirectToLogin('OAuth authentication was cancelled');
     const requestState = req.cookies?.oauthState;
     res.clearCookie('oauthState');
+    if (error) return redirectToLogin('OAuth authentication was cancelled');
     if (!code || !state || state !== requestState) {
       return redirectToLogin('Invalid OAuth request');
     }

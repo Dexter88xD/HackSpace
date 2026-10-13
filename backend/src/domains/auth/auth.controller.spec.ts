@@ -28,6 +28,7 @@ describe('AuthController', () => {
 
   it('redirects cancelled OAuth authentication to the frontend login page', async () => {
     const response = {
+      clearCookie: jest.fn(),
       redirect: jest.fn(),
     };
 
@@ -43,6 +44,7 @@ describe('AuthController', () => {
     expect(response.redirect).toHaveBeenCalledWith(
       'http://localhost:5173/login?oauthError=OAuth%20authentication%20was%20cancelled',
     );
+    expect(response.clearCookie).toHaveBeenCalledWith('oauthState');
   });
 
   it('rejects an OAuth callback with a mismatched state', async () => {

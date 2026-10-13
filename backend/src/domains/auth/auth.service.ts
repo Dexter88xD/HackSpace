@@ -15,7 +15,7 @@ import { OtpVerificationDto } from './dto/otp-verification.dto';
 import { LoginDto } from './dto/login.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../../database/entities/user.entity';
-import { Repository } from 'typeorm';
+import { DataSource, QueryFailedError, Repository } from 'typeorm';
 import { RoleName, UserRole } from '../../database/entities/user-role.entity';
 import {
   OAuthIdentity,
@@ -25,6 +25,7 @@ import { randomBytes } from 'crypto';
 @Injectable()
 export class AuthService {
   constructor(
+    private readonly dataSource: DataSource,
     private readonly jwtService: JwtService,
     private readonly emailService: EmailService,
     @InjectRepository(User)
@@ -204,53 +205,79 @@ export class AuthService {
         'The OAuth provider did not return a verified email address',
       );
     }
+    const normalizedEmail = profile.email.toLowerCase();
 
-    let identity = await this.oauthIdentityRepository.findOne({
-      where: {
-        provider: provider.provider,
-        provider_user_id: profile.providerUserId,
-      },
-      relations: { user: true },
-    });
-    let user: User | null | undefined = identity?.user;
-
-    if (!user) {
-      user = await this.userRepository.findOne({
-        where: { email: profile.email.toLowerCase() },
-      });
-      if (!user) {
-        const defaultRole = await this.roleRepository.findOne({
-          where: { role_name: RoleName.ROLE_USER },
+    try {
+      return await this.dataSource.transaction(async (manager) => {
+        const userRepository = manager.getRepository(User);
+        const identityRepository = manager.getRepository(OAuthIdentity);
+        const roleRepository = manager.getRepository(UserRole);
+        const identity = await identityRepository.findOne({
+          where: {
+            provider: provider.provider,
+            provider_user_id: profile.providerUserId,
+          },
+          relations: { user: true },
         });
-        if (!defaultRole) {
-          throw new InternalServerErrorException('Unexpected server error');
+        let user: User | null | undefined = identity?.user;
+
+        if (!user) {
+          user = await userRepository.findOne({
+            where: { email: normalizedEmail },
+          });
+          if (!user) {
+            const defaultRole = await roleRepository.findOne({
+              where: { role_name: RoleName.ROLE_USER },
+            });
+            if (!defaultRole) {
+              throw new InternalServerErrorException('Unexpected server error');
+            }
+            const username = await this.getAvailableUsername(
+              profile.username || normalizedEmail.split('@')[0],
+              userRepository,
+            );
+            user = userRepository.create({
+              username,
+              full_name: profile.fullName || username,
+              email: normalizedEmail,
+              email_verified: true,
+              password_hash: await bcrypt.hash(
+                randomBytes(32).toString('hex'),
+                12,
+              ),
+              role: defaultRole,
+            });
+            user = await userRepository.save(user);
+          } else if (!user.email_verified) {
+            user.email_verified = true;
+            user = await userRepository.save(user);
+          }
+
+          const newIdentity = identityRepository.create({
+            provider: provider.provider,
+            provider_user_id: profile.providerUserId,
+            user,
+          });
+          await identityRepository.save(newIdentity);
         }
-        const username = await this.getAvailableUsername(
-          profile.username || profile.email.split('@')[0],
-        );
-        user = this.userRepository.create({
-          username,
-          full_name: profile.fullName || username,
-          email: profile.email.toLowerCase(),
-          email_verified: true,
-          password_hash: await bcrypt.hash(randomBytes(32).toString('hex'), 12),
-          role: defaultRole,
-        });
-        user = await this.userRepository.save(user);
-      } else if (!user.email_verified) {
-        user.email_verified = true;
-        user = await this.userRepository.save(user);
-      }
 
-      identity = this.oauthIdentityRepository.create({
-        provider: provider.provider,
-        provider_user_id: profile.providerUserId,
-        user,
+        return this.jwtService.sign({ sub: user.id });
       });
-      await this.oauthIdentityRepository.save(identity);
+    } catch (error) {
+      if (error instanceof QueryFailedError) {
+        const identity = await this.oauthIdentityRepository.findOne({
+          where: {
+            provider: provider.provider,
+            provider_user_id: profile.providerUserId,
+          },
+          relations: { user: true },
+        });
+        if (identity?.user) {
+          return this.jwtService.sign({ sub: identity.user.id });
+        }
+      }
+      throw error;
     }
-
-    return this.jwtService.sign({ sub: user.id });
   }
 
   private getProvider(providerName: string) {
@@ -435,7 +462,10 @@ export class AuthService {
     return (await response.json()) as T;
   }
 
-  private async getAvailableUsername(value: string) {
+  private async getAvailableUsername(
+    value: string,
+    userRepository = this.userRepository,
+  ) {
     const base =
       value
         .toLowerCase()
@@ -443,7 +473,7 @@ export class AuthService {
         .slice(0, 24) || 'user';
     let username = base;
     let suffix = 1;
-    while (await this.userRepository.findOne({ where: { username } })) {
+    while (await userRepository.findOne({ where: { username } })) {
       username = `${base.slice(0, 24 - String(suffix).length - 1)}_${suffix}`;
       suffix += 1;
     }

@@ -111,7 +111,7 @@ export function LoginForm({
               <Field>
                 <FieldLabel htmlFor="identifier">Username or email</FieldLabel>
                 <Input
-                  id="identier"
+                  id="identifier"
                   type="text"
                   placeholder="username or email"
                   {...form.register('identifier')}
