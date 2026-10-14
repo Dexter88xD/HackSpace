@@ -12,6 +12,7 @@ import { UserRole } from '../../database/entities/user-role.entity';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { StringValue } from 'ms';
 import { RolesGuard } from './guards/roles.guard';
+import { OAuthIdentity } from '../../database/entities/oauth-identity.entity';
 
 // AuthModule wires together the authentication layer: registers JwtModule to sign 7-day access tokens
 // using JWT_SECRET, imports EmailModule for verification/password-related emails, registers the User
@@ -26,7 +27,13 @@ import { RolesGuard } from './guards/roles.guard';
       },
     }),
     EmailModule,
-    TypeOrmModule.forFeature([User, UserProfile, UserSkill, UserRole]),
+    TypeOrmModule.forFeature([
+      User,
+      UserProfile,
+      UserSkill,
+      UserRole,
+      OAuthIdentity,
+    ]),
   ],
   controllers: [AuthController],
   providers: [AuthService, EmailService, JwtStrategy, RolesGuard],
