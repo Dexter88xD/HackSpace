@@ -7,6 +7,7 @@ import { UserSkill } from './entities/user-skill.entity';
 import { Hackathon } from './entities/hackathon.entity';
 import { HackathonPhase } from './entities/hackathon-phase.entity';
 import { HackathonSettings } from './entities/hackathon-settings.entity';
+import { OAuthIdentity } from './entities/oauth-identity.entity';
 
 loadEnv({ path: '../.env' });
 
@@ -23,6 +24,7 @@ export default new DataSource({
     UserRole,
     UserProfile,
     UserSkill,
+    OAuthIdentity,
     Hackathon,
     HackathonPhase,
     HackathonSettings,
