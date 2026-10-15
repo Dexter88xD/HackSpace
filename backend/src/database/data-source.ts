@@ -23,9 +23,9 @@ export default new DataSource({
     UserRole,
     UserProfile,
     UserSkill,
-    OAuthIdentity,
     Hackathon,
     HackathonPhase,
+    OAuthIdentity,
   ],
 
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
