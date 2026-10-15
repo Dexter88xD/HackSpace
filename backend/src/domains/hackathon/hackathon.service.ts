@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Hackathon } from '../../database/entities/hackathon.entity';
-import { Repository } from 'typeorm';
-import { HackathonPhaseName } from '../../database/entities/hackathon-phase.entity';
+import { Brackets, Repository } from 'typeorm';
+import { HackathonFiltersDto } from './dto/hackathon-filters.dto';
 
 // This service handles fetching hackathons from the database.
 // It supports searching, filtering by dates and currently active phase,
@@ -14,49 +14,66 @@ export class HackathonService {
     private readonly hackthonRepository: Repository<Hackathon>,
   ) {}
 
-  async findAll(
-    search?: string,
-    startDate?: string,
-    endDate?: string,
-    page?: number,
-    limit?: number,
-    phase?: HackathonPhaseName,
-  ) {
+  async findAll(filterQuery: HackathonFiltersDto) {
+    if (
+      filterQuery.startDate &&
+      filterQuery.endDate &&
+      filterQuery.startDate > filterQuery.endDate
+    ) {
+      throw new BadRequestException(
+        'startDate must be before or equal to endDate',
+      );
+    }
     const query = this.hackthonRepository.createQueryBuilder('hackathon');
-    const pageNumber = page ?? 1;
-    const pageLimit = limit ?? 12;
+    const pageNumber = filterQuery.page ?? 1;
+    const pageLimit = filterQuery.limit ?? 12;
 
-    if (search) {
+    if (filterQuery.search) {
       query.andWhere(
-        'hackathon.title ILIKE :search OR hackathon.description ILIKE :search OR hackathon.organization_name ILIKE :search',
-        { search: `%${search}%` },
+        new Brackets((qb) => {
+          qb.where('hackathon.title ILIKE :search')
+            .orWhere('hackathon.description ILIKE :search')
+            .orWhere('hackathon.organization_name ILIKE :search');
+        }),
+        { search: `%${filterQuery.search}%` },
       );
     }
 
-    if (startDate) {
-      query.andWhere('DATE(hackathon.start_at) >= :startDate', { startDate });
+    if (filterQuery.startDate) {
+      query.andWhere('hackathon.end_at >= :startDate', {
+        startDate: filterQuery.startDate,
+      });
     }
 
-    if (endDate) {
-      query.andWhere('DATE(hackathon.start_at) <= :endDate', { endDate });
+    if (filterQuery.endDate) {
+      const nextDay = new Date(`${filterQuery.endDate}T00:00:00.000Z`);
+      nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+      query.andWhere('hackathon.start_at < :nextDay', {
+        nextDay,
+      });
     }
 
-    if (phase) {
-      console.log('Current server time:', new Date());
+    if (filterQuery.phase) {
+      const now = new Date();
       query
         .innerJoin('hackathon.phases', 'phase')
-        .andWhere('phase.phase_name = :phase', { phase })
-        .andWhere('phase.start_at <= :now', { now: new Date() })
-        .andWhere('phase.end_at > :now', { now: new Date() });
+        .andWhere('phase.phase_name = :phase', { phase: filterQuery.phase })
+        .andWhere('phase.start_at <= :now', { now })
+        .andWhere('phase.end_at > :now', { now });
     }
-    query.skip((pageNumber - 1) * pageLimit).take(pageLimit);
+
+    query
+      .orderBy('hackathon.start_at', 'ASC')
+      .addOrderBy('hackathon.id', 'ASC')
+      .skip((pageNumber - 1) * pageLimit)
+      .take(pageLimit);
 
     const [data, total] = await query.getManyAndCount();
     return {
       data,
       total,
-      page,
-      limit,
+      page: pageNumber,
+      limit: pageLimit,
     };
   }
 }

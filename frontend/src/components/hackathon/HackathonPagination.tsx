@@ -8,6 +8,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { HackathonPaginationProps } from "@/types/hackathon";
+import React from "react";
 
 // This component displays pagination controls for hackathon results.
 // When a page is selected, it calls onPageChange to notify the parent.
@@ -17,29 +18,59 @@ export function HackathonPagination({
   totalPages,
   onPageChange,
 }: HackathonPaginationProps) {
+  const visiblePages: number[] = [];
+  for (let page = 1; page <= totalPages; page++) {
+    if (
+      page === 1 ||
+      page === totalPages ||
+      (page >= currentPage - 1 && page <= currentPage + 1)
+    )
+      visiblePages.push(page);
+  }
   return (
     <Pagination>
       <PaginationContent>
         <PaginationItem>
-          <PaginationPrevious href="#"  onClick={() => onPageChange(currentPage - 1)} className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}/>
+          <PaginationPrevious
+            onClick={() => {
+              if (currentPage > 1) onPageChange(currentPage - 1);
+            }}
+            className={
+              currentPage === 1
+                ? "pointer-events-none opacity-50"
+                : "cursor-pointer"
+            }
+          />
         </PaginationItem>
-        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-          <PaginationItem key={page}>
-            <PaginationLink
-              href="#"
-              isActive={page === currentPage}
-              onClick={() => onPageChange(page)}
-            >
-              {page}
-            </PaginationLink>
-          </PaginationItem>
+        {visiblePages.map((page, index) => (
+          <React.Fragment key={page}>
+            {index > 0 && page - visiblePages[index - 1] > 1 && (
+              <PaginationItem>
+                <PaginationEllipsis />
+              </PaginationItem>
+            )}
+            <PaginationItem>
+              <PaginationLink
+                className="cursor-pointer"
+                isActive={page === currentPage}
+                onClick={() => onPageChange(page)}
+              >
+                {page}
+              </PaginationLink>
+            </PaginationItem>
+          </React.Fragment>
         ))}
-        {totalPages > 1 && (
         <PaginationItem>
-          <PaginationEllipsis />
-        </PaginationItem>)}
-        <PaginationItem>
-          <PaginationNext href="#" onClick={() => onPageChange(currentPage + 1)} className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}/>
+          <PaginationNext
+            onClick={() => {
+              if (currentPage < totalPages) onPageChange(currentPage + 1);
+            }}
+            className={
+              currentPage === totalPages
+                ? "pointer-events-none opacity-50"
+                : "cursor-pointer"
+            }
+          />
         </PaginationItem>
       </PaginationContent>
     </Pagination>

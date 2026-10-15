@@ -47,7 +47,7 @@ export default function HackathonFilters({
           setPhase(value === "All" ? undefined : (value as HackathonPhaseName));
         }}
       >
-        <SelectTrigger className="w-[25]">
+        <SelectTrigger className="w-full sm:w-40">
           <SelectValue placeholder="Phase" />
         </SelectTrigger>
         <SelectContent>

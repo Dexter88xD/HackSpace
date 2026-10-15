@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { addDays, format } from "date-fns";
+import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { type DateRange } from "react-day-picker";
 
@@ -21,10 +21,9 @@ export function DatePickerWithRange({
 }: {
   onDateChange: (date: DateRange | undefined) => void;
 }) {
-  const [date, setDate] = React.useState<DateRange | undefined>({
-    from: new Date(new Date().getFullYear(), 0, 20),
-    to: addDays(new Date(new Date().getFullYear(), 0, 20), 20),
-  });
+  const [date, setDate] = React.useState<DateRange | undefined>(
+    undefined
+  );
 
   return (
     <Field className="mx-auto w-60">
@@ -47,7 +46,7 @@ export function DatePickerWithRange({
                   format(date.from, "LLL dd, y")
                 )
               ) : (
-                <span>Pick a date</span>
+                <span>Select date range</span>
               )}
             </Button>
           }

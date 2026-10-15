@@ -6,10 +6,12 @@ import {
   UpdateDateColumn,
   OneToOne,
   ManyToOne,
+  OneToMany,
 } from 'typeorm';
 
 import { UserProfile } from './user-profile.entity';
 import { UserRole } from './user-role.entity';
+import { OAuthIdentity } from './oauth-identity.entity';
 
 @Entity('users')
 export class User {
@@ -48,4 +50,7 @@ export class User {
 
   @ManyToOne(() => UserRole, (role) => role.users)
   role!: UserRole;
+
+  @OneToMany(() => OAuthIdentity, (identity) => identity.user)
+  oauth_identities!: OAuthIdentity[];
 }

@@ -18,7 +18,7 @@ export type HackathonFiltersType = {
 export type Hackathon = {
   id: number;
   title: string;
-  description: string;
+  description: string | null;
   organization_name: string;
   start_at: string;
   end_at: string;

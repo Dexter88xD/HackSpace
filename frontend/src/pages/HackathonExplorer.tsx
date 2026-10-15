@@ -6,7 +6,7 @@ import { HackathonFiltersType } from "@/types/hackathon";
 import { LoaderCircle } from "lucide-react";
 import { HackathonCard } from "@/components/hackathon/HackathonCard";
 import { HackathonPagination } from "@/components/hackathon/HackathonPagination";
-
+import axios from "axios";
 
 // This component displays hackathons and manages filter and pagination state.
 // TanStack Query fetches hackathons whenever the filters change.
@@ -16,14 +16,14 @@ function HackathonExplorer() {
     page: 1,
     limit: 12,
   });
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ["hackathons", filters],
     queryFn: () => getHackathons(filters),
   });
 
   return (
     <div className="flex min-h-screen flex-col gap-6">
-      <h1 className="text-[70px] font-;l tjhh bold mb-6 font-serif text-center">
+      <h1 className="text-2xl font-bold sm:text-5xl md:text-7xl mb-6 font-serif text-center">
         Hackathon Explorer
       </h1>
       <HackathonFilters setFilters={setFilters} />
@@ -34,7 +34,12 @@ function HackathonExplorer() {
           </div>
         ) : isError ? (
           <div className="flex flex-1 items-center justify-center">
-            <p>Failed to load hackathons.</p>
+            <p>
+              Failed to load hackathons:{" "}
+              {axios.isAxiosError(error)
+                ? (error.response?.data?.message ?? error.message)
+                : error.message}
+            </p>
           </div>
         ) : data?.data.length === 0 ? (
           <div className="flex flex-1 items-center justify-center">
