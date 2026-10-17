@@ -25,8 +25,8 @@ export type Hackathon = {
 };
 
 export type HackathonCardProps = {
-  hackathons: Hackathon
-}
+  hackathon: Hackathon
+};
 
 export type HackathonsResponse = {
   data: Hackathon[];

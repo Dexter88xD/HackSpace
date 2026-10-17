@@ -4,9 +4,9 @@ import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './domains/auth/auth.module';
-import { EmailModule } from './email/email.module';
 import { DemoModule } from './domains/demo/demo.module';
 import { HackathonsModule } from './domains/hackathons/hackathons.module';
+import { EmailModule } from './shared/email/email.module';
 
 // Configures the application by loading environment variables globally, establishing the PostgreSQL
 // database connection through TypeORM with automatic entity loading and migrations required for schema

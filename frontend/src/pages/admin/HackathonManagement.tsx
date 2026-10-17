@@ -1,28 +1,19 @@
 import HackathonTable from "@/components/admin/HackathonTable";
+import { useQuery } from "@tanstack/react-query";
+import { getHackathons } from "@/api/hackathon";
 import { Plus } from "lucide-react";
-import type { Hackathon } from "@/types/hackathon";
 import { Link } from "react-router-dom";
-
-const hackathons: Hackathon[] = [
-  {
-    id: 1,
-    title: "AI Innovation Challenge",
-    organization_name: "Tech Community",
-    description: null,
-    start_at: "2026-10-20T09:00:00Z",
-    end_at: "2026-10-25T18:00:00Z",
-  },
-  {
-    id: 2,
-    title: "Open Source Sprint",
-    organization_name: "DevHub",
-    description: null,
-    start_at: "2026-11-02T09:00:00Z",
-    end_at: "2026-11-05T18:00:00Z",
-  },
-];
+import { useState } from "react";
+import { HackathonPagination } from "@/components/hackathon/HackathonPagination";
 
 function HackathonManagement() {
+  const [page, setPage] = useState(1);
+  const limit = 12;
+
+  const { data, isPending, isError } = useQuery({
+    queryKey: ["hackathons", { page, limit }],
+    queryFn: () => getHackathons({ page, limit }),
+  });
   return (
     <section className="mx-auto w-full max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -43,7 +34,20 @@ function HackathonManagement() {
           Create Hackathon
         </Link>
       </div>
-      <HackathonTable hackathons={hackathons} />
+      {isPending ? (
+        <p>Loading hackathons...</p>
+      ) : isError ? (
+        <p role="alert">Failed to load hackathons.</p>
+      ) : (
+        <HackathonTable hackathons={data.data} />
+      )}
+      {data && data.total > limit && (
+        <HackathonPagination
+          currentPage={page}
+          totalPages={Math.ceil(data.total / limit)}
+          onPageChange={setPage}
+        />
+      )}
     </section>
   );
 }
