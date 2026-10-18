@@ -62,7 +62,7 @@ services:
       - hackspace_network
 
   adminer:
-    image: adminer
+    image: adminer:5.5.1
     container_name: adminer
     ports:
       - "8081:8080"
