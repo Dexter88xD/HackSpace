@@ -18,16 +18,16 @@ export class UserProfile {
   id!: number;
 
   @Column({ nullable: true })
-  bio!: string;
+  bio!: string | null;
 
-  @Column()
-  avatar_url!: string;
+  @Column({ nullable: true })
+  avatar_url!: string | null;
 
-  @Column()
-  organization_name!: string;
+  @Column({ nullable: true })
+  organization_name!: string | null;
 
-  @Column()
-  major!: string;
+  @Column({ nullable: true })
+  major!: string | null;
 
   @CreateDateColumn()
   created_at!: Date;
