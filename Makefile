@@ -41,6 +41,9 @@ lint:
 	$(COMPOSE) exec backend npm run lint
 	$(COMPOSE) exec frontend npm run lint
 
+test:
+	$(COMPOSE) exec backend npm test
+
 broker:
 	$(COMPOSE) up -d --build broker
 

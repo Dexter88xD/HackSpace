@@ -3,6 +3,13 @@ import api from "./client";
 import { VerificationFormData } from "@/schemas/verification.schema";
 import { LoginFormData } from "@/schemas/login.schema";
 
+export type OAuthProvider = "google" | "42";
+
+export const startOAuth = (provider: OAuthProvider) => {
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+    window.location.assign(`${baseUrl}/auth/oauth/${provider}`);
+};
+
 export const register = async (data: RegisterFormData) => {
     const response = await api.post('/auth/register', data);
     return response.data;
@@ -24,13 +31,6 @@ export const resend = async (email: string) => {
 }
 
 export async function getMe() {
-  const token = localStorage.getItem('accessToken');
-
-  const response = await api.get('/auth/me', {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
+  const response = await api.get('/auth/me');
   return response.data;
 }

@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtModule } from '@nestjs/jwt';
-import { EmailModule } from '../../email/email.module';
-import { EmailService } from '../../email/email.service';
+import { EmailModule } from '../../shared/email/email.module';
+import { EmailService } from '../../shared/email/email.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../../database/entities/user.entity';
 import { UserProfile } from '../../database/entities/user-profile.entity';
@@ -11,6 +11,8 @@ import { UserSkill } from '../../database/entities/user-skill.entity';
 import { UserRole } from '../../database/entities/user-role.entity';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { StringValue } from 'ms';
+import { RolesGuard } from './guards/roles.guard';
+import { OAuthIdentity } from '../../database/entities/oauth-identity.entity';
 
 // AuthModule wires together the authentication layer: registers JwtModule to sign 7-day access tokens
 // using JWT_SECRET, imports EmailModule for verification/password-related emails, registers the User
@@ -25,9 +27,16 @@ import { StringValue } from 'ms';
       },
     }),
     EmailModule,
-    TypeOrmModule.forFeature([User, UserProfile, UserSkill, UserRole]),
+    TypeOrmModule.forFeature([
+      User,
+      UserProfile,
+      UserSkill,
+      UserRole,
+      OAuthIdentity,
+    ]),
   ],
   controllers: [AuthController],
-  providers: [AuthService, EmailService, JwtStrategy],
+  providers: [AuthService, EmailService, JwtStrategy, RolesGuard],
+  exports: [RolesGuard],
 })
 export class AuthModule {}

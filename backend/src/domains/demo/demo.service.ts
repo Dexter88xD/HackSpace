@@ -24,7 +24,7 @@ export class DemoService {
 
   addGreeting(greeting: string) {
     this.greetings.push(greeting);
-    console.log(`Greeting added: ${this.greetings}`);
+    console.log(`Greeting added: ${this.greetings.join(', ')}`);
   }
 
   getGreetings() {

@@ -61,6 +61,16 @@ services:
     networks:
       - hackspace_network
 
+  adminer:
+    image: adminer
+    container_name: adminer
+    ports:
+      - "8081:8080"
+    depends_on:
+      - db
+    networks:
+      - hackspace_network
+
   # minio:
   #   image: quay.io/minio/minio:latest
   #   command: server /data --console-address ":9001"

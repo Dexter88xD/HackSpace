@@ -1,7 +1,7 @@
 import Navbar from "./components/Navbar";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
-import Hackathons from "./pages/Hackathons";
+import HackathonExplorer from "./pages/HackathonExplorer";
 import Register from "./pages/Register";
 import { OtpVerification } from "./pages/OtpVerification";
 import Login from "./pages/Login";
@@ -22,10 +22,10 @@ function App() {
             }
           />
           <Route
-            path="/hackathons"
+            path="/hackathon-explorer"
             element={
               <ProtectedRoute>
-                <Hackathons />
+                <HackathonExplorer />
               </ProtectedRoute>
             }
           />

@@ -1,4 +1,4 @@
-import { email, z } from "zod";
+import { z } from "zod";
 
 export const verificationSchema = z.object({
   email: z.email(),

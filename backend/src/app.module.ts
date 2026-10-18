@@ -12,6 +12,7 @@ import { UserModule } from './users/user.module';
 // changes, and importing the authentication and email modules. The AppController and AppService handle
 // the application's base endpoints and services.
 import { DemoModule } from './domains/demo/demo.module';
+import { HackathonModule } from './domains/hackathon/hackathon.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -32,6 +33,7 @@ import { DemoModule } from './domains/demo/demo.module';
     EmailModule,
     DemoModule,
     UserModule,
+    HackathonModule,
   ],
   controllers: [AppController],
   providers: [AppService],
