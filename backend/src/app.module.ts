@@ -4,7 +4,7 @@ import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './domains/auth/auth.module';
-import { EmailModule } from './email/email.module';
+import { EmailModule } from './shared/email/email.module';
 import { UserModule } from './users/user.module';
 
 // Configures the application by loading environment variables globally, establishing the PostgreSQL
