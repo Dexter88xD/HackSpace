@@ -4,12 +4,12 @@ services:
     build:
       context: ./frontend
     ports:
-    - "5173:5173"
+      - "5173:5173"
     volumes:
-    - ./frontend:/app
-    - /app/node_modules       # prevents host node_modules from shadowing the container's
+      - ./frontend:/app
+      - /app/node_modules   # prevents host node_modules from shadowing the container's
     env_file:
-    - .env
+      - ./frontend/.env
     networks:
       - hackspace_network
 
@@ -22,7 +22,8 @@ services:
       - ./backend:/app
       - /app/node_modules
     env_file:
-      - .env
+      - ./.env
+      - ./backend/.env
     depends_on:
       db:
         condition: service_started
