@@ -7,6 +7,7 @@ import { AuthModule } from './domains/auth/auth.module';
 import { DemoModule } from './domains/demo/demo.module';
 import { HackathonsModule } from './domains/hackathons/hackathons.module';
 import { EmailModule } from './shared/email/email.module';
+import { UserModule } from './users/user.module';
 
 // Configures the application by loading environment variables globally, establishing the PostgreSQL
 // database connection through TypeORM with automatic entity loading and migrations required for schema
@@ -32,6 +33,7 @@ import { EmailModule } from './shared/email/email.module';
     EmailModule,
     DemoModule,
     HackathonsModule,
+    UserModule,
   ],
   controllers: [AppController],
   providers: [AppService],
