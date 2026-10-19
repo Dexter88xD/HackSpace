@@ -121,6 +121,11 @@ export class HackathonsService {
   }
 
   async update(hackathonId: number, dto: UpdateHackathonDto) {
+    if (Object.keys(dto).length === 0) {
+      throw new BadRequestException(
+        'At least one field must be provided for an update',
+      );
+    }
     const hackathon = await this.findOne(hackathonId);
     const startAt = dto.startAt ? new Date(dto.startAt) : hackathon.start_at;
     const endAt = dto.endAt ? new Date(dto.endAt) : hackathon.end_at;

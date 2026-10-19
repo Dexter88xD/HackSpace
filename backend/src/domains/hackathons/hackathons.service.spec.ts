@@ -137,6 +137,10 @@ describe('HackathonsService', () => {
       );
       expect(mockHackathonRepository.save).not.toHaveBeenCalled();
     });
+
+    it('should reject an empty update payload', async () => {
+      await expect(service.update(1, {})).rejects.toThrow(BadRequestException);
+    });
   });
 
   describe('create', () => {
