@@ -30,6 +30,6 @@ export class HackathonSettings {
   @OneToOne(() => Hackathon, (hackathon) => hackathon.settings, {
     nullable: false,
   })
-  @JoinColumn({ name: 'hackathonId' })
+  @JoinColumn({ name: 'hackathon_id' })
   hackathon!: Hackathon;
 }
