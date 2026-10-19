@@ -1,19 +1,13 @@
-import type { Hackathon } from "@/types/hackathon";
+import type { HackathonTableProps } from "@/types/hackathon-management";
 import { CalendarX } from "lucide-react";
 import { Link } from "react-router-dom";
 
-type HackathonTableProps = {
-  hackathons: Hackathon[];
-};
-
-function HackathonTable({ hackathons }: HackathonTableProps) {
+function HackathonTable({ hackathons, total }: HackathonTableProps) {
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
       <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
         <h2 className="text-lg font-semibold text-gray-900">All Hackathons</h2>
-        <span className="text-sm text-gray-500">
-          {hackathons.length} events
-        </span>
+        <span className="text-sm text-gray-500">{total} events</span>
       </div>
 
       <div className="overflow-x-auto">

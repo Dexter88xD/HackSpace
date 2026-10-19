@@ -39,7 +39,10 @@ function HackathonManagement() {
       ) : isError ? (
         <p role="alert">Failed to load hackathons.</p>
       ) : (
-        <HackathonTable hackathons={data.data} />
+        <HackathonTable
+          hackathons={data?.data ?? []}
+          total={data?.total ?? 0}
+        />
       )}
       {data && data.total > limit && (
         <HackathonPagination

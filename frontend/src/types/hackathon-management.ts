@@ -14,3 +14,8 @@ export type HackathonFormProps = {
   onSubmit: (data: HackathonFormValues) => void | Promise<void>;
   isSubmitting?: boolean;
 };
+
+export type HackathonTableProps = {
+  hackathons: Hackathon[];
+  total: number;
+};
