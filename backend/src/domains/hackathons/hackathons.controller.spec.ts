@@ -41,9 +41,9 @@ describe('HackathonsController', () => {
       const dto = {
         title: 'AI Challenge',
         description: 'Build an AI project',
-        organization_name: 'HackSpace',
-        start_at: '2026-11-01T09:00:00Z',
-        end_at: '2026-11-03T18:00:00Z',
+        organizationName: 'HackSpace',
+        startAt: '2026-11-01T09:00:00Z',
+        endAt: '2026-11-03T18:00:00Z',
       };
       const hackathon = { id: 1, title: dto.title };
       mockHackathonsService.create.mockResolvedValue(hackathon);

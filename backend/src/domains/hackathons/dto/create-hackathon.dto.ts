@@ -21,11 +21,11 @@ export class CreateHackathonDto {
   @Matches(/\S/, {
     message: 'Organization name must contain non-whitespace characters',
   })
-  organization_name!: string;
+  organizationName!: string;
 
   @IsISO8601({ strict: true })
-  start_at!: string;
+  startAt!: string;
 
   @IsISO8601({ strict: true })
-  end_at!: string;
+  endAt!: string;
 }

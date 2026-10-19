@@ -88,9 +88,9 @@ describe('HackathonsService', () => {
         id: 1,
         title: 'Original Title',
         description: null,
-        organization_name: 'HackSpace',
-        start_at: new Date('2026-11-01T09:00:00Z'),
-        end_at: new Date('2026-11-03T18:00:00Z'),
+        organizationName: 'HackSpace',
+        startAt: new Date('2026-11-01T09:00:00Z'),
+        endAt: new Date('2026-11-03T18:00:00Z'),
       };
 
       mockHackathonRepository.findOne.mockResolvedValue(hackathon);
@@ -114,16 +114,16 @@ describe('HackathonsService', () => {
         id: 1,
         title: 'Original Title',
         description: null,
-        organization_name: 'HackSpace',
-        start_at: new Date('2026-11-01T09:00:00Z'),
-        end_at: new Date('2026-11-03T18:00:00Z'),
+        organizationName: 'HackSpace',
+        startAt: new Date('2026-11-01T09:00:00Z'),
+        endAt: new Date('2026-11-03T18:00:00Z'),
       };
 
       mockHackathonRepository.findOne.mockResolvedValue(hackathon);
       await expect(
         service.update(1, {
-          start_at: '2026-11-10T09:00:00Z',
-          end_at: '2026-11-05T09:00:00Z',
+          startAt: '2026-11-10T09:00:00Z',
+          endAt: '2026-11-05T09:00:00Z',
         }),
       ).rejects.toThrow(BadRequestException);
       expect(mockHackathonRepository.save).not.toHaveBeenCalled();
@@ -154,9 +154,9 @@ describe('HackathonsService', () => {
       const dto = {
         title: 'AI Challenge',
         description: 'Build an AI application',
-        organization_name: 'HackSpace',
-        start_at: '2026-11-01T09:00:00Z',
-        end_at: '2026-11-03T18:00:00Z',
+        organizationName: 'HackSpace',
+        startAt: '2026-11-01T09:00:00Z',
+        endAt: '2026-11-03T18:00:00Z',
       };
       const result = await service.create(dto);
       expect(mockDataSource.transaction).toHaveBeenCalledTimes(1);
@@ -194,9 +194,9 @@ describe('HackathonsService', () => {
       const dto = {
         title: 'Cloud Computing Challenge',
         description: 'Build cloud-native applications',
-        organization_name: 'HackSpace',
-        start_at: '2026-12-10T09:00:00Z',
-        end_at: '2026-12-05T18:00:00Z',
+        organizationName: 'HackSpace',
+        startAt: '2026-12-10T09:00:00Z',
+        endAt: '2026-12-05T18:00:00Z',
       };
 
       await expect(service.create(dto)).rejects.toThrow(BadRequestException);
@@ -207,9 +207,9 @@ describe('HackathonsService', () => {
       const dto = {
         title: 'Zero Duration Hackathon',
         description: 'Testing a hackathon with identical start and end times',
-        organization_name: 'HackSpace',
-        start_at: '2026-11-05T09:00:00Z',
-        end_at: '2026-11-05T09:00:00Z',
+        organizationName: 'HackSpace',
+        startAt: '2026-11-05T09:00:00Z',
+        endAt: '2026-11-05T09:00:00Z',
       };
 
       await expect(service.create(dto)).rejects.toThrow(BadRequestException);

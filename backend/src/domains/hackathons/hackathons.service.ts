@@ -94,8 +94,8 @@ export class HackathonsService {
   }
 
   async create(dto: CreateHackathonDto) {
-    const startAt = new Date(dto.start_at);
-    const endAt = new Date(dto.end_at);
+    const startAt = new Date(dto.startAt);
+    const endAt = new Date(dto.endAt);
     if (startAt >= endAt) {
       throw new BadRequestException('Hackathon dates are incorrect');
     }
@@ -103,7 +103,7 @@ export class HackathonsService {
       const hackathon = manager.create(Hackathon, {
         title: dto.title,
         description: dto.description ?? null,
-        organization_name: dto.organization_name,
+        organization_name: dto.organizationName,
         start_at: startAt,
         end_at: endAt,
       });
@@ -122,8 +122,8 @@ export class HackathonsService {
 
   async update(hackathonId: number, dto: UpdateHackathonDto) {
     const hackathon = await this.findOne(hackathonId);
-    const startAt = dto.start_at ? new Date(dto.start_at) : hackathon.start_at;
-    const endAt = dto.end_at ? new Date(dto.end_at) : hackathon.end_at;
+    const startAt = dto.startAt ? new Date(dto.startAt) : hackathon.start_at;
+    const endAt = dto.endAt ? new Date(dto.endAt) : hackathon.end_at;
     if (startAt >= endAt) {
       throw new BadRequestException('Hackathon dates are incorrect');
     }
@@ -131,7 +131,7 @@ export class HackathonsService {
     hackathon.description =
       dto.description === undefined ? hackathon.description : dto.description;
     hackathon.organization_name =
-      dto.organization_name ?? hackathon.organization_name;
+      dto.organizationName ?? hackathon.organization_name;
     hackathon.start_at = startAt;
     hackathon.end_at = endAt;
 
