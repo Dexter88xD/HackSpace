@@ -81,7 +81,17 @@ function EditHackathon() {
       <h1 className="mb-6 text-3xl font-bold">Edit Hackathon</h1>
       {mutation.isError && (
         <p role="alert" className="mb-4 text-sm text-red-600">
-          Failed to update hackathon. Please try again.
+          {isAxiosError(mutation.error)
+            ? (() => {
+                const message = mutation.error.response?.data?.message;
+
+                return Array.isArray(message)
+                  ? message.join(", ")
+                  : typeof message === "string"
+                    ? message
+                    : "Failed to update hackathon. Please try again.";
+              })()
+            : "Failed to update hackathon. Please try again."}
         </p>
       )}
 
