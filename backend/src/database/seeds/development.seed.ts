@@ -82,16 +82,28 @@ function requirePassword(name: string): string {
 }
 
 function assertDevelopmentEnvironment(): void {
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('Development seeding is disabled in production');
+  if (process.env.NODE_ENV !== 'development') {
+    throw new Error('Development seeding requires NODE_ENV=development');
   }
 
   if (process.env.SEED_DEV_DATA !== 'true') {
     throw new Error('Set SEED_DEV_DATA=true to allow development seeding');
   }
 
-  if (!process.env.POSTGRES_DB) {
-    throw new Error('POSTGRES_DB must be configured');
+  const database = process.env.POSTGRES_DB;
+  const expectedDatabase = process.env.SEED_EXPECTED_DB;
+  const host = process.env.POSTGRES_HOST;
+
+  if (!database || !expectedDatabase || database !== expectedDatabase) {
+    throw new Error('Database does not match SEED_EXPECTED_DB');
+  }
+
+  if (/prod|stag/i.test(database)) {
+    throw new Error('Refusing to seed a production or staging database');
+  }
+
+  if (!['db', 'localhost', '127.0.0.1', '::1'].includes(host ?? '')) {
+    throw new Error('Development seeding requires a local database host');
   }
 }
 
@@ -130,7 +142,20 @@ async function seedUser(
       );
     }
 
-    console.log(`User already exists: ${username}`);
+    const passwordMatches = await bcrypt.compare(
+      password,
+      existing.password_hash,
+    );
+
+    if (!passwordMatches) {
+      existing.password_hash = await bcrypt.hash(password, 12);
+      await userRepository.save(existing);
+
+      console.log(`Updated password for: ${username}`);
+    } else {
+      console.log(`User already up to date: ${username}`);
+    }
+
     return;
   }
 
@@ -154,13 +179,7 @@ async function seedHackathons(manager: EntityManager): Promise<number> {
   const settingsRepository = manager.getRepository(HackathonSettings);
   const phaseRepository = manager.getRepository(HackathonPhase);
 
-  const existing = await hackathonRepository.find({
-    select: { title: true },
-  });
-
-  const existingTitles = new Set(existing.map((item) => item.title));
   const now = Date.now();
-
   let created = 0;
 
   for (let index = 0; index < HACKATHON_COUNT; index++) {
@@ -168,53 +187,70 @@ async function seedHackathons(manager: EntityManager): Promise<number> {
     const format = formats[Math.floor(index / themes.length)];
     const title = `${SEED_PREFIX} ${theme} ${format}`;
 
-    if (existingTitles.has(title)) {
-      continue;
-    }
-
-    // Rotate the currently active phase across the five phase types.
     const activePhaseIndex = index % phases.length;
-
-    // Each phase lasts four days.
     const scheduleStart = now - (activePhaseIndex * 4 + 1) * DAY;
 
-    const hackathon = hackathonRepository.create({
-      title,
-      description:
-        `${format} focused on ${theme.toLowerCase()}, ` +
-        'collaboration, practical innovation and problem-solving.',
-      organization_name: organizations[index % organizations.length],
-      start_at: new Date(scheduleStart),
-      end_at: new Date(scheduleStart + phases.length * 4 * DAY),
+    let hackathon = await hackathonRepository.findOne({
+      where: { title },
+      relations: {
+        settings: true,
+        phases: true,
+      },
     });
 
-    const savedHackathon = await hackathonRepository.save(hackathon);
+    if (!hackathon) {
+      hackathon = await hackathonRepository.save(
+        hackathonRepository.create({
+          title,
+          description:
+            `${format} focused on ${theme.toLowerCase()}, ` +
+            'collaboration, practical innovation and problem-solving.',
+          organization_name: organizations[index % organizations.length],
+          start_at: new Date(scheduleStart),
+          end_at: new Date(scheduleStart + phases.length * 4 * DAY),
+        }),
+      );
 
-    const settings = settingsRepository.create({
-      min_team_members: 1,
-      max_team_members: 5,
-      files_limit: 3,
-      file_max_size: 10 * 1024 * 1024,
-      hackathon: savedHackathon,
+      created++;
+    }
+
+    if (!hackathon.settings) {
+      await settingsRepository.save(
+        settingsRepository.create({
+          min_team_members: 1,
+          max_team_members: 5,
+          files_limit: 3,
+          file_max_size: 10 * 1024 * 1024,
+          hackathon,
+        }),
+      );
+    }
+
+    const existingPhaseNames = new Set(
+      (hackathon.phases ?? []).map((phase) => phase.phase_name),
+    );
+
+    const missingPhases = phases.flatMap((phaseName, phaseIndex) => {
+      if (existingPhaseNames.has(phaseName)) {
+        return [];
+      }
+
+      const phaseStart = hackathon.start_at.getTime() + phaseIndex * 4 * DAY;
+
+      return [
+        phaseRepository.create({
+          phase_name: phaseName,
+          description: `${phaseName.replace(/_/g, ' ')} phase`,
+          start_at: new Date(phaseStart),
+          end_at: new Date(phaseStart + 4 * DAY),
+          hackathon,
+        }),
+      ];
     });
 
-    await settingsRepository.save(settings);
-
-    const scheduledPhases = phases.map((phaseName, phaseIndex) => {
-      const phaseStart = scheduleStart + phaseIndex * 4 * DAY;
-
-      return phaseRepository.create({
-        phase_name: phaseName,
-        description: `${phaseName.replace(/_/g, ' ')} phase`,
-        start_at: new Date(phaseStart),
-        end_at: new Date(phaseStart + 4 * DAY),
-        hackathon: savedHackathon,
-      });
-    });
-
-    await phaseRepository.save(scheduledPhases);
-
-    created++;
+    if (missingPhases.length > 0) {
+      await phaseRepository.save(missingPhases);
+    }
   }
 
   return created;
