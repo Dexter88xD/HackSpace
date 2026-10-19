@@ -36,9 +36,9 @@ function HackathonForm({
     defaultValues: {
       title: hackathon?.title ?? "",
       description: hackathon?.description ?? "",
-      organization_name: hackathon?.organization_name ?? "",
-      start_at: hackathon ? toDateTimeLocal(hackathon.start_at) : "",
-      end_at: hackathon ? toDateTimeLocal(hackathon.end_at) : "",
+      organizationName: hackathon?.organization_name ?? "",
+      startAt: hackathon ? toDateTimeLocal(hackathon.start_at) : "",
+      endAt: hackathon ? toDateTimeLocal(hackathon.end_at) : "",
     },
   });
 
@@ -85,61 +85,61 @@ function HackathonForm({
       </div>
       <div className="space-y-2">
         <label
-          htmlFor="organization_name"
+          htmlFor="organizationName"
           className="block text-sm font-medium text-gray-700"
         >
           Organization name
         </label>
         <input
           type="text"
-          id="organization_name"
-          {...register("organization_name")}
+          id="organizationName"
+          {...register("organizationName")}
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
-          aria-invalid={!!errors.organization_name}
+          aria-invalid={!!errors.organizationName}
         />
-        {errors.organization_name && (
+        {errors.organizationName && (
           <p role="alert" className="text-sm text-red-600">
-            {errors.organization_name.message}
+            {errors.organizationName.message}
           </p>
         )}
       </div>
       <div className="space-y-2">
         <label
-          htmlFor="start_at"
+          htmlFor="startAt"
           className="block text-sm font-medium text-gray-700"
         >
           Start date
         </label>
         <input
           type="datetime-local"
-          id="start_at"
-          {...register("start_at")}
+          id="startAt"
+          {...register("startAt")}
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
-          aria-invalid={!!errors.start_at}
+          aria-invalid={!!errors.startAt}
         />
-        {errors.start_at && (
+        {errors.startAt && (
           <p role="alert" className="text-sm text-red-600">
-            {errors.start_at.message}
+            {errors.startAt.message}
           </p>
         )}
       </div>
       <div className="space-y-2">
         <label
-          htmlFor="end_at"
+          htmlFor="endAt"
           className="block text-sm font-medium text-gray-700"
         >
           End date
         </label>
         <input
           type="datetime-local"
-          id="end_at"
-          {...register("end_at")}
+          id="endAt"
+          {...register("endAt")}
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
-          aria-invalid={!!errors.end_at}
+          aria-invalid={!!errors.endAt}
         />
-        {errors.end_at && (
+        {errors.endAt && (
           <p role="alert" className="text-sm text-red-600">
-            {errors.end_at.message}
+            {errors.endAt.message}
           </p>
         )}
       </div>

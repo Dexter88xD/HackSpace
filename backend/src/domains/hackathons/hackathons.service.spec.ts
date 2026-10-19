@@ -88,9 +88,9 @@ describe('HackathonsService', () => {
         id: 1,
         title: 'Original Title',
         description: null,
-        organizationName: 'HackSpace',
-        startAt: new Date('2026-11-01T09:00:00Z'),
-        endAt: new Date('2026-11-03T18:00:00Z'),
+        organization_name: 'HackSpace',
+        start_at: new Date('2026-11-01T09:00:00Z'),
+        end_at: new Date('2026-11-03T18:00:00Z'),
       };
 
       mockHackathonRepository.findOne.mockResolvedValue(hackathon);
@@ -114,9 +114,9 @@ describe('HackathonsService', () => {
         id: 1,
         title: 'Original Title',
         description: null,
-        organizationName: 'HackSpace',
-        startAt: new Date('2026-11-01T09:00:00Z'),
-        endAt: new Date('2026-11-03T18:00:00Z'),
+        organization_name: 'HackSpace',
+        start_at: new Date('2026-11-01T09:00:00Z'),
+        end_at: new Date('2026-11-03T18:00:00Z'),
       };
 
       mockHackathonRepository.findOne.mockResolvedValue(hackathon);

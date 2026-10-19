@@ -69,8 +69,8 @@ function EditHackathon() {
     const payload: HackathonPayload = {
       ...data,
       description: data.description.trim() || null,
-      start_at: new Date(data.start_at).toISOString(),
-      end_at: new Date(data.end_at).toISOString(),
+      startAt: new Date(data.startAt).toISOString(),
+      endAt: new Date(data.endAt).toISOString(),
     };
 
     mutation.mutate(payload);

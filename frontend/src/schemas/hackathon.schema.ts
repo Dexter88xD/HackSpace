@@ -5,12 +5,12 @@ export const hackathonSchema = z.object({
 
     description: z.string(),
 
-    organization_name: z
+    organizationName: z
         .string()
         .trim()
         .min(1, "Organization name is required"),
 
-    start_at: z
+    startAt: z
         .string()
         .min(1, "Start date is required")
         .refine(
@@ -18,19 +18,19 @@ export const hackathonSchema = z.object({
             "Invalid start date",
         ),
 
-    end_at: z
+    endAt: z
         .string()
         .min(1, "End date is required")
         .refine(
             (value) => !Number.isNaN(new Date(value).getTime()),
-            "Invalid start date",
+            "Invalid end date",
         ),
 
 }).refine(
-    (data) => new Date(data.end_at) > new Date(data.start_at),
+    (data) => new Date(data.endAt) > new Date(data.startAt),
     {
         message: "End date must be after start date",
-        path: ["end_at"],
+        path: ["endAt"],
     },
 );
 

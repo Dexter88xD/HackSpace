@@ -1,6 +1,7 @@
-import type { Hackathon } from "@/types/hackathon";
-
-export type HackathonPayload = Pick<
-    Hackathon,
-    "title" | "description" | "organization_name" | "start_at" | "end_at"
->;
+export type HackathonPayload = {
+    title: string;
+    description: string | null;
+    organizationName: string;
+    startAt: string;
+    endAt: string;
+};
