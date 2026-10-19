@@ -4,14 +4,8 @@ import {
   hackathonSchema,
   type HackathonFormValues,
 } from "@/schemas/hackathon.schema";
-import type { Hackathon } from "@/types/hackathon";
 import { Link } from "react-router-dom";
-
-type HackathonFormProps = {
-  hackathon?: Hackathon;
-  onSubmit: (data: HackathonFormValues) => void | Promise<void>;
-  isSubmitting?: boolean;
-};
+import { HackathonFormProps } from "@/types/hackathon-management";
 
 function toDateTimeLocal(iso: string): string {
   const date = new Date(iso);
