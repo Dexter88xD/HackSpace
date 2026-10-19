@@ -29,6 +29,7 @@ export class HackathonSettings {
 
   @OneToOne(() => Hackathon, (hackathon) => hackathon.settings, {
     nullable: false,
+    onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'hackathon_id' })
   hackathon!: Hackathon;

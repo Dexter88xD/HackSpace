@@ -6,10 +6,12 @@ import {
   UpdateDateColumn,
   OneToMany,
   OneToOne,
+  Check,
 } from 'typeorm';
 import { HackathonPhase } from './hackathon-phase.entity';
 import { HackathonSettings } from './hackathon-settings.entity';
 
+@Check('"start_at" < "end_at"')
 @Entity('hackathons')
 export class Hackathon {
   @PrimaryGeneratedColumn()

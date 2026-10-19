@@ -5,7 +5,18 @@ export class CreateHackathons1791406430285 implements MigrationInterface {
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `CREATE TABLE "hackathons" ("id" SERIAL NOT NULL, "title" character varying NOT NULL, "description" text, "organization_name" character varying NOT NULL, "start_at" TIMESTAMP NOT NULL, "end_at" TIMESTAMP NOT NULL, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_b290177bd925b16bf35bf59961b" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "hackathons" (
+        "id" SERIAL NOT NULL,
+        "title" character varying NOT NULL,
+        "description" text,
+        "organization_name" character varying NOT NULL,
+        "start_at" TIMESTAMP NOT NULL,
+        "end_at" TIMESTAMP NOT NULL,
+        "created_at" TIMESTAMP NOT NULL DEFAULT now(),
+        "updated_at" TIMESTAMP NOT NULL DEFAULT now(),
+        CONSTRAINT "CHK_hackathons_valid_dates" CHECK ("start_at" < "end_at"),
+        CONSTRAINT "PK_b290177bd925b16bf35bf59961b" PRIMARY KEY ("id")
+      )`,
     );
   }
 
