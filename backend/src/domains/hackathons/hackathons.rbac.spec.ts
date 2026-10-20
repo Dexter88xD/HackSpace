@@ -2,19 +2,15 @@ import { Test } from '@nestjs/testing';
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   INestApplication,
   UnauthorizedException,
   ValidationPipe,
 } from '@nestjs/common';
-import { getRepositoryToken } from '@nestjs/typeorm';
-import { Reflector } from '@nestjs/core';
 import request from 'supertest';
 import { HackathonsController } from './hackathons.controller';
 import { HackathonsService } from './hackathons.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { RoleName } from '../../database/entities/user-role.entity';
-import { User } from '../../database/entities/user.entity';
 import { Server } from 'node:http';
 
 describe('Hackathons RBAC (HTTP)', () => {
@@ -22,15 +18,11 @@ describe('Hackathons RBAC (HTTP)', () => {
 
   const getTestServer = (): Server => app.getHttpServer() as Server;
   let authenticated = false;
-  let currentRole: RoleName = RoleName.ROLE_USER;
   const mockHackathonsService = {
     create: jest.fn(),
     findAll: jest.fn(),
     findOne: jest.fn(),
     update: jest.fn(),
-  };
-  const mockUserRepository = {
-    findOne: jest.fn(),
   };
   const mockJwtGuard: CanActivate = {
     canActivate(context: ExecutionContext): boolean {
@@ -49,15 +41,9 @@ describe('Hackathons RBAC (HTTP)', () => {
     const module = await Test.createTestingModule({
       controllers: [HackathonsController],
       providers: [
-        Reflector,
-        RolesGuard,
         {
           provide: HackathonsService,
           useValue: mockHackathonsService,
-        },
-        {
-          provide: getRepositoryToken(User),
-          useValue: mockUserRepository,
         },
       ],
     })
@@ -79,13 +65,6 @@ describe('Hackathons RBAC (HTTP)', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     authenticated = false;
-    currentRole = RoleName.ROLE_USER;
-    mockUserRepository.findOne.mockImplementation(() =>
-      Promise.resolve({
-        id: 1,
-        role: { role_name: currentRole },
-      }),
-    );
 
     mockHackathonsService.create.mockResolvedValue({ id: 1 });
     mockHackathonsService.update.mockResolvedValue({ id: 1 });
@@ -119,38 +98,52 @@ describe('Hackathons RBAC (HTTP)', () => {
     expect(mockHackathonsService.create).not.toHaveBeenCalled();
   });
 
-  it('allows ROLE_USER to create hackathons', async () => {
+  it('allows an authenticated user to create hackathons', async () => {
     authenticated = true;
     await request(getTestServer()).post('/hackathons').send(dto).expect(201);
     expect(mockHackathonsService.create).toHaveBeenCalledWith(dto, 1);
   });
 
-  it('rejects ROLE_USER updating hackathons with 403', async () => {
+  it('rejects a non-organizer updating a hackathon with 403', async () => {
     authenticated = true;
+    mockHackathonsService.update.mockRejectedValue(
+      new ForbiddenException('Forbidden'),
+    );
     await request(getTestServer())
       .patch('/hackathons/1')
       .send({ title: 'Updated Title' })
       .expect(403);
-    expect(mockHackathonsService.update).not.toHaveBeenCalled();
+    expect(mockHackathonsService.update).toHaveBeenCalledWith(
+      1,
+      {
+        title: 'Updated Title',
+      },
+      1,
+    );
   });
 
-  it('allows ROLE_ADMIN to create hackathons', async () => {
+  it('allows an authenticated organizer to update a hackathon', async () => {
     authenticated = true;
-    currentRole = RoleName.ROLE_ADMIN;
-    await request(getTestServer()).post('/hackathons').send(dto).expect(201);
-    expect(mockHackathonsService.create).toHaveBeenCalledWith(dto, 1);
-  });
-
-  it('allows ROLE_ADMIN to update hackathons', async () => {
-    authenticated = true;
-    currentRole = RoleName.ROLE_ADMIN;
     await request(getTestServer())
       .patch('/hackathons/1')
       .send({ title: 'Updated Title' })
       .expect(200);
-    expect(mockHackathonsService.update).toHaveBeenCalledWith(1, {
-      title: 'Updated Title',
-    });
+    expect(mockHackathonsService.update).toHaveBeenCalledWith(
+      1,
+      {
+        title: 'Updated Title',
+      },
+      1,
+    );
+  });
+
+  it('rejects unauthenticated PATCH requests with 401', async () => {
+    await request(getTestServer())
+      .patch('/hackathons/1')
+      .send({ title: 'Updated Title' })
+      .expect(401);
+
+    expect(mockHackathonsService.update).not.toHaveBeenCalled();
   });
 
   it('ignores a client-provided userId when creating a hackathon', async () => {

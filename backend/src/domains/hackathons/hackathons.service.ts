@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -14,12 +15,20 @@ import {
   HackathonUser,
   HackRoleName,
 } from '../../database/entities/hackathon-user.entity';
+import { User } from '../../database/entities/user.entity';
+import { RoleName } from '../../database/entities/user-role.entity';
 
 @Injectable()
 export class HackathonsService {
   constructor(
     @InjectRepository(Hackathon)
     private readonly hackathonRepository: Repository<Hackathon>,
+
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+
+    @InjectRepository(HackathonUser)
+    private readonly hackathonUserRepository: Repository<HackathonUser>,
 
     private readonly dataSource: DataSource,
   ) {}
@@ -130,13 +139,32 @@ export class HackathonsService {
     });
   }
 
-  async update(hackathonId: number, dto: UpdateHackathonDto) {
+  async update(hackathonId: number, dto: UpdateHackathonDto, userId: number) {
+    const hackathon = await this.findOne(hackathonId);
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: { role: true },
+    });
+    if (!user || !user.role) {
+      throw new ForbiddenException('Forbidden');
+    }
+    if (user.role.role_name !== RoleName.ROLE_ADMIN) {
+      const hackathonRole = await this.hackathonUserRepository.findOne({
+        where: {
+          user: { id: userId },
+          hackathon: { id: hackathonId },
+          hack_role_name: HackRoleName.ORGANIZER,
+        },
+      });
+      if (!hackathonRole) {
+        throw new ForbiddenException('Forbidden');
+      }
+    }
     if (Object.keys(dto).length === 0) {
       throw new BadRequestException(
         'At least one field must be provided for an update',
       );
     }
-    const hackathon = await this.findOne(hackathonId);
     const startAt = dto.startAt ? new Date(dto.startAt) : hackathon.start_at;
     const endAt = dto.endAt ? new Date(dto.endAt) : hackathon.end_at;
     if (startAt >= endAt) {

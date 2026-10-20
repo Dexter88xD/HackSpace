@@ -3,13 +3,19 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Brackets, DataSource, EntityManager } from 'typeorm';
 import { Hackathon } from '../../database/entities/hackathon.entity';
 import { HackathonsService } from './hackathons.service';
-import { NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { HackathonSettings } from '../../database/entities/hackathon-settings.entity';
 import { HackathonPhaseName } from '../../database/entities/hackathon-phase.entity';
 import {
   HackathonUser,
   HackRoleName,
 } from '../../database/entities/hackathon-user.entity';
+import { User } from '../../database/entities/user.entity';
+import { RoleName } from '../../database/entities/user-role.entity';
 
 describe('HackathonsService', () => {
   let service: HackathonsService;
@@ -18,6 +24,13 @@ describe('HackathonsService', () => {
     findOne: jest.fn(),
     save: jest.fn(),
     createQueryBuilder: jest.fn(),
+  };
+  const mockUserRepository = {
+    findOne: jest.fn(),
+  };
+
+  const mockHackathonUserRepository = {
+    findOne: jest.fn(),
   };
   const mockManager = {
     create: jest.fn(),
@@ -51,6 +64,14 @@ describe('HackathonsService', () => {
         {
           provide: getRepositoryToken(Hackathon),
           useValue: mockHackathonRepository,
+        },
+        {
+          provide: getRepositoryToken(HackathonUser),
+          useValue: mockHackathonUserRepository,
+        },
+        {
+          provide: getRepositoryToken(User),
+          useValue: mockUserRepository,
         },
         {
           provide: DataSource,
@@ -87,7 +108,7 @@ describe('HackathonsService', () => {
   });
 
   describe('update', () => {
-    it('should update a hackathon', async () => {
+    it('should allow ROLE_ADMIN to update a hackathon without organizer membership', async () => {
       const hackathon = {
         id: 1,
         title: 'Original Title',
@@ -98,10 +119,14 @@ describe('HackathonsService', () => {
       };
 
       mockHackathonRepository.findOne.mockResolvedValue(hackathon);
+      mockUserRepository.findOne.mockResolvedValue({
+        id: 7,
+        role: { role_name: RoleName.ROLE_ADMIN },
+      });
       mockHackathonRepository.save.mockImplementation((value: Hackathon) =>
         Promise.resolve(value),
       );
-      const result = await service.update(1, { title: 'Updated title' });
+      const result = await service.update(1, { title: 'Updated title' }, 7);
       expect(mockHackathonRepository.findOne).toHaveBeenCalledWith({
         where: { id: 1 },
       });
@@ -111,6 +136,121 @@ describe('HackathonsService', () => {
         }),
       );
       expect(result.title).toBe('Updated title');
+      expect(mockHackathonUserRepository.findOne).not.toHaveBeenCalled();
+    });
+
+    it('should allow an organizer to update their own hackathon', async () => {
+      const hackathon = {
+        id: 1,
+        title: 'Original Title',
+        description: null,
+        organization_name: 'HackSpace',
+        start_at: new Date('2026-11-01T09:00:00Z'),
+        end_at: new Date('2026-11-03T18:00:00Z'),
+      };
+      const user = {
+        id: 7,
+        role: { role_name: RoleName.ROLE_USER },
+      };
+      const hackathonUser = {
+        id: 2,
+        hack_role_name: HackRoleName.ORGANIZER,
+        user: { id: 7 },
+        hackathon: { id: 1 },
+      };
+
+      mockHackathonRepository.findOne.mockResolvedValue(hackathon);
+      mockUserRepository.findOne.mockResolvedValue(user);
+      mockHackathonUserRepository.findOne.mockResolvedValue(hackathonUser);
+      mockHackathonRepository.save.mockImplementation((value: Hackathon) =>
+        Promise.resolve(value),
+      );
+      const result = await service.update(1, { title: 'Updated title' }, 7);
+      expect(mockHackathonRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 1 },
+      });
+      expect(mockHackathonRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Updated title',
+        }),
+      );
+      expect(mockHackathonUserRepository.findOne).toHaveBeenCalledWith({
+        where: {
+          user: { id: 7 },
+          hackathon: { id: 1 },
+          hack_role_name: HackRoleName.ORGANIZER,
+        },
+      });
+      expect(result.title).toBe('Updated title');
+    });
+
+    it('should reject a ROLE_USER without organizer membership', async () => {
+      const hackathon = {
+        id: 1,
+        title: 'Original Title',
+        description: null,
+        organization_name: 'HackSpace',
+        start_at: new Date('2026-11-01T09:00:00Z'),
+        end_at: new Date('2026-11-03T18:00:00Z'),
+      };
+      const user = {
+        id: 7,
+        role: { role_name: RoleName.ROLE_USER },
+      };
+
+      mockHackathonRepository.findOne.mockResolvedValue(hackathon);
+      mockUserRepository.findOne.mockResolvedValue(user);
+      mockHackathonUserRepository.findOne.mockResolvedValue(null);
+      mockHackathonRepository.save.mockImplementation((value: Hackathon) =>
+        Promise.resolve(value),
+      );
+      await expect(
+        service.update(1, { title: 'Unauthorized Update' }, 7),
+      ).rejects.toThrow(ForbiddenException);
+      expect(mockHackathonUserRepository.findOne).toHaveBeenCalledWith({
+        where: {
+          user: { id: 7 },
+          hackathon: { id: 1 },
+          hack_role_name: HackRoleName.ORGANIZER,
+        },
+      });
+      expect(mockHackathonRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('should reject an organizer to update another hackathon', async () => {
+      const hackathon = {
+        id: 1,
+        title: 'Original Title',
+        description: null,
+        organization_name: 'HackSpace',
+        start_at: new Date('2026-11-01T09:00:00Z'),
+        end_at: new Date('2026-11-03T18:00:00Z'),
+      };
+      const user = {
+        id: 7,
+        role: { role_name: RoleName.ROLE_USER },
+      };
+
+      mockHackathonRepository.findOne.mockResolvedValue(hackathon);
+      mockUserRepository.findOne.mockResolvedValue(user);
+      mockHackathonUserRepository.findOne.mockResolvedValue(null);
+      mockHackathonRepository.save.mockImplementation((value: Hackathon) =>
+        Promise.resolve(value),
+      );
+      await expect(
+        service.update(1, { title: 'Unauthorized Update' }, 7),
+      ).rejects.toThrow(ForbiddenException);
+      expect(mockHackathonRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 1 },
+      });
+      expect(mockHackathonUserRepository.findOne).toHaveBeenCalledWith({
+        where: {
+          user: { id: 7 },
+          hackathon: { id: 1 },
+          hack_role_name: HackRoleName.ORGANIZER,
+        },
+      });
+      expect(mockHackathonRepository.save).not.toHaveBeenCalled();
     });
 
     it('should reject an update with invalid dates', async () => {
@@ -124,11 +264,19 @@ describe('HackathonsService', () => {
       };
 
       mockHackathonRepository.findOne.mockResolvedValue(hackathon);
+      mockUserRepository.findOne.mockResolvedValue({
+        id: 7,
+        role: { role_name: RoleName.ROLE_ADMIN },
+      });
       await expect(
-        service.update(1, {
-          startAt: '2026-11-10T09:00:00Z',
-          endAt: '2026-11-05T09:00:00Z',
-        }),
+        service.update(
+          1,
+          {
+            startAt: '2026-11-10T09:00:00Z',
+            endAt: '2026-11-05T09:00:00Z',
+          },
+          7,
+        ),
       ).rejects.toThrow(BadRequestException);
       expect(mockHackathonRepository.save).not.toHaveBeenCalled();
     });
@@ -136,14 +284,29 @@ describe('HackathonsService', () => {
     it('should reject updating a nonexistent hackathon', async () => {
       mockHackathonRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.update(999, { title: 'New title' })).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.update(999, { title: 'New title' }, 7),
+      ).rejects.toThrow(NotFoundException);
       expect(mockHackathonRepository.save).not.toHaveBeenCalled();
     });
 
     it('should reject an empty update payload', async () => {
-      await expect(service.update(1, {})).rejects.toThrow(BadRequestException);
+      const hackathon = {
+        id: 1,
+        title: 'Original Title',
+        description: null,
+        organization_name: 'HackSpace',
+        start_at: new Date('2026-11-01T09:00:00Z'),
+        end_at: new Date('2026-11-03T18:00:00Z'),
+      };
+      mockHackathonRepository.findOne.mockResolvedValue(hackathon);
+      mockUserRepository.findOne.mockResolvedValue({
+        id: 7,
+        role: { role_name: RoleName.ROLE_ADMIN },
+      });
+      await expect(service.update(1, {}, 7)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 

@@ -3,7 +3,6 @@ import { HackathonsController } from './hackathons.controller';
 import { HackathonsService } from './hackathons.service';
 import { HackathonPhaseName } from '../../database/entities/hackathon-phase.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
 import type { AuthenticatedRequest } from '../auth/interfaces/authenticated-request.interface';
 
 describe('HackathonsController', () => {
@@ -29,8 +28,6 @@ describe('HackathonsController', () => {
       ],
     })
       .overrideGuard(JwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })
       .compile();
 
@@ -89,12 +86,13 @@ describe('HackathonsController', () => {
   });
 
   describe('update', () => {
-    it('should pass the ID and update DTO to the service', async () => {
+    it('should pass the hackathon ID, update DTO, and authenticated user ID to the service', async () => {
       const dto = { title: 'Updated Challenge' };
       const hackathon = { id: 7, title: 'Updated Challenge' };
+      const mockRequest = { user: { userId: 1 } } as AuthenticatedRequest;
       mockHackathonsService.update.mockResolvedValue(hackathon);
-      const result = await controller.update(7, dto);
-      expect(mockHackathonsService.update).toHaveBeenCalledWith(7, dto);
+      const result = await controller.update(7, dto, mockRequest);
+      expect(mockHackathonsService.update).toHaveBeenCalledWith(7, dto, 1);
       expect(result).toEqual(hackathon);
     });
   });

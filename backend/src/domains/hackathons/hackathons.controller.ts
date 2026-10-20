@@ -14,9 +14,6 @@ import { HackathonsService } from './hackathons.service';
 import { CreateHackathonDto } from './dto/create-hackathon.dto';
 import { UpdateHackathonDto } from './dto/update-hackathon.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { RoleName } from '../../database/entities/user-role.entity';
 import { HackathonFiltersDto } from './dto/hackathons-filters.dto';
 import type { AuthenticatedRequest } from '../auth/interfaces/authenticated-request.interface';
 
@@ -43,13 +40,16 @@ export class HackathonsController {
     return this.hackathonsService.findOne(id);
   }
 
-  @Roles(RoleName.ROLE_ADMIN)
-  @UseGuards(RolesGuard)
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateHackathonDto: UpdateHackathonDto,
+    @Req() req: AuthenticatedRequest,
   ) {
-    return this.hackathonsService.update(id, updateHackathonDto);
+    return this.hackathonsService.update(
+      id,
+      updateHackathonDto,
+      req.user.userId,
+    );
   }
 }
