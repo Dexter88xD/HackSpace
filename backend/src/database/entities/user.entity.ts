@@ -12,6 +12,7 @@ import {
 import { UserProfile } from './user-profile.entity';
 import { UserRole } from './user-role.entity';
 import { OAuthIdentity } from './oauth-identity.entity';
+import { HackathonUser } from './hackathon-user.entity';
 
 @Entity('users')
 export class User {
@@ -53,4 +54,7 @@ export class User {
 
   @OneToMany(() => OAuthIdentity, (identity) => identity.user)
   oauth_identities!: OAuthIdentity[];
+
+  @OneToMany(() => HackathonUser, (hackathonUser) => hackathonUser.user)
+  hackathon_users!: HackathonUser[];
 }

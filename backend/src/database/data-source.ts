@@ -8,6 +8,7 @@ import { Hackathon } from './entities/hackathon.entity';
 import { OAuthIdentity } from './entities/oauth-identity.entity';
 import { HackathonPhase } from './entities/hackathon-phase.entity';
 import { HackathonSettings } from './entities/hackathon-settings.entity';
+import { HackathonUser } from './entities/hackathon-user.entity';
 
 loadEnv({ path: '../.env' });
 
@@ -28,6 +29,7 @@ export default new DataSource({
     Hackathon,
     HackathonPhase,
     HackathonSettings,
+    HackathonUser,
   ],
 
   migrations: [__dirname + '/migrations/*{.ts,.js}'],

@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { HackathonPhase } from './hackathon-phase.entity';
 import { HackathonSettings } from './hackathon-settings.entity';
+import { HackathonUser } from './hackathon-user.entity';
 
 @Check('"start_at" < "end_at"')
 @Entity('hackathons')
@@ -46,4 +47,7 @@ export class Hackathon {
 
   @OneToOne(() => HackathonSettings, (settings) => settings.hackathon)
   settings!: HackathonSettings;
+
+  @OneToMany(() => HackathonUser, (hackathonUser) => hackathonUser.hackathon)
+  hackathon_users!: HackathonUser[];
 }
