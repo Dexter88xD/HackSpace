@@ -10,6 +10,10 @@ import { CreateHackathonDto } from './dto/create-hackathon.dto';
 import { UpdateHackathonDto } from './dto/update-hackathon.dto';
 import { HackathonSettings } from '../../database/entities/hackathon-settings.entity';
 import { HackathonFiltersDto } from './dto/hackathons-filters.dto';
+import {
+  HackathonUser,
+  HackRoleName,
+} from '../../database/entities/hackathon-user.entity';
 
 @Injectable()
 export class HackathonsService {
@@ -93,7 +97,7 @@ export class HackathonsService {
     return hackathon;
   }
 
-  async create(dto: CreateHackathonDto) {
+  async create(dto: CreateHackathonDto, userId: number) {
     const startAt = new Date(dto.startAt);
     const endAt = new Date(dto.endAt);
     if (startAt >= endAt) {
@@ -116,6 +120,12 @@ export class HackathonsService {
         hackathon: savedHackathon,
       });
       await manager.save(hackathonSettings);
+      const hackathonUser = manager.create(HackathonUser, {
+        user: { id: userId },
+        hackathon: savedHackathon,
+        hack_role_name: HackRoleName.ORGANIZER,
+      });
+      await manager.save(hackathonUser);
       return savedHackathon;
     });
   }

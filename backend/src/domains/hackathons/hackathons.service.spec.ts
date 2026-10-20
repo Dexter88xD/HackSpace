@@ -6,6 +6,10 @@ import { HackathonsService } from './hackathons.service';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { HackathonSettings } from '../../database/entities/hackathon-settings.entity';
 import { HackathonPhaseName } from '../../database/entities/hackathon-phase.entity';
+import {
+  HackathonUser,
+  HackRoleName,
+} from '../../database/entities/hackathon-user.entity';
 
 describe('HackathonsService', () => {
   let service: HackathonsService;
@@ -162,7 +166,7 @@ describe('HackathonsService', () => {
         startAt: '2026-11-01T09:00:00Z',
         endAt: '2026-11-03T18:00:00Z',
       };
-      const result = await service.create(dto);
+      const result = await service.create(dto, 1);
       expect(mockDataSource.transaction).toHaveBeenCalledTimes(1);
 
       expect(mockManager.create).toHaveBeenCalledWith(
@@ -172,8 +176,8 @@ describe('HackathonsService', () => {
           organization_name: 'HackSpace',
         }),
       );
-      expect(mockManager.create).toHaveBeenCalledTimes(2);
-      expect(mockManager.save).toHaveBeenCalledTimes(2);
+      expect(mockManager.create).toHaveBeenCalledTimes(3);
+      expect(mockManager.save).toHaveBeenCalledTimes(3);
 
       expect(mockManager.create).toHaveBeenCalledWith(
         HackathonSettings,
@@ -183,6 +187,14 @@ describe('HackathonsService', () => {
           files_limit: 0,
           file_max_size: 0,
           hackathon: result,
+        }),
+      );
+      expect(mockManager.create).toHaveBeenCalledWith(
+        HackathonUser,
+        expect.objectContaining({
+          user: { id: 1 },
+          hackathon: result,
+          hack_role_name: HackRoleName.ORGANIZER,
         }),
       );
 
@@ -203,7 +215,7 @@ describe('HackathonsService', () => {
         endAt: '2026-12-05T18:00:00Z',
       };
 
-      await expect(service.create(dto)).rejects.toThrow(BadRequestException);
+      await expect(service.create(dto, 1)).rejects.toThrow(BadRequestException);
       expect(mockDataSource.transaction).not.toHaveBeenCalled();
     });
 
@@ -216,7 +228,7 @@ describe('HackathonsService', () => {
         endAt: '2026-11-05T09:00:00Z',
       };
 
-      await expect(service.create(dto)).rejects.toThrow(BadRequestException);
+      await expect(service.create(dto, 1)).rejects.toThrow(BadRequestException);
 
       expect(mockDataSource.transaction).not.toHaveBeenCalled();
     });

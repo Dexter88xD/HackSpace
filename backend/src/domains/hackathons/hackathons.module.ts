@@ -7,6 +7,7 @@ import { HackathonSettings } from '../../database/entities/hackathon-settings.en
 import { HackathonsController } from './hackathons.controller';
 import { AuthModule } from '../auth/auth.module';
 import { User } from '../../database/entities/user.entity';
+import { HackathonUser } from '../../database/entities/hackathon-user.entity';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { User } from '../../database/entities/user.entity';
       Hackathon,
       HackathonPhase,
       HackathonSettings,
+      HackathonUser,
       User,
     ]),
     AuthModule,

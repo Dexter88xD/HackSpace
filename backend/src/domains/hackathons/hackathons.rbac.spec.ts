@@ -119,10 +119,10 @@ describe('Hackathons RBAC (HTTP)', () => {
     expect(mockHackathonsService.create).not.toHaveBeenCalled();
   });
 
-  it('rejects ROLE_USER creating hackathons with 403', async () => {
+  it('allows ROLE_USER to create hackathons', async () => {
     authenticated = true;
-    await request(getTestServer()).post('/hackathons').send(dto).expect(403);
-    expect(mockHackathonsService.create).not.toHaveBeenCalled();
+    await request(getTestServer()).post('/hackathons').send(dto).expect(201);
+    expect(mockHackathonsService.create).toHaveBeenCalledWith(dto, 1);
   });
 
   it('rejects ROLE_USER updating hackathons with 403', async () => {
@@ -138,7 +138,7 @@ describe('Hackathons RBAC (HTTP)', () => {
     authenticated = true;
     currentRole = RoleName.ROLE_ADMIN;
     await request(getTestServer()).post('/hackathons').send(dto).expect(201);
-    expect(mockHackathonsService.create).toHaveBeenCalledWith(dto);
+    expect(mockHackathonsService.create).toHaveBeenCalledWith(dto, 1);
   });
 
   it('allows ROLE_ADMIN to update hackathons', async () => {
@@ -151,5 +151,16 @@ describe('Hackathons RBAC (HTTP)', () => {
     expect(mockHackathonsService.update).toHaveBeenCalledWith(1, {
       title: 'Updated Title',
     });
+  });
+
+  it('ignores a client-provided userId when creating a hackathon', async () => {
+    authenticated = true;
+
+    await request(getTestServer())
+      .post('/hackathons')
+      .send({ ...dto, userId: 999 })
+      .expect(201);
+
+    expect(mockHackathonsService.create).toHaveBeenCalledWith(dto, 1);
   });
 });

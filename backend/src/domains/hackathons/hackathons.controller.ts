@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { HackathonsService } from './hackathons.service';
@@ -17,17 +18,19 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RoleName } from '../../database/entities/user-role.entity';
 import { HackathonFiltersDto } from './dto/hackathons-filters.dto';
+import type { AuthenticatedRequest } from '../auth/interfaces/authenticated-request.interface';
 
 @UseGuards(JwtAuthGuard)
 @Controller('hackathons')
 export class HackathonsController {
   constructor(private readonly hackathonsService: HackathonsService) {}
 
-  @Roles(RoleName.ROLE_ADMIN)
-  @UseGuards(RolesGuard)
   @Post()
-  create(@Body() createHackathonDto: CreateHackathonDto) {
-    return this.hackathonsService.create(createHackathonDto);
+  create(
+    @Body() createHackathonDto: CreateHackathonDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.hackathonsService.create(createHackathonDto, req.user.userId);
   }
 
   @Get()

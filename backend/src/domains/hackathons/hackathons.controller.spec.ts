@@ -4,6 +4,7 @@ import { HackathonsService } from './hackathons.service';
 import { HackathonPhaseName } from '../../database/entities/hackathon-phase.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import type { AuthenticatedRequest } from '../auth/interfaces/authenticated-request.interface';
 
 describe('HackathonsController', () => {
   let controller: HackathonsController;
@@ -37,7 +38,7 @@ describe('HackathonsController', () => {
   });
 
   describe('create', () => {
-    it('should pass the DTO to the service', async () => {
+    it('should pass the DTO and authenticated user ID to the service', async () => {
       const dto = {
         title: 'AI Challenge',
         description: 'Build an AI project',
@@ -45,10 +46,13 @@ describe('HackathonsController', () => {
         startAt: '2026-11-01T09:00:00Z',
         endAt: '2026-11-03T18:00:00Z',
       };
+      const mockRequest = {
+        user: { userId: 1 },
+      } as AuthenticatedRequest;
       const hackathon = { id: 1, title: dto.title };
       mockHackathonsService.create.mockResolvedValue(hackathon);
-      const result = await controller.create(dto);
-      expect(mockHackathonsService.create).toHaveBeenCalledWith(dto);
+      const result = await controller.create(dto, mockRequest);
+      expect(mockHackathonsService.create).toHaveBeenCalledWith(dto, 1);
       expect(result).toEqual(hackathon);
     });
   });
