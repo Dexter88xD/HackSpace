@@ -139,7 +139,7 @@ function HackathonForm({
       </div>
       <div className="flex items-center justify-between gap-3">
         <Link
-          to="/admin/hackathons"
+          to="/hackathons"
           className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
         >
           Cancel

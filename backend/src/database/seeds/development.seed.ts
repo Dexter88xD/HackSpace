@@ -1,7 +1,6 @@
 import 'reflect-metadata';
 import * as bcrypt from 'bcrypt';
 import { EntityManager } from 'typeorm';
-
 import dataSource from '../data-source';
 import { User } from '../entities/user.entity';
 import { RoleName, UserRole } from '../entities/user-role.entity';
@@ -11,6 +10,7 @@ import {
   HackathonPhase,
   HackathonPhaseName,
 } from '../entities/hackathon-phase.entity';
+import { HackathonUser, HackRoleName } from '../entities/hackathon-user.entity';
 
 const DAY = 24 * 60 * 60 * 1000;
 const HACKATHON_COUNT = 200;
@@ -114,7 +114,7 @@ async function seedUser(
   fullName: string,
   password: string,
   roleName: RoleName,
-): Promise<void> {
+): Promise<User> {
   const userRepository = manager.getRepository(User);
   const roleRepository = manager.getRepository(UserRole);
 
@@ -156,7 +156,7 @@ async function seedUser(
       console.log(`User already up to date: ${username}`);
     }
 
-    return;
+    return existing;
   }
 
   const user = userRepository.create({
@@ -170,14 +170,20 @@ async function seedUser(
     role,
   });
 
-  await userRepository.save(user);
+  const savedUser = await userRepository.save(user);
   console.log(`Created ${roleName}: ${username}`);
+  return savedUser;
 }
 
-async function seedHackathons(manager: EntityManager): Promise<number> {
+async function seedHackathons(
+  manager: EntityManager,
+  devUser: User,
+  devAdmin: User,
+): Promise<number> {
   const hackathonRepository = manager.getRepository(Hackathon);
   const settingsRepository = manager.getRepository(HackathonSettings);
   const phaseRepository = manager.getRepository(HackathonPhase);
+  const membershipRepository = manager.getRepository(HackathonUser);
 
   const now = Date.now();
   let created = 0;
@@ -212,6 +218,25 @@ async function seedHackathons(manager: EntityManager): Promise<number> {
       );
 
       created++;
+    }
+
+    const organizer = index % 2 === 0 ? devUser : devAdmin;
+
+    const existingMembership = await membershipRepository.findOne({
+      where: {
+        user: { id: organizer.id },
+        hackathon: { id: hackathon.id },
+      },
+    });
+
+    if (!existingMembership) {
+      await membershipRepository.save(
+        membershipRepository.create({
+          user: organizer,
+          hackathon,
+          hack_role_name: HackRoleName.ORGANIZER,
+        }),
+      );
     }
 
     if (!hackathon.settings) {
@@ -266,7 +291,7 @@ async function main(): Promise<void> {
 
   try {
     const created = await dataSource.transaction(async (manager) => {
-      await seedUser(
+      const devAdmin = await seedUser(
         manager,
         'dev_admin',
         'dev-admin@example.test',
@@ -275,7 +300,7 @@ async function main(): Promise<void> {
         RoleName.ROLE_ADMIN,
       );
 
-      await seedUser(
+      const devUser = await seedUser(
         manager,
         'dev_user',
         'dev-user@example.test',
@@ -284,7 +309,7 @@ async function main(): Promise<void> {
         RoleName.ROLE_USER,
       );
 
-      return seedHackathons(manager);
+      return seedHackathons(manager, devUser, devAdmin);
     });
 
     console.log(`Created ${created} development hackathons`);

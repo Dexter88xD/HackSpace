@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { isAxiosError } from "axios";
 
-import HackathonForm from "@/components/admin/HackathonForm";
+import HackathonForm from "@/components/hackathon/HackathonForm";
 import { createHackathon } from "@/api/hackathon-management";
 import type { HackathonFormValues } from "@/schemas/hackathon.schema";
 import type { HackathonPayload } from "@/types/hackathon-management";
@@ -14,8 +14,12 @@ function CreateHackathon() {
   const mutation = useMutation({
     mutationFn: createHackathon,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["hackathons"] });
-      navigate("/admin/hackathons");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["management-hackathons"] }),
+        queryClient.invalidateQueries({ queryKey: ["hackathons"] }),
+      ]);
+
+      navigate("/hackathons");
     },
   });
 

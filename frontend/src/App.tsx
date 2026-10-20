@@ -6,9 +6,9 @@ import Register from "./pages/Register";
 import { OtpVerification } from "./pages/OtpVerification";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
-import HackathonManagement from "./pages/admin/HackathonManagement";
-import CreateHackathon from "./pages/admin/CreateHackathon";
-import EditHackathon from "./pages/admin/EditHackathon";
+import HackathonManagement from "./pages/HackathonManagement";
+import CreateHackathon from "./pages/CreateHackathon";
+import EditHackathon from "./pages/EditHackathon";
 function App() {
   return (
     <BrowserRouter>
@@ -33,25 +33,25 @@ function App() {
             }
           />
           <Route
-            path="/admin/hackathons"
+            path="/hackathons"
             element={
-              <ProtectedRoute requiredRole="ROLE_ADMIN">
+              <ProtectedRoute>
                 <HackathonManagement />
               </ProtectedRoute>
             }
           />
           <Route
-            path="/admin/hackathons/new"
+            path="/hackathons/new"
             element={
-              <ProtectedRoute requiredRole="ROLE_ADMIN">
+              <ProtectedRoute>
                 <CreateHackathon />
               </ProtectedRoute>
             }
           />
           <Route
-            path="/admin/hackathons/:id/edit"
+            path="/hackathons/:id/edit"
             element={
-              <ProtectedRoute requiredRole="ROLE_ADMIN">
+              <ProtectedRoute>
                 <EditHackathon />
               </ProtectedRoute>
             }

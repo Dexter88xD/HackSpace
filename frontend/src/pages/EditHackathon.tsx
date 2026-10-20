@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from "react-router-dom";
-import HackathonForm from "@/components/admin/HackathonForm";
+import HackathonForm from "@/components/hackathon/HackathonForm";
 import type { HackathonFormValues } from "@/schemas/hackathon.schema";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getHackathonById, updateHackathon } from "@/api/hackathon-management";
@@ -38,10 +38,12 @@ function EditHackathon() {
     mutationFn: (payload: HackathonPayload) =>
       updateHackathon(hackathonId, payload),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ["hackathons"],
-      });
-      navigate("/admin/hackathons");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["management-hackathons"] }),
+        queryClient.invalidateQueries({ queryKey: ["hackathons"] }),
+      ]);
+
+      navigate("/hackathons");
     },
   });
 
