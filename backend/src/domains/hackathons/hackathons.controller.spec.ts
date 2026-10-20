@@ -13,6 +13,7 @@ describe('HackathonsController', () => {
     findAll: jest.fn(),
     findOne: jest.fn(),
     update: jest.fn(),
+    findMine: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -94,6 +95,29 @@ describe('HackathonsController', () => {
       const result = await controller.update(7, dto, mockRequest);
       expect(mockHackathonsService.update).toHaveBeenCalledWith(7, dto, 1);
       expect(result).toEqual(hackathon);
+    });
+  });
+
+  describe('findMine', () => {
+    it('should pass the authenticated user ID and filters to the service', async () => {
+      const filters = { page: 2, limit: 5 };
+      const mockRequest = {
+        user: { userId: 7 },
+      } as AuthenticatedRequest;
+
+      const response = {
+        data: [{ id: 10, title: 'AI Challenge' }],
+        total: 1,
+        page: 2,
+        limit: 5,
+      };
+
+      mockHackathonsService.findMine.mockResolvedValue(response);
+
+      const result = await controller.findMine(filters, mockRequest);
+
+      expect(mockHackathonsService.findMine).toHaveBeenCalledWith(7, filters);
+      expect(result).toEqual(response);
     });
   });
 });

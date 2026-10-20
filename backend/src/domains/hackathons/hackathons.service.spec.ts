@@ -40,6 +40,7 @@ describe('HackathonsService', () => {
     transaction: jest.fn(),
   };
   const mockQueryBuilder = {
+    where: jest.fn().mockReturnThis(),
     andWhere: jest.fn().mockReturnThis(),
     innerJoin: jest.fn().mockReturnThis(),
     orderBy: jest.fn().mockReturnThis(),
@@ -51,6 +52,7 @@ describe('HackathonsService', () => {
 
   beforeEach(async () => {
     jest.resetAllMocks();
+    mockQueryBuilder.where.mockReturnThis();
     mockQueryBuilder.andWhere.mockReturnThis();
     mockQueryBuilder.innerJoin.mockReturnThis();
     mockQueryBuilder.orderBy.mockReturnThis();
@@ -627,6 +629,86 @@ describe('HackathonsService', () => {
         { now: expect.any(Date) as Date },
       );
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledTimes(6);
+    });
+  });
+
+  describe('findMine', () => {
+    beforeEach(() => {
+      mockHackathonRepository.createQueryBuilder.mockReturnValue(
+        mockQueryBuilder,
+      );
+    });
+
+    it('should return only hackathons organized by the authenticated user', async () => {
+      const hackathons = [
+        { id: 10, title: 'AI Challenge' },
+        { id: 30, title: 'Cloud Challenge' },
+      ];
+
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([hackathons, 2]);
+      const result = await service.findMine(7, {});
+      expect(mockHackathonRepository.createQueryBuilder).toHaveBeenCalledWith(
+        'hackathon',
+      );
+      expect(mockQueryBuilder.innerJoin).toHaveBeenCalledWith(
+        'hackathon.hackathon_users',
+        'membership',
+      );
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'membership.user_id = :userId',
+        { userId: 7 },
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'membership.hack_role_name = :role',
+        { role: HackRoleName.ORGANIZER },
+      );
+      expect(result).toEqual({
+        data: hackathons,
+        total: 2,
+        page: 1,
+        limit: 12,
+      });
+    });
+
+    it('should apply pagination and stable ordering', async () => {
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 25]);
+
+      const result = await service.findMine(7, {
+        page: 2,
+        limit: 5,
+      });
+      expect(mockQueryBuilder.skip).toHaveBeenCalledWith(5);
+      expect(mockQueryBuilder.take).toHaveBeenCalledWith(5);
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
+        'hackathon.start_at',
+        'ASC',
+      );
+      expect(mockQueryBuilder.addOrderBy).toHaveBeenCalledWith(
+        'hackathon.id',
+        'ASC',
+      );
+      expect(result).toEqual({
+        data: [],
+        total: 25,
+        page: 2,
+        limit: 5,
+      });
+    });
+
+    it('should return an empty list when the user organizes no hackathons', async () => {
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+
+      const result = await service.findMine(8, {});
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'membership.user_id = :userId',
+        { userId: 8 },
+      );
+      expect(result).toEqual({
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 12,
+      });
     });
   });
 });

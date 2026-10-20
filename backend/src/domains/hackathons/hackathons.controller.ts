@@ -35,6 +35,14 @@ export class HackathonsController {
     return this.hackathonsService.findAll(query);
   }
 
+  @Get('mine')
+  findMine(
+    @Query() query: HackathonFiltersDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.hackathonsService.findMine(req.user.userId, query);
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.hackathonsService.findOne(id);

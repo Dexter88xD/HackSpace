@@ -106,6 +106,33 @@ export class HackathonsService {
     return hackathon;
   }
 
+  async findMine(userId: number, filterQuery: HackathonFiltersDto) {
+    const query = this.hackathonRepository
+      .createQueryBuilder('hackathon')
+      .innerJoin('hackathon.hackathon_users', 'membership');
+    query.where('membership.user_id = :userId', {
+      userId,
+    });
+    query.andWhere('membership.hack_role_name = :role', {
+      role: HackRoleName.ORGANIZER,
+    });
+    const pageNumber = filterQuery.page ?? 1;
+    const pageLimit = filterQuery.limit ?? 12;
+    query
+      .orderBy('hackathon.start_at', 'ASC')
+      .addOrderBy('hackathon.id', 'ASC')
+      .skip((pageNumber - 1) * pageLimit)
+      .take(pageLimit);
+
+    const [data, total] = await query.getManyAndCount();
+    return {
+      data,
+      total,
+      page: pageNumber,
+      limit: pageLimit,
+    };
+  }
+
   async create(dto: CreateHackathonDto, userId: number) {
     const startAt = new Date(dto.startAt);
     const endAt = new Date(dto.endAt);
