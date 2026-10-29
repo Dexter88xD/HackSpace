@@ -13,7 +13,7 @@ import { HackathonsService } from './hackathons.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Server } from 'node:http';
 
-describe('Hackathons RBAC (HTTP)', () => {
+describe('Hackathons HTTP', () => {
   let app: INestApplication;
 
   const getTestServer = (): Server => app.getHttpServer() as Server;
@@ -22,6 +22,7 @@ describe('Hackathons RBAC (HTTP)', () => {
     create: jest.fn(),
     findAll: jest.fn(),
     findOne: jest.fn(),
+    findMine: jest.fn(),
     update: jest.fn(),
   };
   const mockJwtGuard: CanActivate = {
@@ -69,6 +70,12 @@ describe('Hackathons RBAC (HTTP)', () => {
     mockHackathonsService.create.mockResolvedValue({ id: 1 });
     mockHackathonsService.update.mockResolvedValue({ id: 1 });
     mockHackathonsService.findAll.mockResolvedValue({
+      data: [],
+      total: 0,
+      page: 1,
+      limit: 12,
+    });
+    mockHackathonsService.findMine.mockResolvedValue({
       data: [],
       total: 0,
       page: 1,
@@ -156,4 +163,87 @@ describe('Hackathons RBAC (HTTP)', () => {
 
     expect(mockHackathonsService.create).toHaveBeenCalledWith(dto, 1);
   });
+
+  it('rejects unauthenticated GET /hackathons/mine with 401', async () => {
+    await request(getTestServer()).get('/hackathons/mine').expect(401);
+
+    expect(mockHackathonsService.findMine).not.toHaveBeenCalled();
+  });
+
+  it('returns hackathons organized by the authenticated user', async () => {
+    authenticated = true;
+
+    const response = {
+      data: [{ id: 10, title: 'AI Challenge' }],
+      total: 1,
+      page: 1,
+      limit: 12,
+    };
+
+    mockHackathonsService.findMine.mockResolvedValue(response);
+
+    await request(getTestServer())
+      .get('/hackathons/mine')
+      .expect(200)
+      .expect(response);
+
+    expect(mockHackathonsService.findMine).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({
+        page: undefined,
+        limit: undefined,
+      }),
+    );
+  });
+
+  it('forwards pagination parameters for GET /hackathons/mine', async () => {
+    authenticated = true;
+
+    await request(getTestServer())
+      .get('/hackathons/mine?page=2&limit=5')
+      .expect(200);
+
+    expect(mockHackathonsService.findMine).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({
+        page: 2,
+        limit: 5,
+      }),
+    );
+  });
+
+  it('rejects invalid pagination for GET /hackathons/mine', async () => {
+    authenticated = true;
+
+    await request(getTestServer())
+      .get('/hackathons/mine?page=0&limit=5')
+      .expect(400);
+
+    expect(mockHackathonsService.findMine).not.toHaveBeenCalled();
+  });
+
+  it.each(['abc', '3.14'])(
+    'rejects GET /hackathons/%s with 400',
+    async (id) => {
+      authenticated = true;
+
+      await request(getTestServer()).get(`/hackathons/${id}`).expect(400);
+
+      expect(mockHackathonsService.findOne).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['abc', '3.14'])(
+    'rejects PATCH /hackathons/%s with 400',
+    async (id) => {
+      authenticated = true;
+
+      await request(getTestServer())
+        .patch(`/hackathons/${id}`)
+        .send({ title: 'Updated Title' })
+        .expect(400);
+
+      expect(mockHackathonsService.update).not.toHaveBeenCalled();
+    },
+  );
 });

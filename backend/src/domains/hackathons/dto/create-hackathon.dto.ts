@@ -1,5 +1,5 @@
 import {
-  IsISO8601,
+  IsDateString,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -23,9 +23,9 @@ export class CreateHackathonDto {
   })
   organizationName!: string;
 
-  @IsISO8601({ strict: true })
+  @IsDateString({ strict: true })
   startAt!: string;
 
-  @IsISO8601({ strict: true })
+  @IsDateString({ strict: true })
   endAt!: string;
 }
