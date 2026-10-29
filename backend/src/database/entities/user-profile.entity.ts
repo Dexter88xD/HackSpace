@@ -17,16 +17,16 @@ export class UserProfile {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   bio!: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   avatar_url!: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   organization_name!: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   major!: string | null;
 
   @CreateDateColumn()
@@ -35,8 +35,8 @@ export class UserProfile {
   @UpdateDateColumn()
   updated_at!: Date;
 
-  @JoinColumn()
   @OneToOne(() => User, (user) => user.profile)
+  @JoinColumn()
   user!: User;
 
   @OneToMany(() => UserSkill, (skill) => skill.user_profile)

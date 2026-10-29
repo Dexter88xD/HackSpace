@@ -3,17 +3,21 @@ import { Navigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getMe } from "@/api/auth";
 import { Spinner } from "./ui/spinner";
+import type { UserRole } from "@/types/auth";
 
 type ProtectedRouteProps = {
-    children: React.ReactNode;
+  children: React.ReactNode;
+  requiredRole?: UserRole;
 };
 
 // Protects authenticated routes by validating the user's HttpOnly authentication
 // cookie through /auth/me, displaying a loading spinner while authentication is
 // being checked, and redirecting unauthenticated users to the login page.
-export default function ProtectedRoute({children} : ProtectedRouteProps) {
-    const meQuery = useQuery({
-    queryKey: ['me'],
+export default function ProtectedRoute(
+  { children, requiredRole }: ProtectedRouteProps,
+) {
+  const meQuery = useQuery({
+    queryKey: ["me"],
     queryFn: getMe,
     retry: false,
   });
@@ -28,6 +32,10 @@ export default function ProtectedRoute({children} : ProtectedRouteProps) {
 
   if (meQuery.isError) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (requiredRole && meQuery.data.role !== requiredRole) {
+    return <Navigate to="/" replace />;
   }
 
   return children;

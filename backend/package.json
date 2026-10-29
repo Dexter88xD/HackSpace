@@ -19,14 +19,15 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "typeorm": "typeorm-ts-node-commonjs"
+    "typeorm": "typeorm-ts-node-commonjs",
+    "seed:dev": "ts-node -r tsconfig-paths/register src/database/seeds/development.seed.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^12.0.0",
     "@nestjs/core": "^11.0.1",
     "@nestjs/jwt": "^11.0.2",
-    "@nestjs/mapped-types": "*",
+    "@nestjs/mapped-types": "2.1.1",
     "@nestjs/microservices": "^11.2.5",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
