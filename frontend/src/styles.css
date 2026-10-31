@@ -5,13 +5,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-body {
-    margin: 0;
-    font-family: system-ui, sans-serif;
-    color: #17202a;
-    background: #f4f7f5;
-}
-
 main {
     max-width: 72rem;
     margin: 10vh auto;
@@ -133,11 +126,13 @@ main {
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    }
-  body {
-    @apply bg-background text-foreground;
-    }
+  }
+
   html {
     @apply font-sans;
-    }
+  }
+
+  body {
+    @apply m-0 min-h-screen bg-background font-sans text-foreground;
+  }
 }

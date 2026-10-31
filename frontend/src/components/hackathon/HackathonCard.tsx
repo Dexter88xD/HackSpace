@@ -1,9 +1,4 @@
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { Building2, CalendarDays } from "lucide-react";
 import type { HackathonCardProps } from "@/types/hackathon";
@@ -15,7 +10,7 @@ export function HackathonCard({ hackathon }: HackathonCardProps) {
   const startDate = new Date(hackathon.start_at);
   const endDate = new Date(hackathon.end_at);
 
-  const dateFormatter = new Intl.DateTimeFormat("en-GB", {
+  const dateFormatter = new Intl.DateTimeFormat("en-US", {
     day: "numeric",
     month: "short",
     year: "numeric",
