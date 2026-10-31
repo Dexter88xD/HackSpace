@@ -6,8 +6,17 @@ import { getHackathonById, updateHackathon } from "@/api/hackathon-management";
 import type { HackathonPayload } from "@/types/hackathon-management";
 import { isAxiosError } from "axios";
 import { getMe } from "@/api/auth";
+import { useLocation } from "react-router-dom";
 
 function EditHackathon() {
+  const location = useLocation();
+
+  const returnTo =
+    typeof location.state?.returnTo === "string" &&
+    location.state.returnTo.startsWith("/") &&
+    !location.state.returnTo.startsWith("//")
+      ? location.state.returnTo
+      : "/hackathons";
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { id } = useParams();
@@ -118,7 +127,7 @@ function EditHackathon() {
         hackathon={hackathon}
         onSubmit={handleEdit}
         isSubmitting={mutation.isPending}
-        cancelTo={`/hackathons/${hackathonId}`}
+        cancelTo={returnTo}
       />
     </section>
   );

@@ -1,13 +1,21 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { isAxiosError } from "axios";
-
 import HackathonForm from "@/components/hackathon/HackathonForm";
 import { createHackathon } from "@/api/hackathon-management";
 import type { HackathonFormValues } from "@/schemas/hackathon.schema";
 import type { HackathonPayload } from "@/types/hackathon-management";
+import { useLocation } from "react-router-dom";
 
 function CreateHackathon() {
+  const location = useLocation();
+
+  const returnTo =
+    typeof location.state?.returnTo === "string" &&
+    location.state.returnTo.startsWith("/") &&
+    !location.state.returnTo.startsWith("//")
+      ? location.state.returnTo
+      : "/hackathons";
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -50,6 +58,7 @@ function CreateHackathon() {
       <HackathonForm
         onSubmit={handleCreate}
         isSubmitting={mutation.isPending}
+        cancelTo={returnTo}
       />
     </section>
   );

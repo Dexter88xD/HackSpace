@@ -5,6 +5,7 @@ import { getHackathonById } from "@/api/hackathon-management";
 import { isAxiosError } from "axios";
 import HackathonDetailsState from "@/components/hackathon/HackathonDetailsState";
 import { Spinner } from "@/components/ui/spinner";
+import { buttonVariants } from "@/components/ui/button";
 
 export default function HackathonDetails() {
   const { id } = useParams<{ id: string }>();
@@ -93,7 +94,7 @@ export default function HackathonDetails() {
         <div>
           <h2 className="font-semibold">Start date</h2>
           <p className="mt-1 text-muted-foreground">
-            {new Date(hackathon.start_at).toLocaleString("en-GB", {
+            {new Date(hackathon.start_at).toLocaleString("en-US", {
               dateStyle: "medium",
               timeStyle: "short",
             })}
@@ -103,7 +104,7 @@ export default function HackathonDetails() {
         <div>
           <h2 className="font-semibold">End date</h2>
           <p className="mt-1 text-muted-foreground">
-            {new Date(hackathon.end_at).toLocaleString("en-GB", {
+            {new Date(hackathon.end_at).toLocaleString("en-US", {
               dateStyle: "medium",
               timeStyle: "short",
             })}
@@ -121,7 +122,10 @@ export default function HackathonDetails() {
       <div className="mt-8 flex flex-wrap gap-3">
         <Link
           to="/hackathon-explorer"
-          className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+          className={buttonVariants({
+            variant: "outline",
+            size: "lg",
+          })}
         >
           Back to Explorer
         </Link>
@@ -129,7 +133,8 @@ export default function HackathonDetails() {
         {hackathon.canEdit && (
           <Link
             to={`/hackathons/${hackathon.id}/edit`}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            state={{ returnTo: `/hackathons/${hackathon.id}` }}
+            className={buttonVariants({ variant: "default", size: "lg" })}
           >
             Edit Hackathon
           </Link>
