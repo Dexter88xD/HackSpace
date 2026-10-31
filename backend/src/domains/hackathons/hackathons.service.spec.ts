@@ -711,4 +711,82 @@ describe('HackathonsService', () => {
       });
     });
   });
+
+  describe('findDetails', () => {
+    const hackathon = {
+      id: 7,
+      title: 'AI Challenge',
+    };
+
+    beforeEach(() => {
+      mockHackathonRepository.findOne.mockResolvedValue(hackathon);
+    });
+
+    it('allows a global admin to edit', async () => {
+      mockUserRepository.findOne.mockResolvedValue({
+        id: 1,
+        role: { role_name: RoleName.ROLE_ADMIN },
+      });
+
+      const result = await service.findDetails(7, 1);
+
+      expect(result.canEdit).toBe(true);
+      expect(mockHackathonUserRepository.findOne).not.toHaveBeenCalled();
+    });
+
+    it('allows the hackathon organiser to edit', async () => {
+      mockUserRepository.findOne.mockResolvedValue({
+        id: 2,
+        role: { role_name: RoleName.ROLE_USER },
+      });
+      mockHackathonUserRepository.findOne.mockResolvedValue({
+        hack_role_name: HackRoleName.ORGANIZER,
+      });
+
+      const result = await service.findDetails(7, 2);
+
+      expect(result.canEdit).toBe(true);
+      expect(mockHackathonUserRepository.findOne).toHaveBeenCalledWith({
+        where: {
+          user: { id: 2 },
+          hackathon: { id: 7 },
+          hack_role_name: HackRoleName.ORGANIZER,
+        },
+      });
+    });
+
+    it('denies editing to an unrelated user', async () => {
+      mockUserRepository.findOne.mockResolvedValue({
+        id: 3,
+        role: { role_name: RoleName.ROLE_USER },
+      });
+      mockHackathonUserRepository.findOne.mockResolvedValue(null);
+
+      const result = await service.findDetails(7, 3);
+
+      expect(result.canEdit).toBe(false);
+    });
+
+    it('denies editing to a user without a global role', async () => {
+      mockUserRepository.findOne.mockResolvedValue({
+        id: 4,
+        role: null,
+      });
+
+      const result = await service.findDetails(7, 4);
+
+      expect(result.canEdit).toBe(false);
+      expect(mockHackathonUserRepository.findOne).not.toHaveBeenCalled();
+    });
+
+    it('throws 404 for a nonexistent hackathon', async () => {
+      mockHackathonRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.findDetails(999, 1)).rejects.toThrow(
+        NotFoundException,
+      );
+
+      expect(mockUserRepository.findOne).not.toHaveBeenCalled();
+    });
+  });
 });

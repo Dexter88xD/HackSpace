@@ -44,8 +44,11 @@ export class HackathonsController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.hackathonsService.findOne(id);
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.hackathonsService.findDetails(id, req.user.userId);
   }
 
   @Patch(':id')
