@@ -1,33 +1,33 @@
-import * as React from "react"
+import * as React from "react";
 
-import { cn } from "cn"
+import { cn } from "cn";
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 import {
   Field,
   FieldDescription,
   FieldGroup,
   FieldLabel,
   FieldSeparator,
-} from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import { useForm } from "react-hook-form"
-import { LoginFormData, loginSchema } from "@/schemas/login.schema"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useMutation } from "@tanstack/react-query"
-import { login, startOAuth } from "@/api/auth"
-import { Link, useNavigate, useSearchParams } from "react-router-dom"
-import { Loader2 } from "lucide-react"
-import { FieldError } from "@/components/ui/field"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import axios from "axios"
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { useForm } from "react-hook-form";
+import { LoginFormData, loginSchema } from "@/schemas/login.schema";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { login, startOAuth } from "@/api/auth";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Loader2 } from "lucide-react";
+import { FieldError } from "@/components/ui/field";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import axios from "axios";
 
 // Login form component that validates user credentials with React Hook Form and Zod,
 // submits the login request through TanStack Query, displays loading and API error states,
@@ -41,28 +41,33 @@ export function LoginForm({
   ...props
 }: React.ComponentProps<"div">) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
-  const oauthError = searchParams.get('oauthError');
+  const oauthError = searchParams.get("oauthError");
   const form = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema)
-  })
+    resolver: zodResolver(loginSchema),
+  });
   const loginMutation = useMutation({
     mutationFn: login,
     onSuccess: () => {
-      navigate('/');
+      queryClient.clear();
+      navigate("/");
     },
     onError: (error) => {
-      if(axios.isAxiosError(error)) {
-        if(error.response?.data.code === 'EMAIL_NOT_VERIFIED') {
-          sessionStorage.setItem('verificationEmail', error.response.data.email);
-          navigate('/verify-otp')
-        } 
+      if (axios.isAxiosError(error)) {
+        if (error.response?.data.code === "EMAIL_NOT_VERIFIED") {
+          sessionStorage.setItem(
+            "verificationEmail",
+            error.response.data.email,
+          );
+          navigate("/verify-otp");
+        }
       }
-    }
-  })
+    },
+  });
   const onSubmit = (data: LoginFormData) => {
-    loginMutation.mutate(data)
-  }
+    loginMutation.mutate(data);
+  };
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
@@ -84,7 +89,7 @@ export function LoginForm({
                 <Button
                   variant="outline"
                   type="button"
-                  onClick={() => startOAuth('google')}
+                  onClick={() => startOAuth("google")}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path
@@ -97,10 +102,19 @@ export function LoginForm({
                 <Button
                   variant="outline"
                   type="button"
-                  onClick={() => startOAuth('42')}
+                  onClick={() => startOAuth("42")}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <text x="12" y="16" textAnchor="middle" fontSize="11" fontWeight="700" fill="currentColor">42</text>
+                    <text
+                      x="12"
+                      y="16"
+                      textAnchor="middle"
+                      fontSize="11"
+                      fontWeight="700"
+                      fill="currentColor"
+                    >
+                      42
+                    </text>
                   </svg>
                   Login with 42 Intra
                 </Button>
@@ -114,7 +128,7 @@ export function LoginForm({
                   id="identifier"
                   type="text"
                   placeholder="username or email"
-                  {...form.register('identifier')}
+                  {...form.register("identifier")}
                 />
               </Field>
               <Field>
@@ -127,26 +141,34 @@ export function LoginForm({
                     Forgot your password?
                   </a>
                 </div>
-                <Input id="password" type="password" {...form.register('password')} />
+                <Input
+                  id="password"
+                  type="password"
+                  {...form.register("password")}
+                />
               </Field>
               <Field>
-                  <Button type="submit" disabled={loginMutation.isPending}>
+                <Button type="submit" disabled={loginMutation.isPending}>
                   {loginMutation.isPending && (
                     <Loader2 className="animate-spin" />
                   )}
-                  {loginMutation.isPending
-                    ? "Logging in..."
-                    : "Login"}
+                  {loginMutation.isPending ? "Logging in..." : "Login"}
                 </Button>
-              {loginMutation.isError && (
-              <FieldError>
-                {axios.isAxiosError(loginMutation.error)
-                  ? loginMutation.error.response?.data?.message
-                  : "Something went wrong"}
-              </FieldError>
-            )}
+                {loginMutation.isError && (
+                  <FieldError>
+                    {axios.isAxiosError(loginMutation.error)
+                      ? loginMutation.error.response?.data?.message
+                      : "Something went wrong"}
+                  </FieldError>
+                )}
                 <FieldDescription className="text-center">
-                  Don&apos;t have an account? <Link to={'/register'} className="underline underline-offset-4">Sign up</Link> 
+                  Don&apos;t have an account?{" "}
+                  <Link
+                    to={"/register"}
+                    className="underline underline-offset-4"
+                  >
+                    Sign up
+                  </Link>
                 </FieldDescription>
               </Field>
             </FieldGroup>
@@ -159,5 +181,5 @@ export function LoginForm({
         and <a href="#">Privacy Policy</a>.
       </FieldDescription>
     </div>
-  )
+  );
 }
