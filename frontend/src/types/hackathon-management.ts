@@ -13,6 +13,7 @@ export type HackathonFormProps = {
   hackathon?: Hackathon;
   onSubmit: (data: HackathonFormValues) => void | Promise<void>;
   isSubmitting?: boolean;
+  cancelTo?: string;
 };
 
 export type HackathonTableProps = {

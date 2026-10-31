@@ -54,7 +54,7 @@ function EditHackathon() {
         queryClient.invalidateQueries({ queryKey: ["hackathons"] }),
       ]);
 
-      navigate("/hackathons");
+      navigate(`/hackathons/${hackathonId}`);
     },
   });
 
@@ -118,6 +118,7 @@ function EditHackathon() {
         hackathon={hackathon}
         onSubmit={handleEdit}
         isSubmitting={mutation.isPending}
+        cancelTo={`/hackathons/${hackathonId}`}
       />
     </section>
   );
