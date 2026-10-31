@@ -9,6 +9,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import HackathonManagement from "./pages/HackathonManagement";
 import CreateHackathon from "./pages/CreateHackathon";
 import EditHackathon from "./pages/EditHackathon";
+import HackathonDetails from "./pages/HackathonDetails";
 function App() {
   return (
     <BrowserRouter>
@@ -45,6 +46,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <CreateHackathon />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hackathons/:id"
+            element={
+              <ProtectedRoute>
+                <HackathonDetails />
               </ProtectedRoute>
             }
           />
