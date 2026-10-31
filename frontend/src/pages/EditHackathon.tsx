@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getHackathonById, updateHackathon } from "@/api/hackathon-management";
 import type { HackathonPayload } from "@/types/hackathon-management";
 import { isAxiosError } from "axios";
+import { getMe } from "@/api/auth";
 
 function EditHackathon() {
   const navigate = useNavigate();
@@ -12,6 +13,13 @@ function EditHackathon() {
   const { id } = useParams();
 
   const hackathonId = Number(id);
+  const { data: currentUser } = useQuery({
+    queryKey: ["me"],
+    queryFn: getMe,
+    retry: false,
+  });
+
+  const currentUserId = currentUser?.id;
 
   const {
     data: hackathon,
@@ -19,9 +27,12 @@ function EditHackathon() {
     isError,
     error,
   } = useQuery({
-    queryKey: ["hackathons", hackathonId],
+    queryKey: ["hackathons", hackathonId, currentUserId],
     queryFn: () => getHackathonById(hackathonId),
-    enabled: Number.isSafeInteger(hackathonId) && hackathonId > 0,
+    enabled:
+      currentUserId !== undefined &&
+      Number.isSafeInteger(hackathonId) &&
+      hackathonId > 0,
     retry: (failureCount, error) => {
       if (isAxiosError(error)) {
         const status = error.response?.status;
@@ -65,6 +76,12 @@ function EditHackathon() {
 
   if (!hackathon) {
     return <p>Hackathon not found.</p>;
+  }
+
+  if (!hackathon.canEdit) {
+    return (
+      <p role="alert">You don't have permission to edit this hackathon.</p>
+    );
   }
 
   function handleEdit(data: HackathonFormValues) {

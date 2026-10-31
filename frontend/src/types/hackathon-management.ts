@@ -2,11 +2,11 @@ import { HackathonFormValues } from "@/schemas/hackathon.schema";
 import { Hackathon } from "./hackathon";
 
 export type HackathonPayload = {
-    title: string;
-    description: string | null;
-    organizationName: string;
-    startAt: string;
-    endAt: string;
+  title: string;
+  description: string | null;
+  organizationName: string;
+  startAt: string;
+  endAt: string;
 };
 
 export type HackathonFormProps = {
@@ -18,4 +18,8 @@ export type HackathonFormProps = {
 export type HackathonTableProps = {
   hackathons: Hackathon[];
   total: number;
+};
+
+export type HackathonDetails = Hackathon & {
+  canEdit: boolean;
 };
