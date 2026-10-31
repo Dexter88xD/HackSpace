@@ -2,36 +2,81 @@ import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getMe } from "@/api/auth";
 import { getHackathonById } from "@/api/hackathon-management";
+import { isAxiosError } from "axios";
+import HackathonDetailsState from "@/components/hackathon/HackathonDetailsState";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function HackathonDetails() {
   const { id } = useParams<{ id: string }>();
-  const hackathonId = Number(id);
+  const isValidId = id !== undefined && /^[1-9]\d*$/.test(id);
+  const hackathonId = isValidId ? Number(id) : NaN;
 
-  const { data: currentUser } = useQuery({
+  const validHackathonId = isValidId && Number.isSafeInteger(hackathonId);
+
+  const { data: currentUser, isError: isAuthError } = useQuery({
     queryKey: ["me"],
     queryFn: getMe,
     retry: false,
   });
 
-  const { data: hackathon, isPending } = useQuery({
+  const {
+    data: hackathon,
+    isPending,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ["hackathons", hackathonId, currentUser?.id],
     queryFn: () => getHackathonById(hackathonId),
-    enabled:
-      currentUser?.id !== undefined &&
-      Number.isSafeInteger(hackathonId) &&
-      hackathonId > 0,
+    enabled: currentUser?.id !== undefined && validHackathonId,
+    retry: (failureCount, error) => {
+      if (isAxiosError(error)) {
+        const status = error.response?.status;
+
+        if (status && status >= 400 && status < 500) {
+          return false;
+        }
+      }
+
+      return failureCount < 2;
+    },
   });
 
-  if (!Number.isSafeInteger(hackathonId) || hackathonId <= 0) {
-    return <p>Invalid hackathon ID.</p>;
+  if (!validHackathonId) {
+    return <HackathonDetailsState variant="invalid" />;
+  }
+
+  if (isAuthError) {
+    return <HackathonDetailsState variant="error" />;
   }
 
   if (isPending) {
-    return <p>Loading hackathon...</p>;
+    return (
+      <section
+        role="status"
+        aria-live="polite"
+        className="flex min-h-[60vh] flex-col items-center justify-center gap-4"
+      >
+        <Spinner />
+        <p className="text-sm text-muted-foreground">
+          Loading hackathon details...
+        </p>
+      </section>
+    );
+  }
+
+  if (isError) {
+    if (isAxiosError(error) && error.response?.status === 404) {
+      return <HackathonDetailsState variant="not-found" />;
+    }
+
+    return (
+      <HackathonDetailsState variant="error" onRetry={() => void refetch()} />
+    );
   }
 
   if (!hackathon) {
-    return <p>Hackathon not found.</p>;
+    return <HackathonDetailsState variant="not-found" />;
   }
 
   return (
