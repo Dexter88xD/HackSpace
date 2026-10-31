@@ -7,6 +7,8 @@ import type { HackathonPayload } from "@/types/hackathon-management";
 import { isAxiosError } from "axios";
 import { getMe } from "@/api/auth";
 import { useLocation } from "react-router-dom";
+import HackathonDetailsState from "@/components/hackathon/HackathonDetailsState";
+import { Spinner } from "@/components/ui/spinner";
 
 function EditHackathon() {
   const location = useLocation();
@@ -19,9 +21,12 @@ function EditHackathon() {
       : "/hackathons";
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
 
-  const hackathonId = Number(id);
+  const isValidId = id !== undefined && /^[1-9]\d*$/.test(id);
+  const hackathonId = isValidId ? Number(id) : NaN;
+
+  const validHackathonId = isValidId && Number.isSafeInteger(hackathonId);
   const { data: currentUser } = useQuery({
     queryKey: ["me"],
     queryFn: getMe,
@@ -35,13 +40,11 @@ function EditHackathon() {
     isPending,
     isError,
     error,
+    refetch,
   } = useQuery({
     queryKey: ["hackathons", hackathonId, currentUserId],
     queryFn: () => getHackathonById(hackathonId),
-    enabled:
-      currentUserId !== undefined &&
-      Number.isSafeInteger(hackathonId) &&
-      hackathonId > 0,
+    enabled: currentUserId !== undefined && validHackathonId,
     retry: (failureCount, error) => {
       if (isAxiosError(error)) {
         const status = error.response?.status;
@@ -67,30 +70,43 @@ function EditHackathon() {
     },
   });
 
-  if (!Number.isSafeInteger(hackathonId) || hackathonId <= 0) {
-    return <p>Invalid hackathon ID.</p>;
+  if (!validHackathonId) {
+    return <HackathonDetailsState variant="invalid" />;
   }
 
   if (isError) {
     if (isAxiosError(error) && error.response?.status === 404) {
-      return <p>Hackathon not found.</p>;
+      return <HackathonDetailsState variant="not-found" />;
     }
 
-    return <p>Failed to load hackathon. Please try again.</p>;
+    if (isAxiosError(error) && error.response?.status === 403) {
+      return <HackathonDetailsState variant="forbidden" />;
+    }
+
+    return (
+      <HackathonDetailsState variant="error" onRetry={() => void refetch()} />
+    );
   }
 
   if (isPending) {
-    return <p>Loading hackathon...</p>;
+    return (
+      <section
+        role="status"
+        aria-live="polite"
+        className="flex min-h-[60vh] flex-col items-center justify-center gap-4"
+      >
+        <Spinner />
+        <p className="text-sm text-muted-foreground">Loading hackathon...</p>
+      </section>
+    );
   }
 
   if (!hackathon) {
-    return <p>Hackathon not found.</p>;
+    return <HackathonDetailsState variant="not-found" />;
   }
 
   if (!hackathon.canEdit) {
-    return (
-      <p role="alert">You don't have permission to edit this hackathon.</p>
-    );
+    return <HackathonDetailsState variant="forbidden" />;
   }
 
   function handleEdit(data: HackathonFormValues) {

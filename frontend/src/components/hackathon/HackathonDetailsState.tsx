@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { AlertCircle, FileQuestion, ShieldAlert } from "lucide-react";
 
 type HackathonDetailsStateProps = {
-  variant: "invalid" | "not-found" | "error";
+  variant: "invalid" | "not-found" | "error" | "forbidden";
   onRetry?: () => void;
 };
 
@@ -23,6 +23,11 @@ const stateConfig = {
     title: "Unable to load hackathon",
     description:
       "Something went wrong while loading the details. Please try again.",
+  },
+  forbidden: {
+    icon: ShieldAlert,
+    title: "Access denied",
+    description: "You don't have permission to edit this hackathon.",
   },
 };
 
