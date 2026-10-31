@@ -1,12 +1,95 @@
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { getMe } from "@/api/auth";
+import { getHackathonById } from "@/api/hackathon-management";
 
 export default function HackathonDetails() {
   const { id } = useParams<{ id: string }>();
+  const hackathonId = Number(id);
+
+  const { data: currentUser } = useQuery({
+    queryKey: ["me"],
+    queryFn: getMe,
+    retry: false,
+  });
+
+  const { data: hackathon, isPending } = useQuery({
+    queryKey: ["hackathons", hackathonId, currentUser?.id],
+    queryFn: () => getHackathonById(hackathonId),
+    enabled:
+      currentUser?.id !== undefined &&
+      Number.isSafeInteger(hackathonId) &&
+      hackathonId > 0,
+  });
+
+  if (!Number.isSafeInteger(hackathonId) || hackathonId <= 0) {
+    return <p>Invalid hackathon ID.</p>;
+  }
+
+  if (isPending) {
+    return <p>Loading hackathon...</p>;
+  }
+
+  if (!hackathon) {
+    return <p>Hackathon not found.</p>;
+  }
 
   return (
-    <section>
-      <h1>Hackathon Details</h1>
-      <p>Hackathon ID: {id}</p>
+    <section className="mx-auto w-full max-w-4xl px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold">{hackathon.title}</h1>
+
+        <p className="mt-2 text-muted-foreground">
+          Organised by {hackathon.organization_name}
+        </p>
+      </div>
+
+      <div className="grid gap-4 rounded-lg border p-6 sm:grid-cols-2">
+        <div>
+          <h2 className="font-semibold">Start date</h2>
+          <p className="mt-1 text-muted-foreground">
+            {new Date(hackathon.start_at).toLocaleString("en-GB", {
+              dateStyle: "medium",
+              timeStyle: "short",
+            })}
+          </p>
+        </div>
+
+        <div>
+          <h2 className="font-semibold">End date</h2>
+          <p className="mt-1 text-muted-foreground">
+            {new Date(hackathon.end_at).toLocaleString("en-GB", {
+              dateStyle: "medium",
+              timeStyle: "short",
+            })}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <h2 className="mb-3 text-xl font-semibold">About this hackathon</h2>
+
+        <p className="whitespace-pre-wrap break-words text-muted-foreground">
+          {hackathon.description || "No description provided."}
+        </p>
+      </div>
+      <div className="mt-8 flex flex-wrap gap-3">
+        <Link
+          to="/hackathon-explorer"
+          className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+        >
+          Back to Explorer
+        </Link>
+
+        {hackathon.canEdit && (
+          <Link
+            to={`/hackathons/${hackathon.id}/edit`}
+            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Edit Hackathon
+          </Link>
+        )}
+      </div>
     </section>
   );
 }
