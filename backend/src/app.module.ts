@@ -34,8 +34,6 @@ import { UserModule } from './users/user.module';
     DemoModule,
     HackathonsModule,
     UserModule,
-    HackathonModule,
-    UserModule,
   ],
   controllers: [AppController],
   providers: [AppService],
