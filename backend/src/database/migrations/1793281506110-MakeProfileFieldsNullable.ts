@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class MakeProfileFieldsNullable1793281506110
-  implements MigrationInterface
-{
+export class MakeProfileFieldsNullable1793281506110 implements MigrationInterface {
   name = 'MakeProfileFieldsNullable1793281506110';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
