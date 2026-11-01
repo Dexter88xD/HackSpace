@@ -34,6 +34,7 @@ import { HackathonModule } from './domains/hackathon/hackathon.module';
     DemoModule,
     UserModule,
     HackathonModule,
+	UserModule,
   ],
   controllers: [AppController],
   providers: [AppService],

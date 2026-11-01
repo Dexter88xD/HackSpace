@@ -17,16 +17,16 @@ export class UserProfile {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   bio!: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   avatar_url!: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', length: 100, nullable: true })
   organization_name!: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', length: 100, nullable: true })
   major!: string | null;
 
   @CreateDateColumn()
