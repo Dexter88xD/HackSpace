@@ -7,6 +7,9 @@ import { OtpVerification } from "./pages/OtpVerification";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Profile from "./pages/Profile";
+import HackathonManagement from "./pages/HackathonManagement";
+import CreateHackathon from "./pages/CreateHackathon";
+import EditHackathon from "./pages/EditHackathon";
 function App() {
   return (
     <BrowserRouter>
@@ -27,6 +30,30 @@ function App() {
             element={
               <ProtectedRoute>
                 <HackathonExplorer />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hackathons"
+            element={
+              <ProtectedRoute>
+                <HackathonManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hackathons/new"
+            element={
+              <ProtectedRoute>
+                <CreateHackathon />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hackathons/:id/edit"
+            element={
+              <ProtectedRoute>
+                <EditHackathon />
               </ProtectedRoute>
             }
           />

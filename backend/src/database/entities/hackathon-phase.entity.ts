@@ -4,6 +4,7 @@ import {
   Column,
   ManyToOne,
   Check,
+  JoinColumn,
 } from 'typeorm';
 import { Hackathon } from './hackathon.entity';
 
@@ -41,6 +42,8 @@ export class HackathonPhase {
 
   @ManyToOne(() => Hackathon, (hackathon) => hackathon.phases, {
     nullable: false,
+    onDelete: 'CASCADE',
   })
+  @JoinColumn({ name: 'hackathon_id' })
   hackathon!: Hackathon;
 }

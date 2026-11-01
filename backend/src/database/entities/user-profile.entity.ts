@@ -35,8 +35,8 @@ export class UserProfile {
   @UpdateDateColumn()
   updated_at!: Date;
 
-  @JoinColumn()
   @OneToOne(() => User, (user) => user.profile)
+  @JoinColumn()
   user!: User;
 
   @OneToMany(() => UserSkill, (skill) => skill.user_profile)
