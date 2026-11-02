@@ -1,23 +1,23 @@
 import api from "./client";
 import type { Hackathon } from "@/types/hackathon";
-import type { HackathonPayload } from "@/types/hackathon-management";
+import type { HackathonDetails, HackathonPayload } from "@/types/hackathon-management";
 
-export async function getHackathonById(id: number): Promise<Hackathon> {
-    const response = await api.get<Hackathon>(`/hackathons/${id}`);
-    return response.data;
+export async function getHackathonById(id: number): Promise<HackathonDetails> {
+  const response = await api.get<HackathonDetails>(`/hackathons/${id}`);
+  return response.data;
 }
 
 export async function createHackathon(
-    data: HackathonPayload,
+  data: HackathonPayload,
 ): Promise<Hackathon> {
-    const response = await api.post<Hackathon>("/hackathons", data);
-    return response.data;
+  const response = await api.post<Hackathon>("/hackathons", data);
+  return response.data;
 }
 
 export async function updateHackathon(
-    id: number,
-    data: Partial<HackathonPayload>,
+  id: number,
+  data: Partial<HackathonPayload>,
 ): Promise<Hackathon> {
-    const response = await api.patch<Hackathon>(`/hackathons/${id}`, data);
-    return response.data;
+  const response = await api.patch<Hackathon>(`/hackathons/${id}`, data);
+  return response.data;
 }

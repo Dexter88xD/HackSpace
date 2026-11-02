@@ -14,6 +14,7 @@ describe('HackathonsController', () => {
     findOne: jest.fn(),
     update: jest.fn(),
     findMine: jest.fn(),
+    findDetails: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -77,11 +78,22 @@ describe('HackathonsController', () => {
   });
 
   describe('findOne', () => {
-    it('should pass the hackathon ID to the service', async () => {
-      const hackathon = { id: 7, title: 'Cloud Challenge' };
-      mockHackathonsService.findOne.mockResolvedValue(hackathon);
-      const result = await controller.findOne(7);
-      expect(mockHackathonsService.findOne).toHaveBeenCalledWith(7);
+    it('should pass the hackathon ID and authenticated user ID to the service', async () => {
+      const hackathon = {
+        id: 7,
+        title: 'Cloud Challenge',
+        canEdit: true,
+      };
+
+      const mockRequest = {
+        user: { userId: 1 },
+      } as AuthenticatedRequest;
+
+      mockHackathonsService.findDetails.mockResolvedValue(hackathon);
+
+      const result = await controller.findOne(7, mockRequest);
+
+      expect(mockHackathonsService.findDetails).toHaveBeenCalledWith(7, 1);
       expect(result).toEqual(hackathon);
     });
   });

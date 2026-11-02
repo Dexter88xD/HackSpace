@@ -133,6 +133,17 @@ export class HackathonsService {
     };
   }
 
+  async findDetails(hackathonId: number, userId: number) {
+    const hackathon = await this.findOne(hackathonId);
+
+    const canEdit = await this.canEditHackathon(hackathonId, userId);
+
+    return {
+      ...hackathon,
+      canEdit,
+    };
+  }
+
   async create(dto: CreateHackathonDto, userId: number) {
     const startAt = new Date(dto.startAt);
     const endAt = new Date(dto.endAt);
@@ -168,24 +179,9 @@ export class HackathonsService {
 
   async update(hackathonId: number, dto: UpdateHackathonDto, userId: number) {
     const hackathon = await this.findOne(hackathonId);
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-      relations: { role: true },
-    });
-    if (!user || !user.role) {
+    const canEdit = await this.canEditHackathon(hackathonId, userId);
+    if (!canEdit) {
       throw new ForbiddenException('Forbidden');
-    }
-    if (user.role.role_name !== RoleName.ROLE_ADMIN) {
-      const hackathonRole = await this.hackathonUserRepository.findOne({
-        where: {
-          user: { id: userId },
-          hackathon: { id: hackathonId },
-          hack_role_name: HackRoleName.ORGANIZER,
-        },
-      });
-      if (!hackathonRole) {
-        throw new ForbiddenException('Forbidden');
-      }
     }
     if (Object.keys(dto).length === 0) {
       throw new BadRequestException(
@@ -206,5 +202,33 @@ export class HackathonsService {
     hackathon.end_at = endAt;
 
     return this.hackathonRepository.save(hackathon);
+  }
+
+  private async canEditHackathon(
+    hackathonId: number,
+    userId: number,
+  ): Promise<boolean> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: { role: true },
+    });
+
+    if (!user?.role) {
+      return false;
+    }
+
+    if (user.role.role_name === RoleName.ROLE_ADMIN) {
+      return true;
+    }
+
+    const membership = await this.hackathonUserRepository.findOne({
+      where: {
+        user: { id: userId },
+        hackathon: { id: hackathonId },
+        hack_role_name: HackRoleName.ORGANIZER,
+      },
+    });
+
+    return !!membership;
   }
 }

@@ -23,7 +23,7 @@ function HackathonExplorer() {
 
   return (
     <div className="flex min-h-screen flex-col gap-6">
-      <h1 className="text-2xl font-bold sm:text-5xl md:text-7xl mb-6 font-serif text-center">
+      <h1 className="mb-6 text-center font-heading text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
         Hackathon Explorer
       </h1>
       <HackathonFilters setFilters={setFilters} />

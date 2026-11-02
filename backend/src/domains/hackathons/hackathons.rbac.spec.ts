@@ -4,6 +4,7 @@ import {
   ExecutionContext,
   ForbiddenException,
   INestApplication,
+  NotFoundException,
   UnauthorizedException,
   ValidationPipe,
 } from '@nestjs/common';
@@ -23,6 +24,7 @@ describe('Hackathons HTTP', () => {
     findAll: jest.fn(),
     findOne: jest.fn(),
     findMine: jest.fn(),
+    findDetails: jest.fn(),
     update: jest.fn(),
   };
   const mockJwtGuard: CanActivate = {
@@ -229,7 +231,7 @@ describe('Hackathons HTTP', () => {
 
       await request(getTestServer()).get(`/hackathons/${id}`).expect(400);
 
-      expect(mockHackathonsService.findOne).not.toHaveBeenCalled();
+      expect(mockHackathonsService.findDetails).not.toHaveBeenCalled();
     },
   );
 
@@ -246,4 +248,41 @@ describe('Hackathons HTTP', () => {
       expect(mockHackathonsService.update).not.toHaveBeenCalled();
     },
   );
+
+  it('returns a hackathon by ID', async () => {
+    authenticated = true;
+
+    const hackathon = {
+      id: 7,
+      title: 'AI Challenge',
+      canEdit: true,
+    };
+
+    mockHackathonsService.findDetails.mockResolvedValue(hackathon);
+
+    await request(getTestServer())
+      .get('/hackathons/7')
+      .expect(200)
+      .expect(hackathon);
+
+    expect(mockHackathonsService.findDetails).toHaveBeenCalledWith(7, 1);
+  });
+
+  it('returns 404 when the hackathon does not exist', async () => {
+    authenticated = true;
+
+    mockHackathonsService.findDetails.mockRejectedValue(
+      new NotFoundException('Hackathon not found'),
+    );
+
+    await request(getTestServer()).get('/hackathons/999999').expect(404);
+
+    expect(mockHackathonsService.findDetails).toHaveBeenCalledWith(999999, 1);
+  });
+
+  it('rejects unauthenticated requests to hackathon details', async () => {
+    await request(getTestServer()).get('/hackathons/7').expect(401);
+
+    expect(mockHackathonsService.findDetails).not.toHaveBeenCalled();
+  });
 });

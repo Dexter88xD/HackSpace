@@ -6,6 +6,10 @@ import {
 } from "@/schemas/hackathon.schema";
 import { Link } from "react-router-dom";
 import { HackathonFormProps } from "@/types/hackathon-management";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 function toDateTimeLocal(iso: string): string {
   const date = new Date(iso);
@@ -19,6 +23,7 @@ function HackathonForm({
   hackathon,
   onSubmit,
   isSubmitting = false,
+  cancelTo = "/hackathons",
 }: HackathonFormProps) {
   const isEditing = !!hackathon;
   const {
@@ -40,122 +45,96 @@ function HackathonForm({
     <form
       noValidate
       onSubmit={handleSubmit(onSubmit)}
-      className="space-y-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
+      className="space-y-6 rounded-xl border border-border bg-card p-6 shadow-sm"
     >
       <div className="space-y-2">
-        <label
-          htmlFor="title"
-          className="block text-sm font-medium text-gray-700"
-        >
-          Hackathon Title
-        </label>
-        <input
+        <Label htmlFor="title">Hackathon Title</Label>
+        <Input
           type="text"
           id="title"
           {...register("title")}
           aria-invalid={!!errors.title}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
+          className="h-10"
         />
         {errors.title && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-destructive">
             {errors.title.message}
           </p>
         )}
       </div>
       <div className="space-y-2">
-        <label
-          htmlFor="description"
-          className="block text-sm font-medium text-gray-700"
-        >
-          Description
-        </label>
-        <textarea
+        <Label htmlFor="description">Description</Label>
+        <Textarea
           id="description"
           {...register("description")}
           rows={4}
           placeholder="Describe your hackathon..."
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
+          className="min-h-28"
         />
       </div>
       <div className="space-y-2">
-        <label
-          htmlFor="organizationName"
-          className="block text-sm font-medium text-gray-700"
-        >
-          Organization name
-        </label>
-        <input
+        <Label htmlFor="organizationName">Organization name</Label>
+        <Input
           type="text"
           id="organizationName"
           {...register("organizationName")}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
           aria-invalid={!!errors.organizationName}
+          className="h-10"
         />
         {errors.organizationName && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-destructive">
             {errors.organizationName.message}
           </p>
         )}
       </div>
       <div className="space-y-2">
-        <label
-          htmlFor="startAt"
-          className="block text-sm font-medium text-gray-700"
-        >
-          Start date
-        </label>
-        <input
+        <Label htmlFor="startAt">Start date</Label>
+        <Input
           type="datetime-local"
           id="startAt"
           {...register("startAt")}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
           aria-invalid={!!errors.startAt}
+          className="h-10"
         />
         {errors.startAt && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-destructive">
             {errors.startAt.message}
           </p>
         )}
       </div>
       <div className="space-y-2">
-        <label
-          htmlFor="endAt"
-          className="block text-sm font-medium text-gray-700"
-        >
-          End date
-        </label>
-        <input
+        <Label htmlFor="endAt">End date</Label>
+        <Input
           type="datetime-local"
           id="endAt"
           {...register("endAt")}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
           aria-invalid={!!errors.endAt}
+          className="h-10"
         />
         {errors.endAt && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-destructive">
             {errors.endAt.message}
           </p>
         )}
       </div>
       <div className="flex items-center justify-between gap-3">
         <Link
-          to="/hackathons"
-          className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          to={cancelTo}
+          className={buttonVariants({
+            variant: "outline",
+            size: "lg",
+          })}
         >
           Cancel
         </Link>
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
-        >
+        <Button type="submit" size="lg" disabled={isSubmitting}>
           {isSubmitting
             ? "Saving..."
             : isEditing
               ? "Save Changes"
               : "Create Hackathon"}
-        </button>
+        </Button>
       </div>
     </form>
   );
