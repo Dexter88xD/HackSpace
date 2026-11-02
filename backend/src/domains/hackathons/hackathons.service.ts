@@ -133,6 +133,17 @@ export class HackathonsService {
     };
   }
 
+  async findDetails(hackathonId: number, userId: number) {
+    const hackathon = await this.findOne(hackathonId);
+
+    const canEdit = await this.canEditHackathon(hackathonId, userId);
+
+    return {
+      ...hackathon,
+      canEdit,
+    };
+  }
+
   async create(dto: CreateHackathonDto, userId: number) {
     const startAt = new Date(dto.startAt);
     const endAt = new Date(dto.endAt);
@@ -219,16 +230,5 @@ export class HackathonsService {
     });
 
     return !!membership;
-  }
-
-  async findDetails(hackathonId: number, userId: number) {
-    const hackathon = await this.findOne(hackathonId);
-
-    const canEdit = await this.canEditHackathon(hackathonId, userId);
-
-    return {
-      ...hackathon,
-      canEdit,
-    };
   }
 }
