@@ -24,3 +24,8 @@ export type HackathonTableProps = {
 export type HackathonDetails = Hackathon & {
   canEdit: boolean;
 };
+
+export type HackathonDetailsStateProps = {
+  variant: "invalid" | "not-found" | "error" | "forbidden";
+  onRetry?: () => void;
+};

@@ -1,21 +1,15 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { isAxiosError } from "axios";
 import HackathonForm from "@/components/hackathon/HackathonForm";
 import { createHackathon } from "@/api/hackathon-management";
 import type { HackathonFormValues } from "@/schemas/hackathon.schema";
 import type { HackathonPayload } from "@/types/hackathon-management";
-import { useLocation } from "react-router-dom";
+import { getReturnTo } from "@/lib/navigation";
 
 function CreateHackathon() {
   const location = useLocation();
-
-  const returnTo =
-    typeof location.state?.returnTo === "string" &&
-    location.state.returnTo.startsWith("/") &&
-    !location.state.returnTo.startsWith("//")
-      ? location.state.returnTo
-      : "/hackathons";
+  const returnTo = getReturnTo(location.state?.returnTo);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -47,7 +41,7 @@ function CreateHackathon() {
       <h1 className="mb-6 text-3xl font-bold">Create Hackathon</h1>
 
       {mutation.isError && (
-        <p role="alert" className="mb-4 text-sm text-red-600">
+        <p role="alert" className="mb-4 text-sm text-destructive">
           {isAxiosError(mutation.error)
             ? (mutation.error.response?.data?.message?.toString() ??
               "Failed to create hackathon.")

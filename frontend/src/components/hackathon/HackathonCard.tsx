@@ -4,7 +4,6 @@ import { Building2, CalendarDays } from "lucide-react";
 import type { HackathonCardProps } from "@/types/hackathon";
 
 // This component displays a hackathon's title, organization, description, and dates.
-// It uses a hover overlay to invite users to see more details.
 // TODO: Add a picture to each hackathon card.
 export function HackathonCard({ hackathon }: HackathonCardProps) {
   const startDate = new Date(hackathon.start_at);

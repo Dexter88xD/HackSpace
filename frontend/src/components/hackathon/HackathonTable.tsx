@@ -77,6 +77,7 @@ function HackathonTable({ hackathons, total }: HackathonTableProps) {
                   <td className="px-6 py-4">
                     <Link
                       to={`/hackathons/${hackathon.id}/edit`}
+                      state={{ returnTo: "/hackathons" }}
                       className={buttonVariants({
                         variant: "outline",
                         size: "sm",

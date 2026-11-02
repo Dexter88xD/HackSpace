@@ -6,19 +6,20 @@ import { isAxiosError } from "axios";
 import HackathonDetailsState from "@/components/hackathon/HackathonDetailsState";
 import { Spinner } from "@/components/ui/spinner";
 import { buttonVariants } from "@/components/ui/button";
+import { shouldRetryQuery } from "@/lib/query-retry";
+import { parseHackathonId } from "@/lib/hackathon-id";
 
 export default function HackathonDetails() {
   const { id } = useParams<{ id: string }>();
-  const isValidId = id !== undefined && /^[1-9]\d*$/.test(id);
-  const hackathonId = isValidId ? Number(id) : NaN;
+  const hackathonId = parseHackathonId(id);
 
-  const validHackathonId = isValidId && Number.isSafeInteger(hackathonId);
-
-  const { data: currentUser, isError: isAuthError } = useQuery({
+  const { data: currentUser } = useQuery({
     queryKey: ["me"],
     queryFn: getMe,
     retry: false,
   });
+
+  const currentUserId = currentUser?.id;
 
   const {
     data: hackathon,
@@ -27,28 +28,20 @@ export default function HackathonDetails() {
     error,
     refetch,
   } = useQuery({
-    queryKey: ["hackathons", hackathonId, currentUser?.id],
-    queryFn: () => getHackathonById(hackathonId),
-    enabled: currentUser?.id !== undefined && validHackathonId,
-    retry: (failureCount, error) => {
-      if (isAxiosError(error)) {
-        const status = error.response?.status;
-
-        if (status && status >= 400 && status < 500) {
-          return false;
-        }
+    queryKey: ["hackathons", hackathonId, currentUserId],
+    queryFn: () => {
+      if (hackathonId === null) {
+        throw new Error("Invalid hackathon ID");
       }
 
-      return failureCount < 2;
+      return getHackathonById(hackathonId);
     },
+    enabled: currentUserId !== undefined && hackathonId !== null,
+    retry: shouldRetryQuery,
   });
 
-  if (!validHackathonId) {
+  if (hackathonId === null) {
     return <HackathonDetailsState variant="invalid" />;
-  }
-
-  if (isAuthError) {
-    return <HackathonDetailsState variant="error" />;
   }
 
   if (isPending) {
@@ -74,10 +67,6 @@ export default function HackathonDetails() {
     return (
       <HackathonDetailsState variant="error" onRetry={() => void refetch()} />
     );
-  }
-
-  if (!hackathon) {
-    return <HackathonDetailsState variant="not-found" />;
   }
 
   return (

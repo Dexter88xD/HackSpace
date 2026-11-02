@@ -1,10 +1,6 @@
 import { Link } from "react-router-dom";
 import { AlertCircle, FileQuestion, ShieldAlert } from "lucide-react";
-
-type HackathonDetailsStateProps = {
-  variant: "invalid" | "not-found" | "error" | "forbidden";
-  onRetry?: () => void;
-};
+import type { HackathonDetailsStateProps } from "@/types/hackathon-management";
 
 const stateConfig = {
   invalid: {
