@@ -23,10 +23,10 @@ export class UserProfile {
   @Column({ type: 'varchar', nullable: true })
   avatar_url!: string | null;
 
-  @Column({ type: 'varchar', length: 100, nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   organization_name!: string | null;
 
-  @Column({ type: 'varchar', length: 100, nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   major!: string | null;
 
   @CreateDateColumn()
