@@ -1,5 +1,5 @@
 import { Link, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getMe } from "@/api/auth";
 import { getHackathonById } from "@/api/hackathon-management";
 import { isAxiosError } from "axios";
@@ -8,6 +8,23 @@ import { Spinner } from "@/components/ui/spinner";
 import { buttonVariants } from "@/components/ui/button";
 import { shouldRetryQuery } from "@/lib/query-retry";
 import { parseHackathonId } from "@/lib/hackathon-id";
+import {
+  getHackathonMembership,
+  hackathonRegister,
+  hackathonUnregister,
+} from "@/api/hackathon";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+// import { AlertDialogTrigger } from "@base-ui/react";
 
 export default function HackathonDetails() {
   const { id } = useParams<{ id: string }>();
@@ -19,7 +36,45 @@ export default function HackathonDetails() {
     retry: false,
   });
 
+  const queryClient = useQueryClient();
+
+  const registerMutation = useMutation({
+    mutationFn: async () => {
+      // await new Promise((resolve) => setTimeout(resolve, 3000));
+      return hackathonRegister(hackathonId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["registration", hackathonId],
+      });
+    },
+  });
+
+  const unregisterMutation = useMutation({
+    mutationFn: async () => {
+      // await new Promise((resolve) => setTimeout(resolve, 3000));
+      return hackathonUnregister(hackathonId);
+    },
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["registration", hackathonId],
+      });
+    },
+  });
+
   const currentUserId = currentUser?.id;
+
+  const { data: membership } = useQuery({
+    queryKey: ["registration", hackathonId],
+    queryFn: () => {
+      if (hackathonId === null) throw new Error("Invalid hackathon ID");
+
+      return getHackathonMembership(hackathonId);
+    },
+    enabled: hackathonId !== null,
+    retry: shouldRetryQuery,
+  });
 
   const {
     data: hackathon,
@@ -33,7 +88,6 @@ export default function HackathonDetails() {
       if (hackathonId === null) {
         throw new Error("Invalid hackathon ID");
       }
-
       return getHackathonById(hackathonId);
     },
     enabled: currentUserId !== undefined && hackathonId !== null,
@@ -128,7 +182,78 @@ export default function HackathonDetails() {
             Edit Hackathon
           </Link>
         )}
+
+        {!hackathon.canEdit &&
+          (!membership?.isRegistered ? (
+            <Button
+              variant="default"
+              size="lg"
+              disabled={registerMutation.isPending}
+              onClick={() => registerMutation.mutate()}
+            >
+              {registerMutation.isPending ? "Registering..." : "Register"}
+            </Button>
+          ) : (
+            <AlertDialog>
+              <AlertDialogTrigger
+                render={<Button variant="default" size="lg" />}
+              >
+                Unregister
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    You will lose your membership in this hackathon.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  render={
+                    <Button
+                      variant="default"
+                      size="lg"
+                      disabled={unregisterMutation.isPending}
+                      onClick={() => unregisterMutation.mutate()}
+                    />
+                  }
+                >
+                  {unregisterMutation.isPending
+                    ? "Unregistering..."
+                    : "Unregister"}
+                </AlertDialogAction>
+              </AlertDialogContent>
+            </AlertDialog>
+            // {/* <Button
+            //   variant="default"
+            //   size="lg"
+            //   disabled={unregisterMutation.isPending}
+            //   onClick={() => unregisterMutation.mutate()}
+            // >
+            //   {unregisterMutation.isPending
+            //     ? "Unregistering..."
+            //     : "Unregister"}
+            // </Button> */}
+          ))}
       </div>
+      {(registerMutation.isError || unregisterMutation.isError) && (
+        <div className="mt-6 border w-fit p-2 rounded-md">
+          {registerMutation.isError && (
+            <p className="text-sm text-destructive">
+              {isAxiosError(registerMutation.error)
+                ? registerMutation.error.response?.data?.message
+                : registerMutation.error.message}
+            </p>
+          )}
+          {unregisterMutation.isError && (
+            <p className="text-sm text-destructive text-left sm:text-center">
+              {isAxiosError(unregisterMutation.error)
+                ? unregisterMutation.error.response?.data?.message
+                : unregisterMutation.error.message}
+            </p>
+          )}
+        </div>
+      )}
     </section>
   );
 }

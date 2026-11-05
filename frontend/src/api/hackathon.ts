@@ -1,4 +1,9 @@
-import { HackathonFiltersType, HackathonsResponse } from "@/types/hackathon";
+import {
+  HackathonFiltersType,
+  HackathonMembershipResponse,
+  HackathonRegistrationResponse,
+  HackathonsResponse,
+} from "@/types/hackathon";
 import api from "./client";
 
 export const getHackathons = async (params?: HackathonFiltersType) => {
@@ -14,3 +19,22 @@ export const getMyHackathons = async (
   });
   return response.data;
 };
+
+export const getHackathonMembership = async (hackahtonId: number) => {
+  const response = await api.get<HackathonMembershipResponse>(
+    `hackathons/${hackahtonId}/membership`,
+  );
+
+  console.log(response.data);
+  return response.data;
+};
+
+export const hackathonRegister = async (hackathonId: number | null) => {
+  const response = await api.post<HackathonRegistrationResponse>(`hackathons/${hackathonId}/register`)
+  return response.data;
+}
+
+export const hackathonUnregister = async (hackathonId: number | null) => {
+  const response = await api.delete<HackathonRegistrationResponse>(`hackathons/${hackathonId}/unregister`)
+  return response.data;
+}
