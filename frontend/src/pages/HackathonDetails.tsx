@@ -119,6 +119,13 @@ export default function HackathonDetails() {
           Back to Explorer
         </Link>
 
+        <Link
+          to={`/hackathons/${hackathon.id}/team`}
+          className={buttonVariants({ variant: "default", size: "lg" })}
+        >
+          My Team
+        </Link>
+
         {hackathon.canEdit && (
           <Link
             to={`/hackathons/${hackathon.id}/edit`}
