@@ -1,6 +1,7 @@
 import {
   HackathonFiltersType,
   HackathonMembershipResponse,
+  HackathonPhaseResponse,
   HackathonRegistrationResponse,
   HackathonsResponse,
 } from "@/types/hackathon";
@@ -24,10 +25,13 @@ export const getHackathonMembership = async (hackahtonId: number) => {
   const response = await api.get<HackathonMembershipResponse>(
     `hackathons/${hackahtonId}/membership`,
   );
-
-  console.log(response.data);
   return response.data;
 };
+
+export const getHackathonCurrentPhase = async (hackathonId: number) => {
+  const response = await api.get<HackathonPhaseResponse | null>(`hackathons/${hackathonId}/current-phase`);
+  return response.data;
+}
 
 export const hackathonRegister = async (hackathonId: number | null) => {
   const response = await api.post<HackathonRegistrationResponse>(`hackathons/${hackathonId}/register`)

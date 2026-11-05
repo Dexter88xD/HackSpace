@@ -9,6 +9,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { shouldRetryQuery } from "@/lib/query-retry";
 import { parseHackathonId } from "@/lib/hackathon-id";
 import {
+  getHackathonCurrentPhase,
   getHackathonMembership,
   hackathonRegister,
   hackathonUnregister,
@@ -24,6 +25,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { HackathonPhaseName } from "@/types/hackathon";
 
 export default function HackathonDetails() {
   const { id } = useParams<{ id: string }>();
@@ -70,6 +72,17 @@ export default function HackathonDetails() {
       if (hackathonId === null) throw new Error("Invalid hackathon ID");
 
       return getHackathonMembership(hackathonId);
+    },
+    enabled: hackathonId !== null,
+    retry: shouldRetryQuery,
+  });
+
+  const { data: currentPhase } = useQuery({
+    queryKey: ["phase", hackathonId],
+    queryFn: () => {
+      if (hackathonId === null) throw new Error("Invalid hackathon ID");
+
+      return getHackathonCurrentPhase(hackathonId);
     },
     enabled: hackathonId !== null,
     retry: shouldRetryQuery,
@@ -155,6 +168,16 @@ export default function HackathonDetails() {
       </div>
 
       <div className="mt-8">
+        <h2 className="mb-3 text-xl font-semibold">Phase</h2>
+        <p className="text-muted-foreground">
+          {currentPhase?.phase_name
+            ? currentPhase.phase_name.charAt(0).toUpperCase() +
+              currentPhase.phase_name.toLowerCase().slice(1)
+            : "No phase yet"}
+        </p>
+      </div>
+
+      <div className="mt-8">
         <h2 className="mb-3 text-xl font-semibold">About this hackathon</h2>
 
         <p className="whitespace-pre-wrap break-words text-muted-foreground">
@@ -183,6 +206,7 @@ export default function HackathonDetails() {
         )}
 
         {!hackathon.canEdit &&
+          currentPhase?.phase_name === HackathonPhaseName.REGISTRATION &&
           (!membership?.isRegistered ? (
             <Button
               variant="default"

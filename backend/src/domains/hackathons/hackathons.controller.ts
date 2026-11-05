@@ -52,6 +52,11 @@ export class HackathonsController {
     return this.hackathonsService.findDetails(id, req.user.userId);
   }
 
+  @Get(':id/current-phase')
+  getHackathonCurrentPhase(@Param('id', ParseIntPipe) id: number) {
+    return this.hackathonsService.getHackathonCurrentPhase(id);
+  }
+
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,

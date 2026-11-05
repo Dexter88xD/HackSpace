@@ -62,3 +62,11 @@ export type HackathonRegistrationResponse = {
     role: HackathonRoleName;
   };
 };
+
+export type HackathonPhaseResponse = {
+  id: number;
+  phase_name: HackathonPhaseName;
+  description: string | null;
+  start_at: Date;
+  end_at: Date;
+};

@@ -235,6 +235,25 @@ export class HackathonsService {
     return !!membership;
   }
 
+  async getHackathonCurrentPhase(hackathonId: number) {
+    const hackathon = await this.hackathonRepository.findOne({
+      where: { id: hackathonId },
+      relations: { phases: true },
+    });
+
+    if (!hackathon) {
+      throw new NotFoundException('Hackathon not found');
+    }
+
+    const now = new Date();
+
+    const currentPhase = hackathon.phases.find(
+      (phase) =>
+        new Date(phase.start_at) <= now && new Date(phase.end_at) > now,
+    );
+    return currentPhase ?? null;
+  }
+
   // Hackathon Registration
   async hackathonRegister(userId: number, hackathonId: number) {
     const hackathon = await this.hackathonRepository.findOne({
