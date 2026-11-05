@@ -11,6 +11,7 @@ import {
 import { HackathonPhase } from './hackathon-phase.entity';
 import { HackathonSettings } from './hackathon-settings.entity';
 import { HackathonUser } from './hackathon-user.entity';
+import { Team } from './team.entity';
 
 @Check('"start_at" < "end_at"')
 @Entity('hackathons')
@@ -50,4 +51,7 @@ export class Hackathon {
 
   @OneToMany(() => HackathonUser, (hackathonUser) => hackathonUser.hackathon)
   hackathon_users!: HackathonUser[];
+
+  @OneToMany(() => Team, (team) => team.hackathon)
+  teams!: Team[];
 }

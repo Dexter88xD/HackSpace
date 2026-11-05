@@ -25,7 +25,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { HackathonPhaseName } from "@/types/hackathon";
+import { HackathonPhaseName, HackathonRoleName } from "@/types/hackathon";
 
 export default function HackathonDetails() {
   const { id } = useParams<{ id: string }>();
@@ -67,6 +67,8 @@ export default function HackathonDetails() {
       queryClient.invalidateQueries({
         queryKey: ["registration", hackathonId],
       });
+      // Unregistering also removes the user from their team.
+      queryClient.invalidateQueries({ queryKey: ["my-team", hackathonId] });
     },
   });
 
@@ -208,6 +210,15 @@ export default function HackathonDetails() {
           Back to Explorer
         </Link>
 
+        {membership?.role === HackathonRoleName.PARTICIPANT && (
+          <Link
+            to={`/hackathons/${hackathon.id}/team`}
+            className={buttonVariants({ variant: "default", size: "lg" })}
+          >
+            My Team
+          </Link>
+        )}
+
         {hackathon.canEdit && (
           <Link
             to={`/hackathons/${hackathon.id}/edit`}
@@ -267,7 +278,7 @@ export default function HackathonDetails() {
                   <AlertDialogHeader>
                     <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      You will lose your membership in this hackathon.
+                      You will lose your membership in this hackathon and leave your team.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
 

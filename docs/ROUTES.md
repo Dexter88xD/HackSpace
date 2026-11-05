@@ -13,6 +13,7 @@ This document maps the **frontend pages** and **backend HTTP endpoints** used du
 | `/admin/hackathons`   | Hackathon administration | Admin     | Create and edit hackathons; uses backend management APIs                         |
 | `/hackathon-explorer` | Hackathon Explorer       | Protected | Discover, search and filter hackathons                                           |
 | `/hackathons/:id`     | Hackathon details        | Protected | View a hackathon's details; edit controls depend on the `canEdit` response field |
+| `/hackathons/:id/team` | Hackathon team | Protected | Shows the user's team, or a form to create one if they are a registered participant |
 | `/login`              | Login                    | Public    | Password login plus Google and 42 Intra OAuth                                    |
 | `/register`           | Register                 | Public    | Account registration                                                             |
 | `/verify-otp`         | OTP verification         | Public    | Email verification after registration or an unverified login                     |
@@ -43,6 +44,9 @@ All paths below are relative to `http://localhost:3000`.
 | `DELETE`| `/hackathons/:hackathonId/unregister` | Authenticated | Unregister from a hackathon                                 |
 | `GET`   | `/hackathons/:hackathonId/membership` | Authenticated | Get the user's membership status and role                   |
 | `GET`   | `/hackathons/:hackathonId/current-phase` | Authenticated | Get the current hackathon phase                              |
+| `POST`  | `/hackathons/:hackathonId/teams` | Registered participant | Create a team; the creator becomes its first member |
+| `GET`   | `/hackathons/:hackathonId/teams/me` | Authenticated | Return the user's team in this hackathon, or `{ team: null }` |
+| `GET`   | `/teams/:id` | Authenticated | Retrieve a team with its members and size limits |
 | `GET`   | `/demo/greetings`             | Public         | Demo endpoint for stored Kafka greetings                   |
 | `POST`  | `/demo/send-name`             | Public         | Send a name to the demo Kafka topic                        |
 
@@ -54,6 +58,7 @@ The hackathon endpoints use `JwtAuthGuard`. Hackathon creation and updates addit
 | --------------------- | ------------------------------------------------------------------------------------- |
 | `/hackathon-explorer` | `GET /hackathons`, `GET /hackathons/:id`                                              |
 | `/hackathons/:id`     | `GET /hackathons/:id`                                                                 |
+| `/hackathons/:id/team` | `GET /hackathons/:hackathonId/teams/me`, `POST /hackathons/:hackathonId/teams` |
 | `/admin/hackathons`   | `GET /hackathons`, `GET /hackathons/:id`, `POST /hackathons`, `PATCH /hackathons/:id` |
 
 **RBAC HTTP tests:** `hackathons.rbac.spec.ts` should continue to request `/hackathons` and `/hackathons/:id`. It tests backend endpoints, not frontend pages.

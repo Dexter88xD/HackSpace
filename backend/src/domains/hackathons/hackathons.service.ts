@@ -19,6 +19,8 @@ import {
 import { User } from '../../database/entities/user.entity';
 import { RoleName } from '../../database/entities/user-role.entity';
 import { HackathonPhaseName } from '../../database/entities/hackathon-phase.entity';
+import { Team } from '../../database/entities/team.entity';
+import { TeamMember } from '../../database/entities/team-member.entity';
 
 @Injectable()
 export class HackathonsService {
@@ -361,7 +363,26 @@ export class HackathonsService {
       );
     }
 
-    await this.hackathonUserRepository.remove(hackathonUser);
+    // Removing the registration cascades to the user's team membership. A team
+    // left with no members is deleted too.
+    await this.dataSource.transaction(async (manager) => {
+      const membership = await manager.findOne(TeamMember, {
+        where: { hackathon_user: { id: hackathonUser.id } },
+        relations: { team: true },
+      });
+
+      await manager.remove(hackathonUser);
+
+      if (membership) {
+        const remaining = await manager.count(TeamMember, {
+          where: { team: { id: membership.team.id } },
+        });
+        if (remaining === 0) {
+          await manager.delete(Team, membership.team.id);
+        }
+      }
+    });
+
     return {
       message: 'Successfully unregistered from the hackathon',
     };
