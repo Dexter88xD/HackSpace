@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Brackets, DataSource, Repository } from 'typeorm';
+import { Brackets, DataSource, QueryFailedError, Repository } from 'typeorm';
 import { Hackathon } from '../../database/entities/hackathon.entity';
 import { CreateHackathonDto } from './dto/create-hackathon.dto';
 import { UpdateHackathonDto } from './dto/update-hackathon.dto';
@@ -297,7 +297,19 @@ export class HackathonsService {
       hackathon,
     });
 
-    return this.hackathonUserRepository.save(hackathonUser);
+    try {
+      return this.hackathonUserRepository.save(hackathonUser);
+    } catch (error) {
+      if (
+        error instanceof QueryFailedError &&
+        (error.driverError as { code?: string }).code === '23505'
+      ) {
+        throw new ConflictException(
+          'You are already registered to this hackathon',
+        );
+      }
+      throw error;
+    }
   }
 
   async hackathonUnregister(userId: number, hackathonId: number) {

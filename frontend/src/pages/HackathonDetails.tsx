@@ -41,6 +41,9 @@ export default function HackathonDetails() {
 
   const registerMutation = useMutation({
     mutationFn: async () => {
+      if (hackathonId === null) {
+        throw new Error("Invalid hackathon ID");
+      }
       // await new Promise((resolve) => setTimeout(resolve, 3000));
       return hackathonRegister(hackathonId);
     },
@@ -53,6 +56,9 @@ export default function HackathonDetails() {
 
   const unregisterMutation = useMutation({
     mutationFn: async () => {
+      if (hackathonId === null) {
+        throw new Error("Invalid hackathon ID");
+      }
       // await new Promise((resolve) => setTimeout(resolve, 3000));
       return hackathonUnregister(hackathonId);
     },
@@ -69,8 +75,9 @@ export default function HackathonDetails() {
   const { data: membership } = useQuery({
     queryKey: ["registration", hackathonId],
     queryFn: () => {
-      if (hackathonId === null) throw new Error("Invalid hackathon ID");
-
+      if (hackathonId === null) {
+        throw new Error("Invalid hackathon ID");
+      }
       return getHackathonMembership(hackathonId);
     },
     enabled: hackathonId !== null,

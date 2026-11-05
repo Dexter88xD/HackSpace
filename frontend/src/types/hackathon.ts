@@ -63,6 +63,10 @@ export type HackathonRegistrationResponse = {
   };
 };
 
+export type HackathonUnregistrationResponse = {
+  message: string;
+};
+
 export type HackathonPhaseResponse = {
   id: number;
   phase_name: HackathonPhaseName;

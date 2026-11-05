@@ -4,6 +4,7 @@ import {
   HackathonPhaseResponse,
   HackathonRegistrationResponse,
   HackathonsResponse,
+  HackathonUnregistrationResponse,
 } from "@/types/hackathon";
 import api from "./client";
 
@@ -30,15 +31,17 @@ export const getHackathonMembership = async (hackahtonId: number) => {
 
 export const getHackathonCurrentPhase = async (hackathonId: number) => {
   const response = await api.get<HackathonPhaseResponse | null>(`hackathons/${hackathonId}/current-phase`);
+
+  console.log(response.data);
   return response.data;
 }
 
-export const hackathonRegister = async (hackathonId: number | null) => {
+export const hackathonRegister = async (hackathonId: number) => {
   const response = await api.post<HackathonRegistrationResponse>(`hackathons/${hackathonId}/register`)
   return response.data;
 }
 
-export const hackathonUnregister = async (hackathonId: number | null) => {
-  const response = await api.delete<HackathonRegistrationResponse>(`hackathons/${hackathonId}/unregister`)
+export const hackathonUnregister = async (hackathonId: number) => {
+  const response = await api.delete<HackathonUnregistrationResponse>(`hackathons/${hackathonId}/unregister`)
   return response.data;
 }
