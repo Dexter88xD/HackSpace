@@ -24,7 +24,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-// import { AlertDialogTrigger } from "@base-ui/react";
 
 export default function HackathonDetails() {
   const { id } = useParams<{ id: string }>();
@@ -224,16 +223,6 @@ export default function HackathonDetails() {
                 </AlertDialogAction>
               </AlertDialogContent>
             </AlertDialog>
-            // {/* <Button
-            //   variant="default"
-            //   size="lg"
-            //   disabled={unregisterMutation.isPending}
-            //   onClick={() => unregisterMutation.mutate()}
-            // >
-            //   {unregisterMutation.isPending
-            //     ? "Unregistering..."
-            //     : "Unregister"}
-            // </Button> */}
           ))}
       </div>
       {(registerMutation.isError || unregisterMutation.isError) && (
