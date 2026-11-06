@@ -219,7 +219,10 @@ export default function HackathonDetails() {
               variant="default"
               size="lg"
               disabled={registerMutation.isPending}
-              onClick={() => registerMutation.mutate()}
+              onClick={() => {
+                unregisterMutation.mutate();
+                registerMutation.mutate();
+              }}
             >
               {registerMutation.isPending ? "Registering..." : "Register"}
             </Button>
@@ -244,7 +247,10 @@ export default function HackathonDetails() {
                       variant="default"
                       size="lg"
                       disabled={unregisterMutation.isPending}
-                      onClick={() => unregisterMutation.mutate()}
+                      onClick={() => {
+                        registerMutation.reset();
+                        unregisterMutation.mutate();
+                      }}
                     />
                   }
                 >

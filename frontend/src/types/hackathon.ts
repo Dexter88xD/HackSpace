@@ -71,6 +71,6 @@ export type HackathonPhaseResponse = {
   id: number;
   phase_name: HackathonPhaseName;
   description: string | null;
-  start_at: Date;
-  end_at: Date;
+  start_at: string;
+  end_at: string;
 };
