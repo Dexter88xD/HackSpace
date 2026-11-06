@@ -6,6 +6,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './domains/auth/auth.module';
 import { DemoModule } from './domains/demo/demo.module';
 import { HackathonsModule } from './domains/hackathons/hackathons.module';
+import { TeamsModule } from './domains/teams/teams.module';
 import { EmailModule } from './shared/email/email.module';
 import { UserModule } from './users/user.module';
 
@@ -33,6 +34,7 @@ import { UserModule } from './users/user.module';
     EmailModule,
     DemoModule,
     HackathonsModule,
+    TeamsModule,
     UserModule,
   ],
   controllers: [AppController],

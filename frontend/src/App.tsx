@@ -11,6 +11,7 @@ import HackathonManagement from "./pages/HackathonManagement";
 import CreateHackathon from "./pages/CreateHackathon";
 import EditHackathon from "./pages/EditHackathon";
 import HackathonDetails from "./pages/HackathonDetails";
+import HackathonTeam from "./pages/HackathonTeam";
 function App() {
   return (
     <BrowserRouter>
@@ -55,6 +56,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <HackathonDetails />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hackathons/:id/team"
+            element={
+              <ProtectedRoute>
+                <HackathonTeam />
               </ProtectedRoute>
             }
           />
