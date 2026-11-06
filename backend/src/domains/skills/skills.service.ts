@@ -31,7 +31,8 @@ export class SkillsService {
     }
     return this.skillRepository.find({
       where: { normalizedName: ILike(`%${query.name}%`) },
-      order: { name: 'ASC', id: 'ASC' } });
+      order: { name: 'ASC', id: 'ASC' },
+    });
   }
 
   async findOne(id: number): Promise<Skill> {
