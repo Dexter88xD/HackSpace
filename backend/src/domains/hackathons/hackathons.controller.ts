@@ -91,13 +91,13 @@ export class HackathonsController {
   }
 
   @Delete(':id/unregister')
-  hackathoUnregister(
-    @Param('id', ParseIntPipe) hackthonId: number,
+  hackathonUnregister(
+    @Param('id', ParseIntPipe) hackathonId: number,
     @Req() req: AuthenticatedRequest,
   ) {
     return this.hackathonsService.hackathonUnregister(
       req.user.userId,
-      hackthonId,
+      hackathonId,
     );
   }
 
