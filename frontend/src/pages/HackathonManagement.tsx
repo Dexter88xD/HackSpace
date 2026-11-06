@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { useState } from "react";
 import { HackathonPagination } from "@/components/hackathon/HackathonPagination";
 import { getMe } from "@/api/auth";
+import { buttonVariants } from "@/components/ui/button";
 
 function HackathonManagement() {
   const [page, setPage] = useState(1);
@@ -32,7 +33,7 @@ function HackathonManagement() {
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
             Hackathon Management
           </h1>
-          <p className="mt-2 text-sm text-gray-600 sm:text-base">
+          <p className="mt-2 text-sm text-muted-foreground sm:text-base">
             {userRole === "ROLE_ADMIN"
               ? "Create and manage all hackathons across the platform."
               : "Create and manage hackathons you organize."}
@@ -41,7 +42,8 @@ function HackathonManagement() {
 
         <Link
           to="/hackathons/new"
-          className="inline-flex w-fit items-center gap-2 rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-700"
+          state={{ returnTo: "/hackathons" }}
+          className={buttonVariants({ variant: "default", size: "lg" })}
         >
           <Plus size={18} />
           Create Hackathon

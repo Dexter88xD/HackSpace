@@ -18,7 +18,7 @@ export class UserProfile {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ type: 'text', nullable: true })
   bio!: string | null;
 
   @Column({ type: 'varchar', nullable: true })
