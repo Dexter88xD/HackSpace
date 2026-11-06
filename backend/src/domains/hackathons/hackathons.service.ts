@@ -298,15 +298,22 @@ export class HackathonsService {
     });
 
     try {
-      return this.hackathonUserRepository.save(hackathonUser);
+      return await this.hackathonUserRepository.save(hackathonUser);
     } catch (error) {
-      if (
-        error instanceof QueryFailedError &&
-        (error.driverError as { code?: string }).code === '23505'
-      ) {
-        throw new ConflictException(
-          'You are already registered to this hackathon',
-        );
+      if (error instanceof QueryFailedError) {
+        const driverError = error.driverError as {
+          code?: string;
+          constraint?: string;
+        };
+
+        if (
+          driverError.code === '23505' &&
+          driverError.constraint === 'UQ_hackathon_users_user_hackathon'
+        ) {
+          throw new ConflictException(
+            'You are already registered to this hackathon',
+          );
+        }
       }
       throw error;
     }
