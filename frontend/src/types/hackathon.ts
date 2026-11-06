@@ -50,7 +50,7 @@ export type HackathonPaginationProps = {
 
 export type HackathonMembershipResponse = {
   isRegistered: boolean;
-  role: HackathonRoleName;
+  role: HackathonRoleName | null;
 };
 
 
