@@ -1,9 +1,5 @@
-import 'reflect-metadata';
-import * as bcrypt from 'bcrypt';
 import { EntityManager } from 'typeorm';
-import dataSource from '../data-source';
 import { User } from '../entities/user.entity';
-import { RoleName, UserRole } from '../entities/user-role.entity';
 import { Hackathon } from '../entities/hackathon.entity';
 import { HackathonSettings } from '../entities/hackathon-settings.entity';
 import {
@@ -71,111 +67,7 @@ const phases = [
   HackathonPhaseName.FINISHED,
 ];
 
-function requirePassword(name: string): string {
-  const password = process.env[name];
-
-  if (!password || password.length < 12) {
-    throw new Error(`${name} must contain at least 12 characters`);
-  }
-
-  return password;
-}
-
-function assertDevelopmentEnvironment(): void {
-  if (process.env.NODE_ENV !== 'development') {
-    throw new Error('Development seeding requires NODE_ENV=development');
-  }
-
-  if (process.env.SEED_DEV_DATA !== 'true') {
-    throw new Error('Set SEED_DEV_DATA=true to allow development seeding');
-  }
-
-  const database = process.env.POSTGRES_DB;
-  const expectedDatabase = process.env.SEED_EXPECTED_DB;
-  const host = process.env.POSTGRES_HOST;
-
-  if (!database || !expectedDatabase || database !== expectedDatabase) {
-    throw new Error('Database does not match SEED_EXPECTED_DB');
-  }
-
-  if (/prod|stag/i.test(database)) {
-    throw new Error('Refusing to seed a production or staging database');
-  }
-
-  if (!['db', 'localhost', '127.0.0.1', '::1'].includes(host ?? '')) {
-    throw new Error('Development seeding requires a local database host');
-  }
-}
-
-async function seedUser(
-  manager: EntityManager,
-  username: string,
-  email: string,
-  fullName: string,
-  password: string,
-  roleName: RoleName,
-): Promise<User> {
-  const userRepository = manager.getRepository(User);
-  const roleRepository = manager.getRepository(UserRole);
-
-  const role = await roleRepository.findOne({
-    where: { role_name: roleName },
-  });
-
-  if (!role) {
-    throw new Error(`Missing role ${roleName}. Run migrations first.`);
-  }
-
-  const existing = await userRepository.findOne({
-    where: [{ username }, { email }],
-    relations: { role: true },
-  });
-
-  if (existing) {
-    if (
-      existing.username !== username ||
-      existing.email !== email ||
-      existing.role?.role_name !== roleName
-    ) {
-      throw new Error(
-        `Conflicting development account: ${username} / ${email}`,
-      );
-    }
-
-    const passwordMatches = await bcrypt.compare(
-      password,
-      existing.password_hash,
-    );
-
-    if (!passwordMatches) {
-      existing.password_hash = await bcrypt.hash(password, 12);
-      await userRepository.save(existing);
-
-      console.log(`Updated password for: ${username}`);
-    } else {
-      console.log(`User already up to date: ${username}`);
-    }
-
-    return existing;
-  }
-
-  const user = userRepository.create({
-    username,
-    full_name: fullName,
-    email,
-    email_verified: true,
-    password_hash: await bcrypt.hash(password, 12),
-    otp_hash: null,
-    otp_expires_at: null,
-    role,
-  });
-
-  const savedUser = await userRepository.save(user);
-  console.log(`Created ${roleName}: ${username}`);
-  return savedUser;
-}
-
-async function seedHackathons(
+export async function seedHackathons(
   manager: EntityManager,
   devUser: User,
   devAdmin: User,
@@ -187,6 +79,9 @@ async function seedHackathons(
 
   const now = Date.now();
   let created = 0;
+  let settingsCreated = 0;
+  let phasesCreated = 0;
+  let membershipsCreated = 0;
 
   for (let index = 0; index < HACKATHON_COUNT; index++) {
     const theme = themes[index % themes.length];
@@ -230,6 +125,7 @@ async function seedHackathons(
     });
 
     if (!existingMembership) {
+      membershipsCreated++;
       await membershipRepository.save(
         membershipRepository.create({
           user: organizer,
@@ -240,6 +136,7 @@ async function seedHackathons(
     }
 
     if (!hackathon.settings) {
+      settingsCreated++;
       await settingsRepository.save(
         settingsRepository.create({
           min_team_members: 1,
@@ -275,51 +172,21 @@ async function seedHackathons(
 
     if (missingPhases.length > 0) {
       await phaseRepository.save(missingPhases);
+      phasesCreated += missingPhases.length;
     }
   }
 
+  console.log(
+    `Hackathons: ${created} created, ${HACKATHON_COUNT - created} skipped`,
+  );
+  console.log(
+    `Settings: ${settingsCreated} created, ${HACKATHON_COUNT - settingsCreated} skipped`,
+  );
+  console.log(
+    `Phases: ${phasesCreated} created, ${HACKATHON_COUNT * phases.length - phasesCreated} skipped`,
+  );
+  console.log(
+    `Organizers: ${membershipsCreated} created, ${HACKATHON_COUNT - membershipsCreated} skipped`,
+  );
   return created;
 }
-
-async function main(): Promise<void> {
-  assertDevelopmentEnvironment();
-
-  const adminPassword = requirePassword('SEED_ADMIN_PASSWORD');
-  const userPassword = requirePassword('SEED_USER_PASSWORD');
-
-  await dataSource.initialize();
-
-  try {
-    const created = await dataSource.transaction(async (manager) => {
-      const devAdmin = await seedUser(
-        manager,
-        'dev_admin',
-        'dev-admin@example.test',
-        'Development Administrator',
-        adminPassword,
-        RoleName.ROLE_ADMIN,
-      );
-
-      const devUser = await seedUser(
-        manager,
-        'dev_user',
-        'dev-user@example.test',
-        'Development User',
-        userPassword,
-        RoleName.ROLE_USER,
-      );
-
-      return seedHackathons(manager, devUser, devAdmin);
-    });
-
-    console.log(`Created ${created} development hackathons`);
-    console.log('Development seeding completed successfully');
-  } finally {
-    await dataSource.destroy();
-  }
-}
-
-void main().catch((error: unknown) => {
-  console.error('Development seeding failed:', error);
-  process.exitCode = 1;
-});

@@ -4,13 +4,14 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  OneToMany,
   OneToOne,
   JoinColumn,
+  JoinTable,
+  ManyToMany,
 } from 'typeorm';
 
 import { User } from './user.entity';
-import { UserSkill } from './user-skill.entity';
+import { Skill } from '../../domains/skills/entities/skill.entity';
 
 @Entity('user_profiles')
 export class UserProfile {
@@ -39,6 +40,11 @@ export class UserProfile {
   @JoinColumn()
   user!: User;
 
-  @OneToMany(() => UserSkill, (skill) => skill.user_profile)
-  skills!: UserSkill[];
+  @ManyToMany(() => Skill, (skill) => skill.profiles)
+  @JoinTable({
+    name: 'user_profile_skills',
+    joinColumn: { name: 'profile_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'skill_id', referencedColumnName: 'id' },
+  })
+  skills!: Skill[];
 }

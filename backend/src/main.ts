@@ -33,7 +33,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // 1. Configure the consumer
+  // Configure the consumer
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.KAFKA,
     options: {

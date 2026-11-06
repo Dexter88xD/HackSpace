@@ -3,7 +3,7 @@ import { DataSource } from 'typeorm';
 import { User } from './entities/user.entity';
 import { UserRole } from './entities/user-role.entity';
 import { UserProfile } from './entities/user-profile.entity';
-import { UserSkill } from './entities/user-skill.entity';
+import { Skill } from '../domains/skills/entities/skill.entity';
 import { Hackathon } from './entities/hackathon.entity';
 import { OAuthIdentity } from './entities/oauth-identity.entity';
 import { HackathonPhase } from './entities/hackathon-phase.entity';
@@ -24,7 +24,7 @@ export default new DataSource({
     User,
     UserRole,
     UserProfile,
-    UserSkill,
+    Skill,
     OAuthIdentity,
     Hackathon,
     HackathonPhase,
