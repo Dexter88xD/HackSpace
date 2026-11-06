@@ -333,6 +333,12 @@ export class HackathonsService {
       throw new ConflictException('You are not part of this hackathon');
     }
 
+    if (hackathonUser.hack_role_name !== HackRoleName.PARTICIPANT) {
+      throw new ForbiddenException(
+        'Only participants can unregister from this hackathon',
+      );
+    }
+
     await this.hackathonUserRepository.remove(hackathonUser);
     return {
       message: 'Successfully unregistered from the hackathon',
