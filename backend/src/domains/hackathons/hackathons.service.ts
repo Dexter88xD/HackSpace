@@ -1,11 +1,12 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Brackets, DataSource, Repository } from 'typeorm';
+import { Brackets, DataSource, QueryFailedError, Repository } from 'typeorm';
 import { Hackathon } from '../../database/entities/hackathon.entity';
 import { CreateHackathonDto } from './dto/create-hackathon.dto';
 import { UpdateHackathonDto } from './dto/update-hackathon.dto';
@@ -17,6 +18,7 @@ import {
 } from '../../database/entities/hackathon-user.entity';
 import { User } from '../../database/entities/user.entity';
 import { RoleName } from '../../database/entities/user-role.entity';
+import { HackathonPhaseName } from '../../database/entities/hackathon-phase.entity';
 
 @Injectable()
 export class HackathonsService {
@@ -193,6 +195,7 @@ export class HackathonsService {
     if (startAt >= endAt) {
       throw new BadRequestException('Hackathon dates are incorrect');
     }
+
     hackathon.title = dto.title ?? hackathon.title;
     hackathon.description =
       dto.description === undefined ? hackathon.description : dto.description;
@@ -230,5 +233,160 @@ export class HackathonsService {
     });
 
     return !!membership;
+  }
+
+  async getHackathonCurrentPhase(hackathonId: number) {
+    const hackathon = await this.hackathonRepository.findOne({
+      where: { id: hackathonId },
+      relations: { phases: true },
+    });
+
+    if (!hackathon) {
+      throw new NotFoundException('Hackathon not found');
+    }
+
+    const now = new Date();
+
+    const currentPhase = hackathon.phases.find(
+      (phase) =>
+        new Date(phase.start_at) <= now && new Date(phase.end_at) > now,
+    );
+    return currentPhase ?? null;
+  }
+
+  // Hackathon Registration
+  async hackathonRegister(userId: number, hackathonId: number) {
+    const hackathon = await this.hackathonRepository.findOne({
+      where: { id: hackathonId },
+      relations: { phases: true },
+    });
+
+    if (!hackathon) {
+      throw new NotFoundException('Hackathon not found');
+    }
+
+    const registrationPhase = hackathon.phases.find(
+      (phase) => phase.phase_name === HackathonPhaseName.REGISTRATION,
+    );
+
+    const now = new Date();
+
+    if (
+      !registrationPhase ||
+      new Date(registrationPhase.start_at) > now ||
+      new Date(registrationPhase.end_at) <= now
+    ) {
+      throw new BadRequestException('Registration is not open');
+    }
+
+    const hackathonUserExists = await this.hackathonUserRepository.findOne({
+      where: {
+        user: { id: userId },
+        hackathon: { id: hackathonId },
+      },
+    });
+
+    if (hackathonUserExists) {
+      throw new ConflictException(
+        'You are already registered to this hackathon',
+      );
+    }
+
+    const hackathonUser = this.hackathonUserRepository.create({
+      user: { id: userId },
+      hackathon,
+    });
+
+    try {
+      return await this.hackathonUserRepository.save(hackathonUser);
+    } catch (error) {
+      if (error instanceof QueryFailedError) {
+        const driverError = error.driverError as {
+          code?: string;
+          constraint?: string;
+        };
+
+        if (
+          driverError.code === '23505' &&
+          driverError.constraint === 'UQ_hackathon_users_user_hackathon'
+        ) {
+          throw new ConflictException(
+            'You are already registered to this hackathon',
+          );
+        }
+      }
+      throw error;
+    }
+  }
+
+  async hackathonUnregister(userId: number, hackathonId: number) {
+    const hackathon = await this.hackathonRepository.findOne({
+      where: { id: hackathonId },
+      relations: { phases: true },
+    });
+
+    if (!hackathon) {
+      throw new NotFoundException('Hackathon not found');
+    }
+
+    const registrationPhase = hackathon.phases.find(
+      (phase) => phase.phase_name === HackathonPhaseName.REGISTRATION,
+    );
+
+    const now = new Date();
+    if (
+      !registrationPhase ||
+      new Date(registrationPhase.start_at) > now ||
+      new Date(registrationPhase.end_at) <= now
+    ) {
+      throw new BadRequestException(
+        'The registration period is not currently active',
+      );
+    }
+
+    const hackathonUser = await this.hackathonUserRepository.findOne({
+      where: {
+        user: { id: userId },
+        hackathon: { id: hackathonId },
+      },
+    });
+
+    if (!hackathonUser) {
+      throw new ConflictException('You are not part of this hackathon');
+    }
+
+    if (hackathonUser.hack_role_name !== HackRoleName.PARTICIPANT) {
+      throw new ForbiddenException(
+        'Only participants can unregister from this hackathon',
+      );
+    }
+
+    await this.hackathonUserRepository.remove(hackathonUser);
+    return {
+      message: 'Successfully unregistered from the hackathon',
+    };
+  }
+
+  async getMembership(userId: number, hackathonId: number) {
+    const hackathon = await this.hackathonRepository.findOne({
+      where: { id: hackathonId },
+    });
+
+    if (!hackathon)
+      throw new NotFoundException(
+        `Hackathon with ${hackathonId} doesn't exist`,
+      );
+
+    const membership = await this.hackathonUserRepository.findOne({
+      where: {
+        user: { id: userId },
+        hackathon: { id: hackathonId },
+      },
+    });
+
+    return {
+      isRegistered: !!membership,
+      role: membership?.hack_role_name ?? null,
+    };
   }
 }

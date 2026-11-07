@@ -26,6 +26,7 @@ export class HackathonUser {
     type: 'enum',
     enum: HackRoleName,
     enumName: 'hackathon_role_name_enum',
+    default: HackRoleName.PARTICIPANT,
   })
   hack_role_name!: HackRoleName;
 

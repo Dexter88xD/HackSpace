@@ -39,10 +39,14 @@ All paths below are relative to `http://localhost:3000`.
 | `GET`   | `/hackathons/:id`             | Authenticated  | Retrieve hackathon by ID, including the `canEdit` field    |
 | `POST`  | `/hackathons`                 | `ROLE_ADMIN`   | Create hackathon and its default settings                  |
 | `PATCH` | `/hackathons/:id`             | `ROLE_ADMIN`   | Update supported hackathon properties                      |
+| `POST`  | `/hackathons/:hackathonId/register` | Authenticated | Register for a hackathon                                    |
+| `DELETE`| `/hackathons/:hackathonId/unregister` | Authenticated | Unregister from a hackathon                                 |
+| `GET`   | `/hackathons/:hackathonId/membership` | Authenticated | Get the user's membership status and role                   |
+| `GET`   | `/hackathons/:hackathonId/current-phase` | Authenticated | Get the current hackathon phase                              |
 | `GET`   | `/demo/greetings`             | Public         | Demo endpoint for stored Kafka greetings                   |
 | `POST`  | `/demo/send-name`             | Public         | Send a name to the demo Kafka topic                        |
 
-The hackathon endpoints use `JwtAuthGuard`. POST and PATCH additionally use `RolesGuard` with `ROLE_ADMIN`. Unauthenticated requests return `401`; authenticated non-admin users attempting protected admin operations return `403`.
+The hackathon endpoints use `JwtAuthGuard`. Hackathon creation and updates additionally use `RolesGuard` with `ROLE_ADMIN`. Unauthenticated requests return `401`; authenticated non-admin users attempting protected admin operations return `403`.
 
 ## Frontend and API mapping
 
