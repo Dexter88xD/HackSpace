@@ -656,16 +656,30 @@ postgres('SkillsService PostgreSQL integration', () => {
     expect(await db.getRepository(Skill).count()).toBe(0);
   });
 
-  it('reverts and reapplies the new migration without touching legacy skill data', async () => {
-    await db.query(`INSERT INTO user_skills (name) VALUES ('Legacy')`);
-    await db.undoLastMigration();
-    expect(await db.query(`SELECT to_regclass('skill') AS table_name`)).toEqual(
-      [{ table_name: null }],
+  it('reverts and reapplies the rename without a legacy table, preserving the catalog and assignments', async () => {
+    const skill = await service.add(
+      { profileId, name: 'Migration check' },
+      ownerId,
     );
-    expect(await db.query(`SELECT name FROM user_skills`)).toEqual([
-      { name: 'Legacy' },
-    ]);
+    expect(
+      await db.query(`SELECT to_regclass('user_skills_legacy') AS table_name`),
+    ).toEqual([{ table_name: null }]);
+    await db.undoLastMigration();
+    expect(
+      await db.query(`SELECT name FROM skill WHERE id = $1`, [skill.id]),
+    ).toEqual([{ name: 'Migration check' }]);
+    expect(await db.query(`SELECT * FROM user_skills`)).toEqual([]);
+    await db.query(
+      `INSERT INTO user_skills (name, "userProfileId") VALUES ('Legacy', $1)`,
+      [profileId],
+    );
     await db.runMigrations();
+    expect(
+      await db.query(`SELECT to_regclass('user_skills_legacy') AS table_name`),
+    ).toEqual([{ table_name: null }]);
+    expect(await service.findOne(skill.id)).toEqual(skill);
+    expect(await service.findByProfile(profileId)).toEqual([skill]);
+    await service.remove(skill.id, adminId);
     expect(await db.getRepository(Skill).count()).toBe(0);
   });
 });
