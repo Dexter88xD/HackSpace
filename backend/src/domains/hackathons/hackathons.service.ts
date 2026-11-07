@@ -329,6 +329,21 @@ export class HackathonsService {
       throw new NotFoundException('Hackathon not found');
     }
 
+    const registrationPhase = hackathon.phases.find(
+      (phase) => phase.phase_name === HackathonPhaseName.REGISTRATION,
+    );
+
+    const now = new Date();
+    if (
+      !registrationPhase ||
+      new Date(registrationPhase.start_at) > now ||
+      new Date(registrationPhase.end_at) <= now
+    ) {
+      throw new BadRequestException(
+        'The registration period is not currently active',
+      );
+    }
+
     const hackathonUser = await this.hackathonUserRepository.findOne({
       where: {
         user: { id: userId },

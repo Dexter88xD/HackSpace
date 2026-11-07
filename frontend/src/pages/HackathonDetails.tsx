@@ -72,7 +72,13 @@ export default function HackathonDetails() {
 
   const currentUserId = currentUser?.id;
 
-  const { data: membership } = useQuery({
+  const {
+    data: membership,
+    isPending: isMembershipPending,
+    isError: isMembershipError,
+    isSuccess: isMembershipSuccess,
+    refetch: refetchMembership,
+  } = useQuery({
     queryKey: ["registration", hackathonId],
     queryFn: () => {
       if (hackathonId === null) {
@@ -214,53 +220,83 @@ export default function HackathonDetails() {
 
         {!hackathon.canEdit &&
           currentPhase?.phase_name === HackathonPhaseName.REGISTRATION &&
-          (!membership?.isRegistered ? (
-            <Button
-              variant="default"
-              size="lg"
-              disabled={registerMutation.isPending}
-              onClick={() => {
-                unregisterMutation.mutate();
-                registerMutation.mutate();
-              }}
-            >
-              {registerMutation.isPending ? "Registering..." : "Register"}
-            </Button>
-          ) : (
-            <AlertDialog>
-              <AlertDialogTrigger
-                render={<Button variant="default" size="lg" />}
+          (isMembershipPending ? (
+            <div className="flex items-center gap-2">
+              <Spinner />
+              <p className="text-sm text-muted-foreground">
+                Checking membership...
+              </p>
+            </div>
+          ) : isMembershipError ? (
+            <div className="flex items-center gap-3">
+              <p className="text-sm text-destructive">
+                Unable to check your membership.
+              </p>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => void refetchMembership()}
               >
-                Unregister
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    You will lose your membership in this hackathon.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  render={
-                    <Button
-                      variant="default"
-                      size="lg"
-                      disabled={unregisterMutation.isPending}
-                      onClick={() => {
-                        registerMutation.reset();
-                        unregisterMutation.mutate();
-                      }}
-                    />
-                  }
+                Retry
+              </Button>
+            </div>
+          ) : isMembershipSuccess ? (
+            !membership?.isRegistered ? (
+              <Button
+                variant="default"
+                size="lg"
+                disabled={
+                  registerMutation.isPending || unregisterMutation.isPending
+                }
+                onClick={() => {
+                  unregisterMutation.reset();
+                  registerMutation.mutate();
+                }}
+              >
+                {registerMutation.isPending ? "Registering..." : "Register"}
+              </Button>
+            ) : (
+              <AlertDialog>
+                <AlertDialogTrigger
+                  render={<Button variant="default" size="lg" />}
                 >
-                  {unregisterMutation.isPending
-                    ? "Unregistering..."
-                    : "Unregister"}
-                </AlertDialogAction>
-              </AlertDialogContent>
-            </AlertDialog>
-          ))}
+                  Unregister
+                </AlertDialogTrigger>
+
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      You will lose your membership in this hackathon.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+
+                  <AlertDialogAction
+                    render={
+                      <Button
+                        variant="default"
+                        size="lg"
+                        disabled={
+                          unregisterMutation.isPending ||
+                          registerMutation.isPending
+                        }
+                        onClick={() => {
+                          registerMutation.reset();
+                          unregisterMutation.mutate();
+                        }}
+                      />
+                    }
+                  >
+                    {unregisterMutation.isPending
+                      ? "Unregistering..."
+                      : "Unregister"}
+                  </AlertDialogAction>
+                </AlertDialogContent>
+              </AlertDialog>
+            )
+          ) : null)}
       </div>
       {(registerMutation.isError || unregisterMutation.isError) && (
         <div className="mt-6 border w-fit p-2 rounded-md">
