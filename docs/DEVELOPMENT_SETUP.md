@@ -32,13 +32,16 @@ The seed script creates:
 
 - A verified administrator: `dev_admin`
 - A verified regular user: `dev_user`
+- Five additional verified users: `dev_user_1` through `dev_user_5`
+- Profiles for all seven accounts
+- 100 skills, with five assigned to each additional user (25 profile-skill assignments)
 - 200 sample hackathons
 - 200 associated settings records
 - 1,000 scheduled phases
 
-The users' passwords come from the environment variables above.
+New accounts use the passwords from the environment variables above: `SEED_ADMIN_PASSWORD` for the administrator and `SEED_USER_PASSWORD` for all regular users. Passwords are required only when creating the corresponding accounts.
 
-The seed script is designed to be rerun without duplicating previously seeded records.
+The shared runner executes users, skills, then hackathons in one transaction. Reruns skip existing records and fill missing profiles, skills, settings, phases, organizers, and profile-skill assignments. Existing passwords, profile fields, skill names, hackathon dates, and extra assignments are preserved. Conflicting usernames, emails, or account roles stop the run and roll back its changes. Run migrations before seeding; no seed-history table is used.
 
 ## Reset and reseed the database
 
