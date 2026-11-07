@@ -10,7 +10,7 @@ import { HackathonPhase } from './entities/hackathon-phase.entity';
 import { HackathonSettings } from './entities/hackathon-settings.entity';
 import { HackathonUser } from './entities/hackathon-user.entity';
 
-loadEnv({ path: '../.env' });
+loadEnv({ path: '../.env', quiet: true });
 
 export default new DataSource({
   type: 'postgres',
