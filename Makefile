@@ -6,7 +6,7 @@ COMPOSE = docker compose -f docker-compose.yml --env-file .env
 .PHONY: all help up down start stop re ps logs \
         storage backend frontend ai broker \
         migration seed db db-reset \
-        lint test
+        lint lint-fix typecheck build build-images test
 
 # ==============================
 # General
@@ -44,8 +44,12 @@ help:
 	@echo "  make db-reset   Stop stack and DELETE PostgreSQL data"
 	@echo ""
 	@echo "Quality:"
-	@echo "  make lint       Run backend and frontend lint checks"
-	@echo "  make test       Run backend Jest tests"
+	@echo "  make lint         Run backend and frontend lint checks"
+	@echo "  make lint-fix     Automatically fix supported lint issues"
+	@echo "  make typecheck    Check frontend and backend TypeScript"
+	@echo "  make build        Build frontend and backend applications"
+	@echo "  make build-images Build Docker images"
+	@echo "  make test         Run backend Jest tests"
 	@echo ""
 
 up:
@@ -111,12 +115,27 @@ db-reset:
 	fi
 
 # ==============================
-# Quality
+# Quality & Builds
 # ==============================
 
 lint:
-	$(COMPOSE) exec backend npm run lint
-	$(COMPOSE) exec frontend npm run lint
+	$(COMPOSE) exec -T backend npm run lint
+	$(COMPOSE) exec -T frontend npm run lint
+
+lint-fix:
+	$(COMPOSE) exec -T backend npm run lint:fix
+	$(COMPOSE) exec -T frontend npm run lint:fix
+
+typecheck:
+	$(COMPOSE) exec -T backend npm run typecheck
+	$(COMPOSE) exec -T frontend npm run typecheck
+
+build:
+	$(COMPOSE) exec -T backend npm run build
+	$(COMPOSE) exec -T frontend npm run build
+
+build-images:
+	$(COMPOSE) build
 
 test:
-	$(COMPOSE) exec backend npm test
+	$(COMPOSE) exec -T backend npm test
