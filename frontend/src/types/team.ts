@@ -16,6 +16,14 @@ export type Team = {
   members: TeamMember[];
 };
 
+export type TeamSummary = {
+  id: number;
+  name: string;
+  description: string | null;
+  memberCount: number;
+  maxMembers: number;
+};
+
 export type MyTeamResponse = {
   team: Team | null;
 };

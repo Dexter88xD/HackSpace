@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -31,6 +32,11 @@ export class TeamsController {
     );
   }
 
+  @Get('hackathons/:hackathonId/teams')
+  findAll(@Param('hackathonId', ParseIntPipe) hackathonId: number) {
+    return this.teamsService.findAll(hackathonId);
+  }
+
   @Get('hackathons/:hackathonId/teams/me')
   findMine(
     @Param('hackathonId', ParseIntPipe) hackathonId: number,
@@ -42,5 +48,21 @@ export class TeamsController {
   @Get('teams/:id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.teamsService.findOne(id);
+  }
+
+  @Post('teams/:id/join')
+  join(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.teamsService.join(id, req.user.userId);
+  }
+
+  @Delete('teams/:id/leave')
+  leave(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.teamsService.leave(id, req.user.userId);
   }
 }

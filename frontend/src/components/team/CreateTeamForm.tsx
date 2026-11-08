@@ -28,11 +28,14 @@ function CreateTeamForm({ onSubmit, isSubmitting }: CreateTeamFormProps) {
       className="space-y-6 rounded-xl border border-border bg-card p-6 shadow-sm"
     >
       <div className="space-y-2">
-        <Label htmlFor="name">Team name</Label>
+        <Label htmlFor="name">
+          Team name <span className="text-destructive">*</span>
+        </Label>
         <Input
           type="text"
           id="name"
           {...register("name")}
+          aria-required
           aria-invalid={!!errors.name}
           className="h-10"
         />
@@ -43,7 +46,9 @@ function CreateTeamForm({ onSubmit, isSubmitting }: CreateTeamFormProps) {
         )}
       </div>
       <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
+        <Label htmlFor="description">
+          Description <span className="text-muted-foreground">(optional)</span>
+        </Label>
         <Textarea
           id="description"
           {...register("description")}
