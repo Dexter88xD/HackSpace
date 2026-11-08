@@ -32,7 +32,7 @@ export class SkillsService {
     return this.skillRepository.find({
       where: { normalizedName: ILike(`%${query.name}%`) },
       order: { name: 'ASC', id: 'ASC' },
-      take: 20
+      take: 20,
     });
   }
 
