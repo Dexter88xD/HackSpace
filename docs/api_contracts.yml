@@ -4,4 +4,212 @@ info:
   version: 0.1.0
 servers:
   - url: /api
-paths: {}
+security:
+  - accessToken: []
+paths:
+  /skills:
+    get:
+      summary: List skills with an optional partial name filter
+      description: Names are trimmed, whitespace is collapsed, and matching is case insensitive. Responses omit profile and user relations.
+      parameters:
+        - in: query
+          name: name
+          schema: { type: string, minLength: 1, maxLength: 50 }
+      responses:
+        "200":
+          description: All skills ordered by name and ID, or all skills containing the name when name is supplied
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Skill" }
+        "401": { description: Authentication required }
+    post:
+      summary: Create or reuse a catalog skill, optionally attaching it to a profile
+      description: Omit profileId to create or reuse an unassigned catalog skill. When profileId is supplied, profile existence and ownership/admin permission are checked before writing. A non-null ID takes precedence and must exist. When ID is null or omitted, reuse a normalized name or create a catalog skill. Repeated assignments succeed. Catalog creation and assignment are separate writes; if assignment fails, a newly created catalog skill may remain unassigned.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AddSkill" }
+      responses:
+        "201":
+          description: The attached skill without profile or user relations
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Skill" }
+        "400": { description: Invalid DTO }
+        "401": { description: Authentication required }
+        "403": { description: Profile owner or admin required }
+        "404": { description: Profile or supplied skill ID not found }
+  /skills/by-name:
+    get:
+      summary: Find one skill by exact normalized name
+      description: Names are trimmed, whitespace is collapsed, and matching is case insensitive. Responses omit profile and user relations.
+      parameters:
+        - in: query
+          name: name
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 50 }
+      responses:
+        "200":
+          description: Skill without relations
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Skill" }
+        "400": { description: Missing or invalid name }
+        "401": { description: Authentication required }
+        "404": { description: Skill not found }
+  /skills/batch:
+    post:
+      summary: Create or reuse a batch of skills, optionally attaching them to profiles
+      description: Validates the entire DTO array before processing. Runs additions sequentially in input order and stops at the first error. Earlier successful additions remain committed; later entries are skipped. On success, returns one skill per DTO in input order, including repeated references. An error response does not include partial results.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              minItems: 1
+              items: { $ref: "#/components/schemas/AddSkill" }
+      responses:
+        "201":
+          description: Skills corresponding to the input DTOs in input order
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Skill" }
+        "400": { description: Invalid or empty DTO array }
+        "401": { description: Authentication required }
+        "403":
+          { description: Profile owner or admin required for every profile }
+        "404": { description: Profile or supplied skill ID not found }
+  /skills/{id}:
+    parameters:
+      - $ref: "#/components/parameters/SkillId"
+    get:
+      summary: Find skill by ID
+      responses:
+        "200":
+          description: Skill without relations
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Skill" }
+        "400": { description: Invalid ID }
+        "401": { description: Authentication required }
+        "404": { description: Skill not found }
+    patch:
+      summary: Rename a shared catalog skill (admin only)
+      description: Updates the display name and normalized name for all assignments.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 50 }
+      responses:
+        "200":
+          description: Updated skill
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Skill" }
+        "400": { description: Invalid ID or name }
+        "401": { description: Authentication required }
+        "403": { description: Admin required }
+        "404": { description: Skill not found }
+        "409": { description: Normalized name already exists }
+    delete:
+      summary: Delete a catalog skill and detach it from every profile (admin only)
+      responses:
+        "204": { description: Skill and assignments deleted }
+        "400": { description: Invalid ID }
+        "401": { description: Authentication required }
+        "403": { description: Admin required }
+        "404": { description: Skill not found }
+  /skills/profiles/{profileId}:
+    parameters:
+      - in: path
+        name: profileId
+        required: true
+        schema: { type: integer, minimum: 1 }
+    get:
+      summary: List skills for an existing profile
+      responses:
+        "200":
+          description: Skills ordered by name and ID; empty array for a profile with no skills
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Skill" }
+        "400": { description: Invalid profile ID }
+        "401": { description: Authentication required }
+        "404": { description: Profile not found }
+    delete:
+      summary: Detach skills from a profile (profile owner or admin)
+      description: Keeps catalog entries. Repeated detachment succeeds; nonexistent catalog IDs return 404.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [skillIds]
+              properties:
+                skillIds:
+                  type: array
+                  minItems: 1
+                  items: { type: integer, minimum: 1 }
+      responses:
+        "204": { description: Assignments removed }
+        "400": { description: Invalid profile ID or skill IDs }
+        "401": { description: Authentication required }
+        "403": { description: Profile owner or admin required }
+        "404": { description: Profile or skill not found }
+components:
+  securitySchemes:
+    accessToken:
+      type: apiKey
+      in: cookie
+      name: accessToken
+  parameters:
+    SkillId:
+      in: path
+      name: id
+      required: true
+      schema: { type: integer, minimum: 1 }
+  schemas:
+    Skill:
+      type: object
+      required: [id, name, normalizedName]
+      properties:
+        id: { type: integer }
+        name: { type: string, maxLength: 50 }
+        normalizedName: { type: string, maxLength: 50 }
+    AddSkill:
+      type: object
+      additionalProperties: false
+      description: Names are trimmed, whitespace is collapsed, and both display and lowercase normalized names must contain 1 to 50 characters. A supplied name is validated even when ID takes precedence. profileId is optional; if supplied, it must be a positive integer and cannot be null.
+      properties:
+        profileId: { type: integer, minimum: 1, maximum: 9007199254740991 }
+        id:
+          {
+            type: integer,
+            minimum: 1,
+            maximum: 9007199254740991,
+            nullable: true,
+          }
+        name: { type: string, minLength: 1, maxLength: 50 }
+      anyOf:
+        - required: [id]
+          properties:
+            id: { type: integer, minimum: 1, nullable: false }
+        - required: [name]
+          properties:
+            id: { type: integer, nullable: true, enum: [null] }
