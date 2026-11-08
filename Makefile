@@ -3,7 +3,7 @@ COMPOSE = docker compose -f docker-compose.yml --env-file .env
 
 .DEFAULT_GOAL := all
 
-.PHONY: all help up down re ps logs \
+.PHONY: all help up down start stop re ps logs \
         storage backend frontend ai broker \
         migration seed db db-reset \
         lint test
@@ -24,6 +24,8 @@ help:
 	@echo "  make all        Start the entire stack (default)"
 	@echo "  make up         Build and start the entire stack"
 	@echo "  make down       Stop the entire stack"
+	@echo "  make start      Start existing containers"
+	@echo "  make stop       Stop running containers"
 	@echo "  make re         Restart and rebuild the stack"
 	@echo "  make ps         Show running containers"
 	@echo "  make logs       Follow container logs"
@@ -38,7 +40,7 @@ help:
 	@echo "Database:"
 	@echo "  make db         Open PostgreSQL shell"
 	@echo "  make migration  Run TypeORM migrations"
-	@echo "  make seed       Seed development users and hackathons"
+	@echo "  make seed       Seed development users, profiles, skills and hackathons"
 	@echo "  make db-reset   Stop stack and DELETE PostgreSQL data"
 	@echo ""
 	@echo "Quality:"
@@ -51,6 +53,12 @@ up:
 
 down:
 	$(COMPOSE) down
+
+start:
+	$(COMPOSE) start
+
+stop:
+	$(COMPOSE) stop
 
 re: down up
 

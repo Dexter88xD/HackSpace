@@ -8,6 +8,7 @@ import { DemoModule } from './domains/demo/demo.module';
 import { HackathonsModule } from './domains/hackathons/hackathons.module';
 import { TeamsModule } from './domains/teams/teams.module';
 import { EmailModule } from './shared/email/email.module';
+import { SkillsModule } from './domains/skills/skills.module';
 import { UserModule } from './users/user.module';
 
 // Configures the application by loading environment variables globally, establishing the PostgreSQL
@@ -36,6 +37,7 @@ import { UserModule } from './users/user.module';
     HackathonsModule,
     TeamsModule,
     UserModule,
+    SkillsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
