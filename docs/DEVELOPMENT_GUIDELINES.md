@@ -1,957 +1,165 @@
 # HackSpace Development Guidelines
 
-This document defines the conventions and development practices for the HackSpace project.
-The goal is to keep the codebase consistent, readable, maintainable, and easy for everyone on the team to work on.
+> For explanations and examples, see [Development Learning Notes](./DEVELOPMENT_LEARNING_NOTES.md). For commands and local setup, see [Development Setup](./DEVELOPMENT_SETUP.md).
+> The conventions below are mandatory for new work; existing inconsistencies are addressed through reviewed refactoring changes.
 
----
+## 1. Principles
 
-## 1. General Naming Conventions
+- Keep changes focused, reviewable, testable and consistent with the existing monorepo.
+- Keep controllers thin, services responsible for business rules, and repositories responsible for persistence.
+- Treat the backend as the authority for authentication, authorisation, validation and data integrity. UI checks are for user experience, **not** security.
+- Update relevant tests and documentation whenever externally visible behaviour changes.
+- Never commit secrets, generated output or unrelated formatting changes.
+- For dependent changes, wait until their prerequisites are reviewed and merged, then work from updated `main`.
 
-### TypeScript
+## 2. Naming and code organisation
 
-| Type       | Convention       | Example                |
-| ---------- | ---------------- | ---------------------- |
-| Variables  | camelCase        | `userId`               |
-| Functions  | camelCase        | `getUserById()`        |
-| Classes    | PascalCase       | `AuthService`          |
-| Interfaces | PascalCase       | `AuthenticatedRequest` |
-| Types      | PascalCase       | `JwtPayload`           |
-| Enums      | PascalCase       | `UserRole`             |
-| Constants  | UPPER_SNAKE_CASE | `MAX_FILE_SIZE`        |
+| Layer / item | Target convention | Example |
+| --- | --- | --- |
+| TypeScript variables, functions, properties and methods | `camelCase` | `userId`, `organizationName`, `getHackathon()` |
+| Classes, interfaces, types, enums and DTO classes | `PascalCase` | `UserProfile`, `CreateHackathonDto`, `HackRoleName` |
+| Global constants and enum-like fixed configuration values | `UPPER_SNAKE_CASE` | `MAX_FILE_SIZE` |
+| Source filenames | `kebab-case` | `user-profile.entity.ts`, `create-hackathon.dto.ts` |
+| PostgreSQL tables | `snake_case` | `user_profiles`, `hackathon_users` |
+| PostgreSQL columns and foreign keys | `snake_case` | `organization_name`, `user_id`, `created_at` |
+| HTTP JSON request and response fields | `camelCase` | `organizationName`, `startAt`, `createdAt` |
+| URL paths | Lowercase resource-oriented paths, hyphenated where needed | `/hackathons/:id/current-phase` |
 
-### Files
+**One distinction matters:** TypeScript property names and physical SQL column names are **different interfaces**. Do not use a snake_case TypeScript property merely because its database column is snake_case.
 
-Use **kebab-case** for filenames.
-
-```text
-auth.service.ts
-login.dto.ts
-jwt.strategy.ts
-authenticated-request.interface.ts
-user-profile.entity.ts
-```
-
----
-
-# 2. DTO Conventions
-
-DTOs define the data received or sent through the API.
-
-### File naming
-
-```text
-login.dto.ts
-register.dto.ts
-verify-otp.dto.ts
-```
-
-### Class naming
+Use TypeORM mappings when the names differ:
 
 ```ts
-export class LoginDto {}
-export class RegisterDto {}
-export class VerifyOtpDto {}
-```
+@Entity('hackathons')
+export class Hackathon {
+  @Column({ name: 'organization_name' })
+  organizationName!: string;
 
-### DTO/API fields MUST use camelCase
-
-```ts
-fullName
-confirmPassword
-emailVerified
-otpExpiresAt
-hackathonId
-createdAt
-```
-
-Example:
-
-```ts
-export class RegisterDto {
-  fullName: string;
-  username: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
+  @Column({ name: 'start_at', type: 'timestamp' })
+  startAt!: Date;
 }
 ```
 
-Do **not** use database naming conventions inside DTOs:
+These are examples of the naming convention, not a copy of the current entity. Renaming a property requires updating references, query builders, response mappings, services, tests and frontend consumers together.
 
-```ts
-// ❌
-full_name
-confirm_password
-email_verified
-```
+## 3. API contracts and validation
 
-The API uses camelCase even if the database uses snake_case.
+- Define request DTOs separately from TypeORM entities. Use `class-validator` to validate backend input; use React Hook Form and Zod for frontend forms where appropriate.
+- **Use `camelCase` for API JSON fields**, including nested objects, pagination fields and date properties. When standardising a legacy response, update the backend contract and all consumers in the same PR.
+- Do not expose persistence entities as the public API contract. Prefer response DTOs, serializers or explicit mapping functions that control field names and remove sensitive properties.
+- Make changes to backend response shapes, frontend API clients/types and their tests **in the same functional PR**. Do not merge a broken consumer contract while waiting for a later PR.
+- Use resource-oriented endpoints and correct HTTP methods. Keep route paths stable unless changing them is explicitly in scope.
+- Use appropriate status codes: `200` read/update success, `201` created, `204` no content, `400` invalid input, `401` unauthenticated, `403` forbidden, `404` not found, `409` conflict.
+- Where callers must distinguish errors, return a stable machine-readable `code` as well as a human-readable message. Do not branch on error message strings in the frontend.
+- Keep [`api_contracts.yml`](./api_contracts.yml) and [`ROUTES.md`](./ROUTES.md) aligned with implemented endpoints. Expand contract coverage when changing undocumented endpoints.
 
----
+## 4. Backend architecture
 
-# 3. DTO Validation
+- **Controllers:** receive and validate requests, apply guards and delegate to services. Keep database and business logic out of controllers.
+- **Services:** enforce domain rules and permissions; orchestrate repositories, transactions and external integrations.
+- **DTOs:** validate and document the shapes accepted from clients. Keep response mapping separate from database entities.
+- **Repositories / TypeORM:** use explicit relations and constraints; avoid unnecessary queries and unsafe assumptions about loaded relations.
+- **Transactions:** use them for multi-record operations that must succeed or fail together (for example, creating a hackathon and its settings and organiser membership).
+- Preserve established application/module boundaries unless the change has a clear architectural purpose and review agreement.
 
-DTOs should validate incoming data using `class-validator`.
+## 5. Authentication and authorisation
 
-Example:
+- Use the established JWT/Passport strategy and NestJS guards. Read the authenticated user identity from verified server-side authentication, not from a client-supplied user ID or role.
+- Use `sub` as the JWT subject/user identifier; do not put secrets or password hashes into tokens.
+- Distinguish platform roles (`ROLE_USER`, `ROLE_ADMIN`) from per-hackathon membership roles (`ORGANIZER`, `PARTICIPANT`, `JURY`, `MENTOR`). These roles have different scopes.
+- **Platform administrators have an administrative override** of ordinary ownership/organiser restrictions where supported by the resource's backend authorisation logic. Override never skips login, input validation or other safety checks.
 
-```ts
-export class RegisterDto {
-  @IsString()
-  @IsNotEmpty()
-  fullName: string;
+### Hackathon permissions
 
-  @IsEmail()
-  email: string;
+| Operation | Rule |
+| --- | --- |
+| Create a hackathon (`POST /hackathons`) | Any authenticated user, whether `ROLE_USER` or `ROLE_ADMIN` |
+| Create-time membership | The creator is assigned the hackathon-specific `ORGANIZER` role |
+| Edit a hackathon (`PATCH /hackathons/:id`) | A member with `ORGANIZER` for that hackathon **or** a platform `ROLE_ADMIN` |
+| Read hackathons | Requires authentication under the current controller guard |
+| Other hackathon/team/skill actions | Enforce and test the endpoint's own business and role rules; don't infer them from this table |
 
-  @IsString()
-  @MinLength(8)
-  password: string;
-}
-```
+The repository currently implements the admin override in `HackathonsService.canEditHackathon()`. Its `canEdit` response field may help the UI, but the service must independently enforce permission on update. There is **no** frontend `/admin/hackathons` route; the current routes use `/hackathons`, `/hackathons/new` and `/hackathons/:id/edit`.
 
-Validation belongs in DTOs, not inside controllers.
+For all protected operations, distinguish `401` (no valid authentication) from `403` (authenticated but lacking access). Test the allowed and denied paths, including the admin override.
 
-Global validation should be enabled:
+## 6. Database, entities and migrations
 
-```ts
-new ValidationPipe({
-  whitelist: true,
-  forbidNonWhitelisted: true,
-})
-```
+- Keep PostgreSQL tables, physical columns and foreign keys in **snake_case**. Correct legacy exceptions through a coordinated schema and application change.
+- Use **camelCase TypeScript entity properties** and explicit `@Column({ name: 'snake_case_column' })` / date-column mappings where needed.
+- On the **owning side** of a `@ManyToOne` or owning `@OneToOne` that has an FK, specify the actual FK name with `@JoinColumn({ name: 'foreign_key_column' })`. Place `@JoinColumn` on **one owning side only** for a one-to-one relation.
+- Define join-table names and their column names explicitly with `@JoinTable` when using many-to-many mappings.
+- Keep correct relation ownership, inverse properties, `nullable`, uniqueness, on-delete behaviour and constraints. **Do not move the `hackathon_settings` one-to-one FK to another table** merely for naming consistency.
+- Never enable `synchronize: true` as a replacement for migrations. The final entity metadata and migration SQL must agree.
 
-This means:
+### Migration management
 
-* unexpected fields are removed/rejected
-* invalid input is rejected before reaching the service
-* controllers receive validated data
+- Prefer forward-only migrations once migration history has been applied to a database that must be retained. Do not edit applied migrations on shared, staging or production databases.
+- An exception is possible during **coordinated local-only development resets**, but only when every affected database is disposable and the team has explicitly agreed to discard its data.
+- When consolidating development migrations, validate the **complete migration sequence against an empty database**, preserve constraints and relationships, run the seed scripts and rerun application tests.
+- Never assume a changed migration file updates a database that already recorded that migration as applied.
+- The destructive reset process is documented in [Development Setup](./DEVELOPMENT_SETUP.md). Check the Compose project and volumes before using it.
 
----
+## 7. Frontend architecture
 
-# 4. DTO vs Entity
+- Keep server requests in the established `frontend/src/api/` layer rather than scattering Axios calls across components.
+- Prefer TanStack Query for server state (`useQuery` for reads, `useMutation` for changes); maintain meaningful query keys and invalidate/update affected cached data after mutations.
+- Keep shared UI components reusable and pages focused. Reuse existing components, including shadcn-based components where suitable, instead of duplicating them.
+- Put form schemas in the existing `src/schemas/` structure when applicable. Match field names, loading/error states and mutation results to the actual backend contract.
+- Protected React routes improve navigation, but **backend guards and domain services must always verify permissions**.
 
-DTOs and entities have different responsibilities.
+## 8. Branches, commits, PR reviews and CI
 
-### DTO
+- Create a branch from an up-to-date `main`. Prefer `feat/`, `fix/`, `refactor/`, `docs/`, `chore/` or `ci/` followed by a focused kebab-case description.
+- Write Conventional Commit-style messages: `feat: ...`, `fix: ...`, `refactor: ...`, `docs: ...`, `chore: ...`, `ci: ...`.
+- A PR should have one coherent objective. Identify affected services, contracts, migrations and tests; include UI evidence when helpful.
+- **Every PR into `main` requires at least one approval from another developer and passing required GitHub Actions CI checks before merge.** The author must not self-approve. Resolve review feedback and rerun checks after changes.
+- For dependent maintenance PRs, **wait for the previous PR to be reviewed and merged**, then branch from updated `main`.
+- A local green build is not a substitute for required CI. Do not silently bypass failing or unavailable checks.
 
-Represents API data.
+### Shared npm scripts and Make targets
 
-```ts
-fullName
-confirmPassword
-```
+| Command | Meaning |
+| --- | --- |
+| `npm run lint` | Check with ESLint, without modifying files |
+| `npm run lint:fix` | Apply safe ESLint autofixes |
+| `npm run typecheck` | Check the application TypeScript project(s) |
+| `npm run build` | Build the application with its own build tool |
+| `make lint` / `make lint-fix` | Lint or autofix both apps in running containers |
+| `make typecheck` | Typecheck backend and frontend applications |
+| `make build` | Run the NestJS and frontend application builds |
+| `make build-images` | Build images with Docker Compose; does not launch containers |
+| `make test` | Run backend Jest tests |
 
-### Entity
+The backend and frontend use different TypeScript compiler flags deliberately. The **shared contract is the npm script name and purpose**, not identical arguments.
 
-Represents database data.
+**TypeScript check coverage:** backend `typecheck` currently uses `tsconfig.build.json` and excludes `*.spec.ts`. Jest executes the tests, but passing Jest does not prove test source passes a full TypeScript compilation check. Test changes should be checked appropriately; expand CI type coverage when the test typing is corrected.
 
-```ts
-full_name
-password_hash
-email_verified
-created_at
-```
+Commands that use `docker compose exec` require running containers. Refer to [`DEVELOPMENT_SETUP.md`](./DEVELOPMENT_SETUP.md) for setup and reset instructions.
 
-Do not use entities directly as request DTOs.
+## 9. Security and environment
 
----
+- Keep development secrets in the ignored root `.env` or a proper secret-management solution. Commit safe placeholders in the root `.env.example`; do not add service-specific `.env` files for the Compose workflow.
+- Never hard-code API keys, passwords, tokens, OAuth secrets, email credentials or database passwords.
+- Use secure cookie flags and HTTPS appropriate to the deployment environment. A development-only cookie setting must not be assumed suitable for production.
+- Validate request input and authorisation on the server, including in requests with valid JWTs. Do not return password hashes, OTP secrets or other sensitive columns in API responses.
+- Enforce relevant uniqueness and integrity constraints in PostgreSQL and handle races (for example, duplicate registration) with correct errors.
+- Pass only required environment variables to each container; never expose secrets via `VITE_` variables or commit local `.env` files.
 
-# 5. Entities
+## 10. Definition of Done
 
-Entities represent database tables.
+Before requesting review:
 
-Example:
+- [ ] The change stays within its stated PR scope and follows the agreed **target** naming conventions (or clearly identifies deferred legacy work).
+- [ ] Backend API changes, response mappings, frontend consumers and tests agree.
+- [ ] Authentication, authorisation and failure paths are tested where applicable.
+- [ ] No secret, generated build output or unrelated file is included.
+- [ ] `make lint`, `make typecheck`, `make build` and applicable tests pass; known check limitations are disclosed.
+- [ ] Database changes have a tested migration plan; any development-only reset is clearly documented and coordinated.
+- [ ] Relevant README, routes, API contracts and schema documentation are updated.
 
-```ts
-@Entity('users')
-export class User {
-  @PrimaryGeneratedColumn()
-  id!: number;
-
-  @Column()
-  username!: string;
-
-  @Column()
-  full_name!: string;
-
-  @Column()
-  email!: string;
-}
-```
-
-Database columns should use **snake_case**.
-
-Examples:
-
-```text
-full_name
-password_hash
-email_verified
-created_at
-updated_at
-otp_hash
-otp_expires_at
-```
-
----
-
-# 6. Controllers
-
-Controllers are responsible for handling HTTP requests.
-
-They should:
-
-* receive requests
-* validate DTOs
-* use guards
-* call services
-* return responses
-
-Controllers should remain thin.
-
-Example:
-
-```ts
-@Post('signin')
-signin(@Body() loginDto: LoginDto) {
-  return this.authService.signin(loginDto);
-}
-```
-
-Business logic belongs in the service.
-
-Avoid putting database queries or authentication logic directly inside controllers.
+**Before merging:** at least one other developer must approve the PR and all required CI checks must pass.
 
 ---
 
-# 7. Services
-
-Services contain the application's business logic.
-
-Example:
-
-```ts
-async signin(loginDto: LoginDto) {
-  // authentication logic
-}
-```
-
-Services can:
-
-* access repositories
-* validate business rules
-* hash passwords
-* generate tokens
-* send emails
-* perform database operations
-
-Controllers should delegate this work to services.
-
----
-
-# 8. Interfaces
-
-Interfaces should describe custom structures that are not database entities.
-
-Example:
-
-```text
-src/interfaces/authenticated-request.interface.ts
-```
-
-```ts
-export interface AuthenticatedRequest extends Request {
-  user: {
-    userId: number;
-  };
-}
-```
-
-Use interfaces when extending existing structures or defining custom application-level shapes.
-
----
-
-# 9. API Conventions
-
-Use resource-oriented routes.
-
-### Authentication
-
-```text
-POST /auth/register
-POST /auth/signin
-POST /auth/verify
-POST /auth/resend
-GET  /auth/me
-```
-
-### Resources
-
-```text
-GET    /hackathons
-GET    /hackathons/:id
-POST   /hackathons
-PATCH  /hackathons/:id
-DELETE /hackathons/:id
-```
-
-Use HTTP methods according to the operation.
-
----
-
-# 10. API Request/Response Naming
-
-API request and response fields use **camelCase**.
-
-Example:
-
-```json
-{
-  "fullName": "John Doe",
-  "email": "john@example.com",
-  "emailVerified": true
-}
-```
-
-Even though the database may contain:
-
-```text
-full_name
-email_verified
-```
-
-The frontend should never need to know the database naming convention.
-
----
-
-# 11. HTTP Status Codes
-
-Use appropriate HTTP status codes.
-
-| Status | Usage                                    |
-| ------ | ---------------------------------------- |
-| `200`  | Successful request                       |
-| `201`  | Resource successfully created            |
-| `204`  | Successful request with no response body |
-| `400`  | Invalid request                          |
-| `401`  | Authentication required/failed           |
-| `403`  | Authenticated but not authorized         |
-| `404`  | Resource not found                       |
-| `409`  | Resource conflict                        |
-| `500`  | Unexpected server error                  |
-
-Example:
-
-```ts
-throw new ConflictException('Username is already taken');
-```
-
----
-
-# 12. API Error Codes
-
-When the frontend needs to react differently to different errors, use a custom error code.
-
-Example:
-
-```ts
-throw new UnauthorizedException({
-  message: 'Invalid email or password',
-  code: 'INVALID_CREDENTIALS',
-});
-```
-
-Frontend:
-
-```ts
-if (error.response?.data.code === 'INVALID_CREDENTIALS') {
-  // handle invalid credentials
-}
-```
-
-Do not make frontend logic depend on error messages.
-
-Avoid:
-
-```ts
-if (error.message === 'Invalid email or password')
-```
-
-Messages can change. Error codes should remain stable.
-
----
-
-# 13. Authentication
-
-Authentication is responsible for determining **who the user is**.
-
-Authorization determines **what the user is allowed to do**.
-
-The backend is the final authority for authentication and authorization.
-
-Never trust frontend checks as security.
-
----
-
-# 14. JWT Conventions
-
-JWT payloads should contain only the information necessary to identify the user.
-
-Example:
-
-```ts
-{
-  sub: user.id
-}
-```
-
-Use `sub` for the user ID.
-
-Do not put sensitive information inside the JWT.
-
-Avoid:
-
-```ts
-{
-  password: user.password,
-  passwordHash: user.password_hash
-}
-```
-
-The JWT is signed, not encrypted. Anyone holding the token can decode its payload.
-
----
-
-# 15. Guards
-
-Use guards to protect authenticated routes.
-
-Example:
-
-```ts
-@UseGuards(JwtAuthGuard)
-@Get('me')
-getMe() {
-  // ...
-}
-```
-
-The guard verifies the JWT before the controller is executed.
-
----
-
-# 16. `req.user`
-
-After JWT authentication, the JWT strategy should attach the authenticated user's information to `req.user`.
-
-Example:
-
-```ts
-validate(payload: JwtPayload) {
-  return {
-    userId: payload.sub,
-  };
-}
-```
-
-Then:
-
-```ts
-req.user.userId
-```
-
-can be used inside protected routes.
-
-Keep the structure consistent across the application.
-
----
-
-# 17. `/auth/me`
-
-Use `/auth/me` to retrieve the currently authenticated user.
-
-Example:
-
-```text
-GET /auth/me
-Authorization: Bearer <token>
-```
-
-The endpoint should:
-
-1. Validate the JWT.
-2. Get the user ID from `req.user`.
-3. Find the user.
-4. Return safe user information.
-
-Do not return sensitive fields such as:
-
-```text
-password_hash
-otp_hash
-otp_expires_at
-```
-
-Example response:
-
-```json
-{
-  "id": 1,
-  "username": "aymen",
-  "fullName": "Aymen Aitouraies",
-  "email": "aymen@example.com",
-  "emailVerified": true
-}
-```
-
----
-
-# 18. TypeORM
-
-Everyone working with the backend should understand:
-
-* Entities
-* Repositories
-* Relations
-* `findOne`
-* `find`
-* `create`
-* `save`
-* `update`
-* Migrations
-* Transactions
-* `forRoot`
-* `forFeature`
-* `@InjectRepository`
-
-Example:
-
-```ts
-@InjectRepository(User)
-private readonly userRepository: Repository<User>
-```
-
-`repository.create()` creates an entity instance in memory.
-
-```ts
-const user = repository.create(data);
-```
-
-`repository.save()` persists it to the database.
-
-```ts
-await repository.save(user);
-```
-
----
-
-# 19. TypeORM Relations
-
-Understand the difference between:
-
-```ts
-@OneToOne()
-@OneToMany()
-@ManyToOne()
-@ManyToMany()
-```
-
-Relations should correctly represent the database relationship.
-
-Example:
-
-```ts
-@OneToOne(() => UserProfile, (profile) => profile.user)
-profile!: UserProfile;
-```
-
-Make sure related entities are registered with TypeORM.
-
----
-
-# 20. TypeORM Migrations
-
-Database schema changes must be handled through migrations.
-
-Do not manually modify the database schema in production.
-
-Typical workflow:
-
-```bash
-npm run typeorm migration:generate -- src/database/migrations/SomeChange -d src/database/data-source.ts
-```
-
-Then:
-
-```bash
-npm run typeorm migration:run -- -d src/database/data-source.ts
-```
-
-Migrations must be committed to Git.
-
-Do not use:
-
-```ts
-synchronize: true
-```
-
-for the project database.
-
----
-
-# 21. Frontend Data Fetching
-
-Use **TanStack Query** for server state.
-
-### `useQuery`
-
-Use for retrieving data.
-
-```ts
-useQuery({
-  queryKey: ['me'],
-  queryFn: getMe,
-});
-```
-
-Examples:
-
-```text
-GET /auth/me
-GET /hackathons
-GET /hackathons/:id
-```
-
-### `useMutation`
-
-Use for actions that change data or trigger an operation.
-
-Examples:
-
-```text
-POST /auth/register
-POST /auth/signin
-POST /auth/verify
-POST /auth/resend
-POST /hackathons
-PATCH /hackathons/:id
-DELETE /hackathons/:id
-```
-
-Mental model:
-
-```text
-useQuery    → "Give me data"
-useMutation → "Do this"
-```
-
----
-
-# 22. React Forms
-
-Use:
-
-* React Hook Form
-* Zod
-* `@hookform/resolvers`
-
-Example:
-
-```ts
-useForm({
-  resolver: zodResolver(schema),
-});
-```
-
-Keep validation schemas separate from components when possible.
-
-Example:
-
-```text
-src/schemas/login.schema.ts
-src/schemas/register.schema.ts
-```
-
----
-
-# 23. API Client
-
-API calls should be kept inside:
-
-```text
-src/api/
-```
-
-Example:
-
-```text
-src/api/auth.ts
-src/api/hackathons.ts
-src/api/users.ts
-```
-
-Do not repeatedly write Axios requests directly inside components.
-
-Bad:
-
-```tsx
-axios.get('/auth/me');
-```
-
-Better:
-
-```ts
-const getMe = () => api.get('/auth/me');
-```
-
-Then use:
-
-```ts
-useQuery({
-  queryKey: ['me'],
-  queryFn: getMe,
-});
-```
-
----
-
-# 24. React Components
-
-Keep components focused.
-
-A component should not contain large amounts of unrelated business logic.
-
-Prefer:
-
-```text
-components/
-pages/
-api/
-schemas/
-```
-
-Follow the existing project structure instead of creating a new architecture without discussing it with the team.
-
----
-
-# 25. shadcn/ui
-
-Use shadcn/ui components when an appropriate component already exists.
-
-Examples:
-
-```text
-Button
-Input
-Dialog
-DropdownMenu
-Spinner
-Alert
-```
-
-Avoid creating custom versions of components that already exist in the project unless there is a specific reason.
-
----
-
-# 26. Environment Variables
-
-Never commit secrets.
-
-Do not commit:
-
-```text
-JWT_SECRET
-DATABASE_PASSWORD
-API_KEYS
-EMAIL_API_KEYS
-```
-
-Use `.env` files locally and environment configuration for deployment.
-
-Never hardcode secrets:
-
-```ts
-// ❌
-const secret = 'my-super-secret';
-```
-
----
-
-# 27. Git Branch Naming
-
-Use descriptive branch names.
-
-```text
-feat/<feature>
-fix/<bug>
-refactor/<area>
-docs/<topic>
-```
-
-Examples:
-
-```text
-feat/standard-auth
-feat/hackathon-registration
-fix/jwt-authentication
-refactor/user-service
-docs/development-guidelines
-```
-
----
-
-# 28. Commit Messages
-
-Use clear commit messages.
-
-Recommended format:
-
-```text
-feat: add user registration
-fix: handle expired verification codes
-refactor: simplify auth service
-docs: update development guidelines
-```
-
-Keep commits focused on one logical change.
-
-Avoid:
-
-```text
-fix stuff
-changes
-update
-final
-test
-```
-
----
-
-# 29. Pull Requests
-
-Before creating a PR, verify:
-
-* [ ] Naming conventions are followed
-* [ ] DTO fields use camelCase
-* [ ] Database fields use snake_case
-* [ ] DTO validation is implemented
-* [ ] No secrets are committed
-* [ ] Correct HTTP status codes are used
-* [ ] Custom API error codes are used where needed
-* [ ] Swagger documentation is updated when necessary
-* [ ] TypeScript has no errors
-* [ ] ESLint passes
-* [ ] Docker build works
-* [ ] Database migrations are included when necessary
-* [ ] The feature was tested locally
-* [ ] No unrelated files were changed
-
----
-
-# 30. Concepts Everyone Should Learn
-
-Everyone contributing to the backend should understand:
-
-### NestJS
-
-* Modules
-* Controllers
-* Providers
-* Dependency Injection
-* DTOs
-* Pipes
-* Guards
-* Interceptors
-* Exception handling
-
-### Authentication
-
-* Password hashing
-* JWT
-* Access tokens
-* Refresh tokens
-* Passport
-* Authentication vs authorization
-* HTTP status codes
-* CORS
-* CSRF
-
-### TypeORM
-
-* Entities
-* Repositories
-* Relations
-* Migrations
-* Transactions
-* Query building
-
-### PostgreSQL
-
-* Tables
-* Primary keys
-* Foreign keys
-* Constraints
-* Indexes
-* Unique constraints
-* Transactions
-
-### React
-
-* Components
-* Props
-* State
-* Hooks
-* Forms
-* Routing
-
-### TanStack Query
-
-* Queries
-* Mutations
-* Query keys
-* Caching
-* Loading states
-* Error states
-* Invalidating queries
-
-### TypeScript
-
-* Types
-* Interfaces
-* Generics
-* Union types
-* Optional properties
-* Type narrowing
-* Async/await
-
-### Git
-
-* Branches
-* Commits
-* Pull requests
-* Rebasing
-* Merge conflicts
-
----
-
-# 31. Golden Rules
-
-1. **Follow the existing project structure.**
-2. **Use camelCase for API and DTO fields.**
-3. **Use snake_case for database columns.**
-4. **Do not use entities as DTOs.**
-5. **Keep controllers thin.**
-6. **Put business logic in services.**
-7. **Validate input through DTOs.**
-8. **The backend is the security authority.**
-9. **Never commit secrets.**
-10. **Use migrations for database schema changes.**
-11. **Use `useQuery` for reading server data.**
-12. **Use `useMutation` for actions and changes.**
-13. **Keep API calls inside `src/api`.**
-14. **Use custom error codes when the frontend needs to distinguish errors.**
-15. **Do not rely on error message strings for frontend logic.**
-16. **Return only safe user data from `/auth/me`.**
-17. **Follow existing conventions before introducing new ones.**
-18. **If a new convention is needed, discuss it with the team first.**
+**Related documentation:** [Development Setup](./DEVELOPMENT_SETUP.md) · [Development Learning Notes](./DEVELOPMENT_LEARNING_NOTES.md) · [Routes](./ROUTES.md) · [API Contracts](./api_contracts.yml) · [Database Schema](./db_schema.md)

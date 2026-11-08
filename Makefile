@@ -105,13 +105,29 @@ seed:
 	$(COMPOSE) exec backend npm run seed:dev
 
 db-reset:
-	$(COMPOSE) down --remove-orphans
-	@volume="$$(docker volume ls -q --filter label=com.docker.compose.volume=db_data)"; \
-	if [ -n "$$volume" ]; then \
-		echo "Removing PostgreSQL volume: $$volume"; \
-		docker volume rm "$$volume"; \
+	@set -eu; \
+	project="$$( $(COMPOSE) config | sed -n 's/^name: //p' | head -n 1 )"; \
+	if [ -z "$$project" ]; then \
+		echo "Error: could not determine the Compose project name; database untouched." >&2; \
+		exit 1; \
+	fi; \
+	volumes="$$(docker volume ls -q \
+		--filter "label=com.docker.compose.project=$$project" \
+		--filter "label=com.docker.compose.volume=db_data")"; \
+	set -- $$volumes; \
+	if [ "$$#" -gt 1 ]; then \
+		echo "Error: multiple db_data volumes matched project $$project; database untouched." >&2; \
+		exit 1; \
+	fi; \
+	echo "Stopping Compose project: $$project"; \
+	if [ "$$#" -eq 1 ]; then \
+		echo "PostgreSQL volume to remove: $$1"; \
+	fi; \
+	$(COMPOSE) down --remove-orphans; \
+	if [ "$$#" -eq 1 ]; then \
+		docker volume rm "$$1"; \
 	else \
-		echo "No PostgreSQL volume found."; \
+		echo "No db_data volume found for Compose project $$project."; \
 	fi
 
 # ==============================

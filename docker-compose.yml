@@ -8,8 +8,10 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules   # prevents host node_modules from shadowing the container's
-    env_file:
-      - ./frontend/.env
+    # Only browser-safe, VITE_-prefixed settings are provided to Vite.
+    # Server credentials stay out of the frontend container.
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:3000}
     networks:
       - hackspace_network
 
@@ -23,7 +25,6 @@ services:
       - /app/node_modules
     env_file:
       - ./.env
-      - ./backend/.env
     depends_on:
       db:
         condition: service_started
