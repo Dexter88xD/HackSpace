@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -51,6 +52,11 @@ export class HackathonsController {
     return this.hackathonsService.findDetails(id, req.user.userId);
   }
 
+  @Get(':id/current-phase')
+  getHackathonCurrentPhase(@Param('id', ParseIntPipe) id: number) {
+    return this.hackathonsService.getHackathonCurrentPhase(id);
+  }
+
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
@@ -61,6 +67,48 @@ export class HackathonsController {
       id,
       updateHackathonDto,
       req.user.userId,
+    );
+  }
+
+  // Hackathon Registration
+  @Post(':id/register')
+  async hackathonRegister(
+    @Param('id', ParseIntPipe) hackathonId: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const registration = await this.hackathonsService.hackathonRegister(
+      req.user.userId,
+      hackathonId,
+    );
+    return {
+      message: 'Successfully registered for the hackathon',
+      data: {
+        hackathonId,
+        userId: req.user.userId,
+        role: registration.hack_role_name,
+      },
+    };
+  }
+
+  @Delete(':id/unregister')
+  hackathonUnregister(
+    @Param('id', ParseIntPipe) hackathonId: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.hackathonsService.hackathonUnregister(
+      req.user.userId,
+      hackathonId,
+    );
+  }
+
+  @Get(':id/membership')
+  async getMembership(
+    @Param('id', ParseIntPipe) hackathonId: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return await this.hackathonsService.getMembership(
+      req.user.userId,
+      hackathonId,
     );
   }
 }

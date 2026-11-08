@@ -6,6 +6,13 @@ export enum HackathonPhaseName {
   FINISHED = "FINISHED",
 }
 
+export enum HackathonRoleName {
+  ORGANIZER = "ORGANIZER",
+  PARTICIPANT = "PARTICIPANT",
+  JURY = "JURY",
+  MENTOR = "MENTOR",
+}
+
 export type HackathonFiltersType = {
   search?: string;
   phase?: HackathonPhaseName;
@@ -25,7 +32,7 @@ export type Hackathon = {
 };
 
 export type HackathonCardProps = {
-  hackathon: Hackathon
+  hackathon: Hackathon;
 };
 
 export type HackathonsResponse = {
@@ -39,4 +46,31 @@ export type HackathonPaginationProps = {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+};
+
+export type HackathonMembershipResponse = {
+  isRegistered: boolean;
+  role: HackathonRoleName | null;
+};
+
+
+export type HackathonRegistrationResponse = {
+  message: string;
+  data: {
+    hackathonId: number;
+    userId: number;
+    role: HackathonRoleName;
+  };
+};
+
+export type HackathonUnregistrationResponse = {
+  message: string;
+};
+
+export type HackathonPhaseResponse = {
+  id: number;
+  phase_name: HackathonPhaseName;
+  description: string | null;
+  start_at: string;
+  end_at: string;
 };
