@@ -25,13 +25,14 @@ export class SkillsService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  findAll(query: SkillNameQueryDto): Promise<Skill[]> {
+  findAll(query?: SkillNameQueryDto): Promise<Skill[]> {
     if (query == undefined || query.name == undefined) {
       return this.skillRepository.find({ order: { name: 'ASC', id: 'ASC' } });
     }
     return this.skillRepository.find({
       where: { normalizedName: ILike(`%${query.name}%`) },
       order: { name: 'ASC', id: 'ASC' },
+      take: 20
     });
   }
 
