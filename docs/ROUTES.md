@@ -1,82 +1,128 @@
 # HackSpace routes and endpoints
 
-This document maps the **frontend pages** and **backend HTTP endpoints** used during local development. These routes are separate: React Router controls frontend navigation; NestJS controllers define HTTP API endpoints.
+This document maps the **current frontend pages** and **backend HTTP endpoints** used during local development. React Router controls frontend navigation; NestJS controllers define backend API routes. They are not interchangeable.
 
-- Frontend (Vite): http://localhost:5173
-- Backend (NestJS): http://localhost:3000
+- Frontend (Vite): `http://localhost:5173`
+- Backend (NestJS): `http://localhost:3000`
 
 ## Frontend pages
 
-| Path                  | Page                     | Access    | Notes                                                                            |
-| --------------------- | ------------------------ | --------- | -------------------------------------------------------------------------------- |
-| `/`                   | Home                     | Protected | Authenticated landing page; placeholder content                                  |
-| `/admin/hackathons`   | Hackathon administration | Admin     | Create and edit hackathons; uses backend management APIs                         |
-| `/hackathon-explorer` | Hackathon Explorer       | Protected | Discover, search and filter hackathons                                           |
-| `/hackathons/:id`     | Hackathon details        | Protected | View a hackathon's details; edit controls depend on the `canEdit` response field |
-| `/hackathons/:id/team` | Hackathon team | Protected | Shows the user's team with a leave button, or the hackathon's teams to join and a form to create one |
-| `/login`              | Login                    | Public    | Password login plus Google and 42 Intra OAuth                                    |
-| `/register`           | Register                 | Public    | Account registration                                                             |
-| `/verify-otp`         | OTP verification         | Public    | Email verification after registration or an unverified login                     |
+The following paths are defined in `frontend/src/App.tsx`.
 
-**Removed frontend route:** `/hackathons`. This does **not** remove the backend `/hackathons` API.
+| Path | Page | Access | Purpose |
+| --- | --- | --- | --- |
+| `/` | Home | Authenticated | Landing page |
+| `/hackathon-explorer` | Hackathon Explorer | Authenticated | Discover, search and filter hackathons |
+| `/hackathons` | Hackathon Management | Authenticated | Administrators see all hackathons; regular users see hackathons they organise |
+| `/hackathons/new` | Create Hackathon | Authenticated | Create a hackathon; not restricted to `ROLE_ADMIN` |
+| `/hackathons/:id` | Hackathon Details | Authenticated | Show details and actions; edit controls use the backend's `canEdit` flag |
+| `/hackathons/:id/edit` | Edit Hackathon | Authenticated | Edit permission is enforced by the backend: organiser or platform administrator |
+| `/hackathons/:id/team` | Hackathon Team | Authenticated | View, create, join or leave teams according to membership rules |
+| `/profile` | User Profile | Authenticated | View and manage the user's profile and skills |
+| `/login` | Login | Public | Password sign-in and OAuth initiation |
+| `/register` | Register | Public | Account registration |
+| `/verify-otp` | OTP Verification | Public | Email verification |
+
+Frontend `ProtectedRoute` verifies authentication using `GET /auth/me`; access controls in the UI do **not** replace backend permission checks.
 
 ## Backend HTTP endpoints
 
-All paths below are relative to `http://localhost:3000`.
+Paths are relative to `http://localhost:3000`. **Authenticated** means the endpoint requires a valid authenticated session via `JwtAuthGuard`. Additional permissions can be checked in services.
 
-| Method  | Path                          | Auth           | Purpose                                                    |
-| ------- | ----------------------------- | -------------- | ---------------------------------------------------------- |
-| `GET`   | `/`                           | Public         | Backend health/greeting response                           |
-| `POST`  | `/auth/register`              | Public         | Register an account and send a verification code           |
-| `POST`  | `/auth/verify`                | Public         | Verify email with an OTP                                   |
-| `POST`  | `/auth/resend-code`           | Public         | Send a new email verification code                         |
-| `POST`  | `/auth/signin`                | Public         | Sign in with username/email and password                   |
-| `GET`   | `/auth/me`                    | Authenticated  | Return the authenticated user                              |
-| `GET`   | `/auth/oauth/google`          | Public         | Start Google OAuth                                         |
-| `GET`   | `/auth/oauth/google/callback` | OAuth callback | Complete Google OAuth and redirect                         |
-| `GET`   | `/auth/oauth/42`              | Public         | Start 42 Intra OAuth                                       |
-| `GET`   | `/auth/oauth/42/callback`     | OAuth callback | Complete 42 Intra OAuth and redirect                       |
-| `GET`   | `/hackathons`                 | Authenticated  | List hackathons; supports search, dates, phase, pagination |
-| `GET`   | `/hackathons/:id`             | Authenticated  | Retrieve hackathon by ID, including the `canEdit` field    |
-| `POST`  | `/hackathons`                 | `ROLE_ADMIN`   | Create hackathon and its default settings                  |
-| `PATCH` | `/hackathons/:id`             | `ROLE_ADMIN`   | Update supported hackathon properties                      |
-| `POST`  | `/hackathons/:hackathonId/register` | Authenticated | Register for a hackathon                                    |
-| `DELETE`| `/hackathons/:hackathonId/unregister` | Authenticated | Unregister from a hackathon                                 |
-| `GET`   | `/hackathons/:hackathonId/membership` | Authenticated | Get the user's membership status and role                   |
-| `GET`   | `/hackathons/:hackathonId/current-phase` | Authenticated | Get the current hackathon phase                              |
-| `POST`  | `/hackathons/:hackathonId/teams` | Registered participant | Create a team; the creator becomes its first member |
-| `GET`   | `/hackathons/:hackathonId/teams` | Authenticated | List the hackathon's teams with member counts |
-| `GET`   | `/hackathons/:hackathonId/teams/me` | Authenticated | Return the user's team in this hackathon, or `{ team: null }` |
-| `GET`   | `/teams/:id` | Authenticated | Retrieve a team with its members and size limits |
-| `POST`  | `/teams/:id/join` | Registered participant | Join a team that is not full, if not already in a team |
-| `DELETE`| `/teams/:id/leave` | Team member | Leave the team; the last member to leave deletes it |
-| `GET`   | `/demo/greetings`             | Public         | Demo endpoint for stored Kafka greetings                   |
-| `POST`  | `/demo/send-name`             | Public         | Send a name to the demo Kafka topic                        |
+### Authentication
 
-The hackathon endpoints use `JwtAuthGuard`. Hackathon creation and updates additionally use `RolesGuard` with `ROLE_ADMIN`. Unauthenticated requests return `401`; authenticated non-admin users attempting protected admin operations return `403`.
+| Method | Path | Access | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/` | Public | Application greeting |
+| `POST` | `/auth/register` | Public | Register account and initiate verification |
+| `POST` | `/auth/verify` | Public | Verify an email using an OTP |
+| `POST` | `/auth/resend-code` | Public | Request another verification code |
+| `POST` | `/auth/signin` | Public | Sign in and set the HttpOnly `accessToken` cookie |
+| `GET` | `/auth/me` | Authenticated | Return current authenticated user details |
+| `GET` | `/auth/oauth/google` | Public | Begin Google OAuth |
+| `GET` | `/auth/oauth/google/callback` | OAuth callback | Finish Google OAuth and redirect |
+| `GET` | `/auth/oauth/42` | Public | Begin 42 Intra OAuth |
+| `GET` | `/auth/oauth/42/callback` | OAuth callback | Finish 42 Intra OAuth and redirect |
 
-## Frontend and API mapping
+### Hackathons
 
-| Frontend page         | Backend endpoint(s)                                                                   |
-| --------------------- | ------------------------------------------------------------------------------------- |
-| `/hackathon-explorer` | `GET /hackathons`, `GET /hackathons/:id`                                              |
-| `/hackathons/:id`     | `GET /hackathons/:id`                                                                 |
-| `/hackathons/:id/team` | `GET /hackathons/:hackathonId/teams/me`, `GET /hackathons/:hackathonId/teams`, `POST /hackathons/:hackathonId/teams`, `POST /teams/:id/join`, `DELETE /teams/:id/leave` |
-| `/admin/hackathons`   | `GET /hackathons`, `GET /hackathons/:id`, `POST /hackathons`, `PATCH /hackathons/:id` |
+| Method | Path | Access | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/hackathons` | Authenticated | List and filter hackathons |
+| `GET` | `/hackathons/mine` | Authenticated | List hackathons where the user is an `ORGANIZER` |
+| `GET` | `/hackathons/:id` | Authenticated | Retrieve details including the `canEdit` flag |
+| `GET` | `/hackathons/:id/current-phase` | Authenticated | Get the current hackathon phase |
+| `POST` | `/hackathons` | Authenticated | Create a hackathon and assign the creator `ORGANIZER` membership |
+| `PATCH` | `/hackathons/:id` | `ORGANIZER` or `ROLE_ADMIN` | Edit a hackathon; service verifies permissions |
+| `POST` | `/hackathons/:id/register` | Authenticated; phase and membership checks | Register to participate |
+| `DELETE` | `/hackathons/:id/unregister` | Authenticated; membership checks | Unregister from a hackathon |
+| `GET` | `/hackathons/:id/membership` | Authenticated | Get the current user's hackathon membership |
 
-**RBAC HTTP tests:** `hackathons.rbac.spec.ts` should continue to request `/hackathons` and `/hackathons/:id`. It tests backend endpoints, not frontend pages.
+**Platform and hackathon roles are distinct.** Any authenticated `ROLE_USER` or `ROLE_ADMIN` may create a hackathon. A user may edit a hackathon if they are an `ORGANIZER` for it, or if their platform role is `ROLE_ADMIN`. The edit rule is enforced by `HackathonsService.canEditHackathon()`. Lack of valid authentication normally produces `401`; a denied update produces `403`.
 
-## Development tools and integrations
+### Teams
 
-| URL                                     | Purpose                             |
-| --------------------------------------- | ----------------------------------- |
-| http://localhost:3000/api               | Swagger UI (when enabled in NestJS) |
-| http://localhost:5173                   | React/Vite frontend                 |
-| http://localhost:8081                   | Adminer database interface          |
-| http://localhost:8080                   | Kafka UI                            |
-| http://localhost:3000/auth/oauth/google | Google OAuth start URL              |
-| http://localhost:3000/auth/oauth/42     | 42 Intra OAuth start URL            |
+| Method | Path | Access | Purpose |
+| --- | --- | --- | --- |
+| `POST` | `/hackathons/:hackathonId/teams` | Authenticated registered participant | Create a team and join as its first member |
+| `GET` | `/hackathons/:hackathonId/teams` | Authenticated | List teams and their member counts |
+| `GET` | `/hackathons/:hackathonId/teams/me` | Authenticated | Get the user's team in the hackathon, if any |
+| `GET` | `/teams/:id` | Authenticated | Get a team with its members |
+| `POST` | `/teams/:id/join` | Authenticated registered participant | Join an eligible team |
+| `DELETE` | `/teams/:id/leave` | Authenticated team member | Leave a team |
 
-OAuth provider credentials and callback URLs are configured in the backend environment. The frontend initiates redirects; the backend handles OAuth tokens and the HttpOnly `accessToken` cookie.
+Team operations also enforce applicable constraints on membership, team capacity and hackathon state within `TeamsService`.
 
-> Auth and demo endpoint descriptions above are retained from the existing route map; the new hackathon endpoint details match the provided `HackathonsController`.
+### Profiles and skills
+
+| Method | Path | Access | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/users/me/profile` | Authenticated | Read own profile |
+| `POST` | `/users/me/profile` | Authenticated | Create own profile |
+| `PATCH` | `/users/me/profile` | Authenticated | Update own profile |
+| `GET` | `/skills` | Authenticated | List skills |
+| `GET` | `/skills/by-name` | Authenticated | Look up a skill by name |
+| `POST` | `/skills` | Authenticated; profile ownership if applicable | Find/create skill and optionally associate it with a profile |
+| `POST` | `/skills/batch` | Authenticated; profile ownership if applicable | Add multiple skills |
+| `GET` | `/skills/profiles/:profileId` | Authenticated | List a profile's skills |
+| `DELETE` | `/skills/profiles/:profileId` | Profile owner or `ROLE_ADMIN` | Remove profile-skill associations |
+| `GET` | `/skills/:id` | Authenticated | Get a skill by ID |
+| `PATCH` | `/skills/:id` | `ROLE_ADMIN` | Update catalogue skill metadata |
+| `DELETE` | `/skills/:id` | `ROLE_ADMIN` | Delete a catalogue skill |
+
+These skill-specific permissions are enforced in `SkillsService`, including the administrative override for editing another user's profile-skill associations.
+
+### Temporary Kafka demonstration (retained until AI removal)
+
+| Method | Path | Access | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/demo/greetings` | Public | Read demo greetings |
+| `POST` | `/demo/send-name` | Public | Publish a name to the demo Kafka topic |
+
+Remove this subsection when the demo controller and Kafka infrastructure are removed in the dedicated cleanup PR.
+
+## Frontend-to-API mapping
+
+| Frontend page | Main backend endpoints |
+| --- | --- |
+| `/hackathon-explorer` | `GET /hackathons`, `GET /hackathons/:id` |
+| `/hackathons` | `GET /hackathons` (admin), `GET /hackathons/mine` (regular user) |
+| `/hackathons/new` | `POST /hackathons` |
+| `/hackathons/:id` | `GET /hackathons/:id`, membership and registration endpoints |
+| `/hackathons/:id/edit` | `GET /hackathons/:id`, `PATCH /hackathons/:id` |
+| `/hackathons/:id/team` | Team listing, current team, create, join and leave endpoints |
+| `/profile` | `/users/me/profile` and `/skills` endpoints |
+| `/login`, `/register`, `/verify-otp` | `/auth` endpoints |
+
+## Local development tools
+
+| URL | Purpose |
+| --- | --- |
+| `http://localhost:3000/api` | Swagger UI |
+| `http://localhost:5173` | Frontend application |
+| `http://localhost:8081` | Adminer, when enabled in Compose |
+| `http://localhost:8080` | Kafka UI, while the demo infrastructure remains configured |
+
+For local setup and environment variables, see [Development Setup](./DEVELOPMENT_SETUP.md). For coding standards and permissions, see [Development Guidelines](./DEVELOPMENT_GUIDELINES.md).
+
+**Contract note:** This file describes the currently implemented paths. API payload naming is being standardised separately; do not assume the current JSON fields already follow the future camelCase convention.

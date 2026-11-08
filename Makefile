@@ -6,7 +6,7 @@ COMPOSE = docker compose -f docker-compose.yml --env-file .env
 .PHONY: all help up down start stop re ps logs \
         storage backend frontend ai broker \
         migration seed db db-reset \
-        lint test
+        lint lint-fix typecheck build build-images test
 
 # ==============================
 # General
@@ -44,8 +44,12 @@ help:
 	@echo "  make db-reset   Stop stack and DELETE PostgreSQL data"
 	@echo ""
 	@echo "Quality:"
-	@echo "  make lint       Run backend and frontend lint checks"
-	@echo "  make test       Run backend Jest tests"
+	@echo "  make lint         Run backend and frontend lint checks"
+	@echo "  make lint-fix     Automatically fix supported lint issues"
+	@echo "  make typecheck    Check frontend and backend TypeScript"
+	@echo "  make build        Build frontend and backend applications"
+	@echo "  make build-images Build Docker images"
+	@echo "  make test         Run backend Jest tests"
 	@echo ""
 
 up:
@@ -101,22 +105,53 @@ seed:
 	$(COMPOSE) exec backend npm run seed:dev
 
 db-reset:
-	$(COMPOSE) down --remove-orphans
-	@volume="$$(docker volume ls -q --filter label=com.docker.compose.volume=db_data)"; \
-	if [ -n "$$volume" ]; then \
-		echo "Removing PostgreSQL volume: $$volume"; \
-		docker volume rm "$$volume"; \
+	@set -eu; \
+	project="$$( $(COMPOSE) config | sed -n 's/^name: //p' | head -n 1 )"; \
+	if [ -z "$$project" ]; then \
+		echo "Error: could not determine the Compose project name; database untouched." >&2; \
+		exit 1; \
+	fi; \
+	volumes="$$(docker volume ls -q \
+		--filter "label=com.docker.compose.project=$$project" \
+		--filter "label=com.docker.compose.volume=db_data")"; \
+	set -- $$volumes; \
+	if [ "$$#" -gt 1 ]; then \
+		echo "Error: multiple db_data volumes matched project $$project; database untouched." >&2; \
+		exit 1; \
+	fi; \
+	echo "Stopping Compose project: $$project"; \
+	if [ "$$#" -eq 1 ]; then \
+		echo "PostgreSQL volume to remove: $$1"; \
+	fi; \
+	$(COMPOSE) down --remove-orphans; \
+	if [ "$$#" -eq 1 ]; then \
+		docker volume rm "$$1"; \
 	else \
-		echo "No PostgreSQL volume found."; \
+		echo "No db_data volume found for Compose project $$project."; \
 	fi
 
 # ==============================
-# Quality
+# Quality & Builds
 # ==============================
 
 lint:
-	$(COMPOSE) exec backend npm run lint
-	$(COMPOSE) exec frontend npm run lint
+	$(COMPOSE) exec -T backend npm run lint
+	$(COMPOSE) exec -T frontend npm run lint
+
+lint-fix:
+	$(COMPOSE) exec -T backend npm run lint:fix
+	$(COMPOSE) exec -T frontend npm run lint:fix
+
+typecheck:
+	$(COMPOSE) exec -T backend npm run typecheck
+	$(COMPOSE) exec -T frontend npm run typecheck
+
+build:
+	$(COMPOSE) exec -T backend npm run build
+	$(COMPOSE) exec -T frontend npm run build
+
+build-images:
+	$(COMPOSE) build
 
 test:
-	$(COMPOSE) exec backend npm test
+	$(COMPOSE) exec -T backend npm test
