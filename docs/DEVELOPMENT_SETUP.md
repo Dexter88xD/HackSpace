@@ -107,6 +107,7 @@ Run Makefile targets from the **repository root**.
 | `make frontend`            | Start the frontend and PostgreSQL                                                                                                         |
 | `make db`                  | Open a PostgreSQL command-line session                                                                                                    |
 | `make migration`           | Apply TypeORM migrations                                                                                                                  |
+| `make migration-generate name=<Name>` | Generate a migration from the differences between entities and the database (run `make migration` first) |
 | `make seed`                | Run the development seed script                                                                                                           |
 | `make db-reset`            | **Destructive:** stop the active Compose stack and remove only its `db_data` PostgreSQL volume (selected using project and volume labels) |
 | `make lint`                | Check backend and frontend with ESLint                                                                                                    |
@@ -138,6 +139,7 @@ Resetting is appropriate only when the team has agreed that existing local data 
 - **`service ... is not running`** when executing a quality command: run `make up`, then retry the command.
 - **Seed refuses to run:** check `NODE_ENV=development`, `SEED_DEV_DATA=true`, `POSTGRES_DB`, `SEED_EXPECTED_DB`, `POSTGRES_HOST` and the seed passwords in the root `.env`.
 - **Missing tables or roles during seeding:** run `make migration` first.
+- **`migration-generate` reports no changes:** the entities already match the database; apply pending migrations with `make migration` and check that your entity change was saved.
 - **Port already allocated:** identify the conflicting local service before changing Compose port mappings; coordinate changes so other developers know the required values.
 - **Changed dependencies not visible inside a container:** rebuild/recreate the affected service so the container installs the updated package manifest.
 
