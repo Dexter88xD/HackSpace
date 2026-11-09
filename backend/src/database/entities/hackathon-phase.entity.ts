@@ -25,8 +25,9 @@ export class HackathonPhase {
   @Column({
     type: 'enum',
     enum: HackathonPhaseName,
+    name: 'phase_name',
   })
-  phase_name!: HackathonPhaseName;
+  phaseName!: HackathonPhaseName;
 
   @Column({
     type: 'text',
@@ -34,11 +35,11 @@ export class HackathonPhase {
   })
   description!: string | null;
 
-  @Column({ type: 'timestamp' })
-  start_at!: Date;
+  @Column({ name: 'start_at', type: 'timestamp' })
+  startAt!: Date;
 
-  @Column({ type: 'timestamp' })
-  end_at!: Date;
+  @Column({ name: 'end_at', type: 'timestamp' })
+  endAt!: Date;
 
   @ManyToOne(() => Hackathon, (hackathon) => hackathon.phases, {
     nullable: false,

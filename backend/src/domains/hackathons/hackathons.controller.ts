@@ -85,7 +85,7 @@ export class HackathonsController {
       data: {
         hackathonId,
         userId: req.user.userId,
-        role: registration.hack_role_name,
+        role: registration.hackRoleName,
       },
     };
   }

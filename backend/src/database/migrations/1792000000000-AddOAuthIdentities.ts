@@ -11,13 +11,13 @@ export class AddOAuthIdentities1792000000000 implements MigrationInterface {
       `CREATE TABLE "oauth_identities" ("id" SERIAL NOT NULL, "provider" "public"."oauth_identities_provider_enum" NOT NULL, "provider_user_id" character varying NOT NULL, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "user_id" integer NOT NULL, CONSTRAINT "UQ_oauth_provider_user" UNIQUE ("provider", "provider_user_id"), CONSTRAINT "PK_oauth_identities" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
-      `ALTER TABLE "oauth_identities" ADD CONSTRAINT "FK_oauth_identity_user" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+      `ALTER TABLE "oauth_identities" ADD CONSTRAINT "FK_b13247ad5cd3fca4761084cf1a0" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
     );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `ALTER TABLE "oauth_identities" DROP CONSTRAINT "FK_oauth_identity_user"`,
+      `ALTER TABLE "oauth_identities" DROP CONSTRAINT "FK_b13247ad5cd3fca4761084cf1a0"`,
     );
     await queryRunner.query(`DROP TABLE "oauth_identities"`);
     await queryRunner.query(

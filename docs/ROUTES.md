@@ -115,4 +115,4 @@ These skill-specific permissions are enforced in `SkillsService`, including the 
 
 For local setup and environment variables, see [Development Setup](./DEVELOPMENT_SETUP.md). For coding standards and permissions, see [Development Guidelines](./DEVELOPMENT_GUIDELINES.md).
 
-**Contract note:** This file describes the currently implemented paths. API payload naming is being standardised separately; do not assume the current JSON fields already follow the future camelCase convention.
+**API contract:** HackSpace application request and response fields now use `camelCase`, while PostgreSQL columns remain `snake_case`. See [API Contracts](./api_contracts.yml) for current payload schemas. The interactive Swagger UI is hosted at `/api`; application endpoints themselves are rooted at `/`.

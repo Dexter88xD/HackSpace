@@ -56,14 +56,14 @@ export class HackathonsService {
         new Brackets((qb) => {
           qb.where('hackathon.title ILIKE :search')
             .orWhere('hackathon.description ILIKE :search')
-            .orWhere('hackathon.organization_name ILIKE :search');
+            .orWhere('hackathon.organizationName ILIKE :search');
         }),
         { search: `%${filterQuery.search}%` },
       );
     }
 
     if (filterQuery.startDate) {
-      query.andWhere('hackathon.end_at >= :startDate', {
+      query.andWhere('hackathon.endAt >= :startDate', {
         startDate: filterQuery.startDate,
       });
     }
@@ -71,7 +71,7 @@ export class HackathonsService {
     if (filterQuery.endDate) {
       const nextDay = new Date(`${filterQuery.endDate}T00:00:00.000Z`);
       nextDay.setUTCDate(nextDay.getUTCDate() + 1);
-      query.andWhere('hackathon.start_at < :nextDay', {
+      query.andWhere('hackathon.startAt < :nextDay', {
         nextDay,
       });
     }
@@ -80,13 +80,13 @@ export class HackathonsService {
       const now = new Date();
       query
         .innerJoin('hackathon.phases', 'phase')
-        .andWhere('phase.phase_name = :phase', { phase: filterQuery.phase })
-        .andWhere('phase.start_at <= :now', { now })
-        .andWhere('phase.end_at > :now', { now });
+        .andWhere('phase.phaseName = :phase', { phase: filterQuery.phase })
+        .andWhere('phase.startAt <= :now', { now })
+        .andWhere('phase.endAt > :now', { now });
     }
 
     query
-      .orderBy('hackathon.start_at', 'ASC')
+      .orderBy('hackathon.startAt', 'ASC')
       .addOrderBy('hackathon.id', 'ASC')
       .skip((pageNumber - 1) * pageLimit)
       .take(pageLimit);
@@ -113,17 +113,17 @@ export class HackathonsService {
   async findMine(userId: number, filterQuery: HackathonFiltersDto) {
     const query = this.hackathonRepository
       .createQueryBuilder('hackathon')
-      .innerJoin('hackathon.hackathon_users', 'membership');
+      .innerJoin('hackathon.hackathonUsers', 'membership');
     query.where('membership.user_id = :userId', {
       userId,
     });
-    query.andWhere('membership.hack_role_name = :role', {
+    query.andWhere('membership.hackRoleName = :role', {
       role: HackRoleName.ORGANIZER,
     });
     const pageNumber = filterQuery.page ?? 1;
     const pageLimit = filterQuery.limit ?? 12;
     query
-      .orderBy('hackathon.start_at', 'ASC')
+      .orderBy('hackathon.startAt', 'ASC')
       .addOrderBy('hackathon.id', 'ASC')
       .skip((pageNumber - 1) * pageLimit)
       .take(pageLimit);
@@ -158,23 +158,23 @@ export class HackathonsService {
       const hackathon = manager.create(Hackathon, {
         title: dto.title,
         description: dto.description ?? null,
-        organization_name: dto.organizationName,
-        start_at: startAt,
-        end_at: endAt,
+        organizationName: dto.organizationName,
+        startAt: startAt,
+        endAt: endAt,
       });
       const savedHackathon = await manager.save(hackathon);
       const hackathonSettings = manager.create(HackathonSettings, {
-        min_team_members: 1,
-        max_team_members: 5,
-        files_limit: 0,
-        file_max_size: 0,
+        minTeamMembers: 1,
+        maxTeamMembers: 5,
+        filesLimit: 0,
+        fileMaxSize: 0,
         hackathon: savedHackathon,
       });
       await manager.save(hackathonSettings);
       const hackathonUser = manager.create(HackathonUser, {
         user: { id: userId },
         hackathon: savedHackathon,
-        hack_role_name: HackRoleName.ORGANIZER,
+        hackRoleName: HackRoleName.ORGANIZER,
       });
       await manager.save(hackathonUser);
       return savedHackathon;
@@ -192,8 +192,8 @@ export class HackathonsService {
         'At least one field must be provided for an update',
       );
     }
-    const startAt = dto.startAt ? new Date(dto.startAt) : hackathon.start_at;
-    const endAt = dto.endAt ? new Date(dto.endAt) : hackathon.end_at;
+    const startAt = dto.startAt ? new Date(dto.startAt) : hackathon.startAt;
+    const endAt = dto.endAt ? new Date(dto.endAt) : hackathon.endAt;
     if (startAt >= endAt) {
       throw new BadRequestException('Hackathon dates are incorrect');
     }
@@ -201,10 +201,10 @@ export class HackathonsService {
     hackathon.title = dto.title ?? hackathon.title;
     hackathon.description =
       dto.description === undefined ? hackathon.description : dto.description;
-    hackathon.organization_name =
-      dto.organizationName ?? hackathon.organization_name;
-    hackathon.start_at = startAt;
-    hackathon.end_at = endAt;
+    hackathon.organizationName =
+      dto.organizationName ?? hackathon.organizationName;
+    hackathon.startAt = startAt;
+    hackathon.endAt = endAt;
 
     return this.hackathonRepository.save(hackathon);
   }
@@ -230,7 +230,7 @@ export class HackathonsService {
       where: {
         user: { id: userId },
         hackathon: { id: hackathonId },
-        hack_role_name: HackRoleName.ORGANIZER,
+        hackRoleName: HackRoleName.ORGANIZER,
       },
     });
 
@@ -250,8 +250,7 @@ export class HackathonsService {
     const now = new Date();
 
     const currentPhase = hackathon.phases.find(
-      (phase) =>
-        new Date(phase.start_at) <= now && new Date(phase.end_at) > now,
+      (phase) => new Date(phase.startAt) <= now && new Date(phase.endAt) > now,
     );
     return currentPhase ?? null;
   }
@@ -268,15 +267,15 @@ export class HackathonsService {
     }
 
     const registrationPhase = hackathon.phases.find(
-      (phase) => phase.phase_name === HackathonPhaseName.REGISTRATION,
+      (phase) => phase.phaseName === HackathonPhaseName.REGISTRATION,
     );
 
     const now = new Date();
 
     if (
       !registrationPhase ||
-      new Date(registrationPhase.start_at) > now ||
-      new Date(registrationPhase.end_at) <= now
+      new Date(registrationPhase.startAt) > now ||
+      new Date(registrationPhase.endAt) <= now
     ) {
       throw new BadRequestException('Registration is not open');
     }
@@ -332,14 +331,14 @@ export class HackathonsService {
     }
 
     const registrationPhase = hackathon.phases.find(
-      (phase) => phase.phase_name === HackathonPhaseName.REGISTRATION,
+      (phase) => phase.phaseName === HackathonPhaseName.REGISTRATION,
     );
 
     const now = new Date();
     if (
       !registrationPhase ||
-      new Date(registrationPhase.start_at) > now ||
-      new Date(registrationPhase.end_at) <= now
+      new Date(registrationPhase.startAt) > now ||
+      new Date(registrationPhase.endAt) <= now
     ) {
       throw new BadRequestException(
         'The registration period is not currently active',
@@ -357,7 +356,7 @@ export class HackathonsService {
       throw new ConflictException('You are not part of this hackathon');
     }
 
-    if (hackathonUser.hack_role_name !== HackRoleName.PARTICIPANT) {
+    if (hackathonUser.hackRoleName !== HackRoleName.PARTICIPANT) {
       throw new ForbiddenException(
         'Only participants can unregister from this hackathon',
       );
@@ -367,7 +366,7 @@ export class HackathonsService {
     // left with no members is deleted too.
     await this.dataSource.transaction(async (manager) => {
       const membership = await manager.findOne(TeamMember, {
-        where: { hackathon_user: { id: hackathonUser.id } },
+        where: { hackathonUser: { id: hackathonUser.id } },
         relations: { team: true },
       });
 
@@ -407,7 +406,7 @@ export class HackathonsService {
 
     return {
       isRegistered: !!membership,
-      role: membership?.hack_role_name ?? null,
+      role: membership?.hackRoleName ?? null,
     };
   }
 }

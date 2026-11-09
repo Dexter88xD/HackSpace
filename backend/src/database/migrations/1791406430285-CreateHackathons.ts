@@ -14,7 +14,7 @@ export class CreateHackathons1791406430285 implements MigrationInterface {
         "end_at" TIMESTAMP NOT NULL,
         "created_at" TIMESTAMP NOT NULL DEFAULT now(),
         "updated_at" TIMESTAMP NOT NULL DEFAULT now(),
-        CONSTRAINT "CHK_hackathons_valid_dates" CHECK ("start_at" < "end_at"),
+        CONSTRAINT "CHK_3d8291901da087dfda00cd447e" CHECK ("start_at" < "end_at"),
         CONSTRAINT "PK_b290177bd925b16bf35bf59961b" PRIMARY KEY ("id")
       )`,
     );

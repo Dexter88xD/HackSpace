@@ -43,8 +43,14 @@ export class UserProfile {
   @ManyToMany(() => Skill, (skill) => skill.profiles)
   @JoinTable({
     name: 'user_profile_skills',
-    joinColumn: { name: 'profile_id', referencedColumnName: 'id' },
-    inverseJoinColumn: { name: 'skill_id', referencedColumnName: 'id' },
+    joinColumn: {
+      name: 'profile_id',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'skill_id',
+      referencedColumnName: 'id',
+    },
   })
   skills!: Skill[];
 }

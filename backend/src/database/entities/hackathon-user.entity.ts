@@ -23,12 +23,13 @@ export class HackathonUser {
   id!: number;
 
   @Column({
+    name: 'hack_role_name',
     type: 'enum',
     enum: HackRoleName,
     enumName: 'hackathon_role_name_enum',
     default: HackRoleName.PARTICIPANT,
   })
-  hack_role_name!: HackRoleName;
+  hackRoleName!: HackRoleName;
 
   @ManyToOne(() => User, (user) => user.hackathonUsers, {
     nullable: false,
@@ -37,7 +38,7 @@ export class HackathonUser {
   @JoinColumn({ name: 'user_id' })
   user!: User;
 
-  @ManyToOne(() => Hackathon, (hackathon) => hackathon.hackathon_users, {
+  @ManyToOne(() => Hackathon, (hackathon) => hackathon.hackathonUsers, {
     nullable: false,
     onDelete: 'CASCADE',
   })

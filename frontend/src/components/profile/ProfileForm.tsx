@@ -56,9 +56,9 @@ export function ProfileForm({
     resolver: zodResolver(profileSchema),
     defaultValues: {
       bio: profile?.bio ?? "",
-      organization_name: profile?.organization_name ?? "",
+      organizationName: profile?.organizationName ?? "",
       major: profile?.major ?? "",
-      avatar_url: profile?.avatar_url ?? "",
+      avatarUrl: profile?.avatarUrl ?? "",
     },
   });
 
@@ -137,11 +137,11 @@ export function ProfileForm({
                 <Input
                   id="organization"
                   placeholder="Your organization"
-                  {...form.register("organization_name")}
+                  {...form.register("organizationName")}
                 />
-                {form.formState.errors.organization_name && (
+                {form.formState.errors.organizationName && (
                   <FieldError>
-                    {form.formState.errors.organization_name.message}
+                    {form.formState.errors.organizationName.message}
                   </FieldError>
                 )}
               </Field>
@@ -164,11 +164,11 @@ export function ProfileForm({
                   id="avatar"
                   type="url"
                   placeholder="https://example.com/avatar.jpg"
-                  {...form.register("avatar_url")}
+                  {...form.register("avatarUrl")}
                 />
-                {form.formState.errors.avatar_url && (
+                {form.formState.errors.avatarUrl && (
                   <FieldError>
-                    {form.formState.errors.avatar_url.message}
+                    {form.formState.errors.avatarUrl.message}
                   </FieldError>
                 )}
               </Field>

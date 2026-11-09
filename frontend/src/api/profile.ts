@@ -10,7 +10,7 @@ export async function getProfile(): Promise<Profile> {
 export async function createProfile(data: ProfileFormData): Promise<Profile> {
   const response = await api.post("/users/me/profile", {
     ...data,
-    avatar_url: data.avatar_url || null,
+    avatarUrl: data.avatarUrl || null,
   });
 
   return response.data;
@@ -19,7 +19,7 @@ export async function createProfile(data: ProfileFormData): Promise<Profile> {
 export async function updateProfile(data: ProfileFormData): Promise<Profile> {
   const response = await api.patch("/users/me/profile", {
     ...data,
-    avatar_url: data.avatar_url || null,
+    avatarUrl: data.avatarUrl || null,
   });
 
   return response.data;

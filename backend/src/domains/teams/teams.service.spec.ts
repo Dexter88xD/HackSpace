@@ -28,22 +28,22 @@ describe('TeamsService', () => {
 
   const hackathon = {
     id: 1,
-    end_at: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    endAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
   };
   const registration = { id: 7 };
   const savedTeam = {
     id: 3,
     name: 'Team Rocket',
     description: null,
-    created_at: new Date('2026-11-01T10:00:00Z'),
+    createdAt: new Date('2026-11-01T10:00:00Z'),
     hackathon: {
       id: 1,
-      settings: { min_team_members: 2, max_team_members: 4 },
+      settings: { minTeamMembers: 2, maxTeamMembers: 4 },
     },
     members: [
       {
-        joined_at: new Date('2026-11-01T10:00:00Z'),
-        hackathon_user: {
+        joinedAt: new Date('2026-11-01T10:00:00Z'),
+        hackathonUser: {
           user: {
             id: 5,
             username: 'saad',
@@ -113,7 +113,7 @@ describe('TeamsService', () => {
         where: {
           user: { id: 5 },
           hackathon: { id: 1 },
-          hack_role_name: HackRoleName.PARTICIPANT,
+          hackRoleName: HackRoleName.PARTICIPANT,
         },
       });
       expect(mockManager.create).toHaveBeenCalledWith(Team, {
@@ -123,13 +123,13 @@ describe('TeamsService', () => {
       });
       expect(mockManager.create).toHaveBeenCalledWith(TeamMember, {
         team: expect.objectContaining({ id: 3 }) as Team,
-        hackathon_user: registration,
+        hackathonUser: registration,
       });
       expect(result).toEqual({
         id: 3,
         name: 'Team Rocket',
         description: null,
-        createdAt: savedTeam.created_at,
+        createdAt: savedTeam.createdAt,
         hackathonId: 1,
         minMembers: 2,
         maxMembers: 4,
@@ -138,7 +138,7 @@ describe('TeamsService', () => {
             userId: 5,
             username: 'saad',
             fullName: 'Saad M',
-            joinedAt: savedTeam.members[0].joined_at,
+            joinedAt: savedTeam.members[0].joinedAt,
           },
         ],
       });
@@ -156,7 +156,7 @@ describe('TeamsService', () => {
     it('throws BadRequestException when the hackathon has ended', async () => {
       mockHackathonRepository.findOne.mockResolvedValue({
         id: 1,
-        end_at: new Date(Date.now() - 1000),
+        endAt: new Date(Date.now() - 1000),
       });
 
       await expect(service.create(1, { name: 'A' }, 5)).rejects.toThrow(

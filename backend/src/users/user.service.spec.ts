@@ -42,8 +42,8 @@ describe('UserService', () => {
     await expect(service.getProfile(1)).resolves.toEqual({
       id: 1,
       bio: 'Bio',
-      avatar_url: null,
-      organization_name: null,
+      avatarUrl: null,
+      organizationName: null,
       major: null,
     });
   });
@@ -65,8 +65,8 @@ describe('UserService', () => {
     await expect(service.createProfile(1, {})).resolves.toEqual({
       id: 1,
       bio: null,
-      avatar_url: null,
-      organization_name: null,
+      avatarUrl: null,
+      organizationName: null,
       major: null,
     });
     expect(userProfileRepository.create).toHaveBeenCalledWith({
@@ -78,7 +78,7 @@ describe('UserService', () => {
     });
   });
 
-  it('updates profile fields without changing the API response', async () => {
+  it('updates profile fields using camelCase API response', async () => {
     const profile = {
       id: 1,
       bio: 'Original bio',
@@ -90,12 +90,12 @@ describe('UserService', () => {
     userProfileRepository.save.mockResolvedValue(profile);
 
     await expect(
-      service.updateProfile(1, { organization_name: '1337' }),
+      service.updateProfile(1, { organizationName: '1337' }),
     ).resolves.toEqual({
       id: 1,
       bio: 'Original bio',
-      avatar_url: null,
-      organization_name: '1337',
+      avatarUrl: null,
+      organizationName: '1337',
       major: null,
     });
     expect(profile.organizationName).toBe('1337');

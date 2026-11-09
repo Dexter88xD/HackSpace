@@ -49,8 +49,8 @@ export class UserService {
 
     const profile = this.userProfileRepository.create({
       bio: dto.bio ?? null,
-      avatarUrl: dto.avatar_url ?? null,
-      organizationName: dto.organization_name ?? null,
+      avatarUrl: dto.avatarUrl ?? null,
+      organizationName: dto.organizationName ?? null,
       major: dto.major ?? null,
       user,
     });
@@ -78,9 +78,9 @@ export class UserService {
     const profile = await this.findProfile(userId);
 
     if (dto.bio !== undefined) profile.bio = dto.bio;
-    if (dto.avatar_url !== undefined) profile.avatarUrl = dto.avatar_url;
-    if (dto.organization_name !== undefined)
-      profile.organizationName = dto.organization_name;
+    if (dto.avatarUrl !== undefined) profile.avatarUrl = dto.avatarUrl;
+    if (dto.organizationName !== undefined)
+      profile.organizationName = dto.organizationName;
     if (dto.major !== undefined) profile.major = dto.major;
 
     const savedProfile = await this.userProfileRepository.save(profile);
@@ -91,8 +91,8 @@ export class UserService {
     return {
       id: profile.id,
       bio: profile.bio,
-      avatar_url: profile.avatarUrl,
-      organization_name: profile.organizationName,
+      avatarUrl: profile.avatarUrl,
+      organizationName: profile.organizationName,
       major: profile.major,
     };
   }

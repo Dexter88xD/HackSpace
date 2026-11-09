@@ -156,7 +156,7 @@ export default function HackathonDetails() {
         <h1 className="text-3xl font-bold">{hackathon.title}</h1>
 
         <p className="mt-2 text-muted-foreground">
-          Organised by {hackathon.organization_name}
+          Organised by {hackathon.organizationName}
         </p>
       </div>
 
@@ -164,7 +164,7 @@ export default function HackathonDetails() {
         <div>
           <h2 className="font-semibold">Start date</h2>
           <p className="mt-1 text-muted-foreground">
-            {new Date(hackathon.start_at).toLocaleString("en-US", {
+            {new Date(hackathon.startAt).toLocaleString("en-US", {
               dateStyle: "medium",
               timeStyle: "short",
             })}
@@ -174,7 +174,7 @@ export default function HackathonDetails() {
         <div>
           <h2 className="font-semibold">End date</h2>
           <p className="mt-1 text-muted-foreground">
-            {new Date(hackathon.end_at).toLocaleString("en-US", {
+            {new Date(hackathon.endAt).toLocaleString("en-US", {
               dateStyle: "medium",
               timeStyle: "short",
             })}
@@ -185,9 +185,9 @@ export default function HackathonDetails() {
       <div className="mt-8">
         <h2 className="mb-3 text-xl font-semibold">Phase</h2>
         <p className="text-muted-foreground">
-          {currentPhase?.phase_name
-            ? currentPhase.phase_name.charAt(0).toUpperCase() +
-              currentPhase.phase_name.toLowerCase().slice(1)
+          {currentPhase?.phaseName
+            ? currentPhase.phaseName.charAt(0).toUpperCase() +
+              currentPhase.phaseName.toLowerCase().slice(1)
             : "No phase yet"}
         </p>
       </div>
@@ -230,7 +230,7 @@ export default function HackathonDetails() {
         )}
 
         {!hackathon.canEdit &&
-          currentPhase?.phase_name === HackathonPhaseName.REGISTRATION &&
+          currentPhase?.phaseName === HackathonPhaseName.REGISTRATION &&
           (isMembershipPending ? (
             <div className="flex items-center gap-2">
               <Spinner />

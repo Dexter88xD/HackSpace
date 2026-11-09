@@ -28,20 +28,20 @@ export class Hackathon {
   })
   description!: string | null;
 
-  @Column()
-  organization_name!: string;
+  @Column({ name: 'organization_name' })
+  organizationName!: string;
 
-  @Column({ type: 'timestamp' })
-  start_at!: Date;
+  @Column({ name: 'start_at', type: 'timestamp' })
+  startAt!: Date;
 
-  @Column({ type: 'timestamp' })
-  end_at!: Date;
+  @Column({ name: 'end_at', type: 'timestamp' })
+  endAt!: Date;
 
-  @CreateDateColumn({ type: 'timestamp' })
-  created_at!: Date;
+  @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
+  createdAt!: Date;
 
-  @UpdateDateColumn({ type: 'timestamp' })
-  updated_at!: Date;
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamp' })
+  updatedAt!: Date;
 
   @OneToMany(() => HackathonPhase, (phase) => phase.hackathon)
   phases!: HackathonPhase[];
@@ -50,7 +50,7 @@ export class Hackathon {
   settings!: HackathonSettings;
 
   @OneToMany(() => HackathonUser, (hackathonUser) => hackathonUser.hackathon)
-  hackathon_users!: HackathonUser[];
+  hackathonUsers!: HackathonUser[];
 
   @OneToMany(() => Team, (team) => team.hackathon)
   teams!: Team[];

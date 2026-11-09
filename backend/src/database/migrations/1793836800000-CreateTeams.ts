@@ -18,7 +18,7 @@ export class CreateTeams1793836800000 implements MigrationInterface {
         CONSTRAINT "UQ_teams_hackathon_name"
           UNIQUE ("hackathon_id", "name"),
 
-        CONSTRAINT "FK_teams_hackathon"
+        CONSTRAINT "FK_a12299ca7e9da6211ea6bb4cc34"
           FOREIGN KEY ("hackathon_id")
           REFERENCES "hackathons"("id")
           ON DELETE CASCADE
@@ -38,12 +38,12 @@ export class CreateTeams1793836800000 implements MigrationInterface {
         CONSTRAINT "UQ_team_members_hackathon_user"
           UNIQUE ("hackathon_user_id"),
 
-        CONSTRAINT "FK_team_members_team"
+        CONSTRAINT "FK_fdad7d5768277e60c40e01cdcea"
           FOREIGN KEY ("team_id")
           REFERENCES "teams"("id")
           ON DELETE CASCADE,
 
-        CONSTRAINT "FK_team_members_hackathon_user"
+        CONSTRAINT "FK_81558f3dfc63ce34cfd1652fe72"
           FOREIGN KEY ("hackathon_user_id")
           REFERENCES "hackathon_users"("id")
           ON DELETE CASCADE

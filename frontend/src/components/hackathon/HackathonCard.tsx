@@ -6,8 +6,8 @@ import type { HackathonCardProps } from "@/types/hackathon";
 // This component displays a hackathon's title, organization, description, and dates.
 // TODO: Add a picture to each hackathon card.
 export function HackathonCard({ hackathon }: HackathonCardProps) {
-  const startDate = new Date(hackathon.start_at);
-  const endDate = new Date(hackathon.end_at);
+  const startDate = new Date(hackathon.startAt);
+  const endDate = new Date(hackathon.endAt);
 
   const dateFormatter = new Intl.DateTimeFormat("en-US", {
     day: "numeric",
@@ -27,7 +27,7 @@ export function HackathonCard({ hackathon }: HackathonCardProps) {
         <div className="flex items-start gap-2 text-sm text-muted-foreground">
           <Building2 className="mt-0.5 size-4 shrink-0" />
           <span className="line-clamp-1 break-words">
-            {hackathon.organization_name}
+            {hackathon.organizationName}
           </span>
         </div>
       </CardHeader>

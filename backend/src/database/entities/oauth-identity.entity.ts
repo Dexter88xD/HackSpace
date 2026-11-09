@@ -30,10 +30,7 @@ export class OAuthIdentity {
     nullable: false,
     onDelete: 'CASCADE',
   })
-  @JoinColumn({
-    name: 'user_id',
-    foreignKeyConstraintName: 'FK_oauth_identity_user',
-  })
+  @JoinColumn({ name: 'user_id' })
   user!: User;
 
   @CreateDateColumn({ name: 'created_at' })

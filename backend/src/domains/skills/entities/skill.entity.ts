@@ -15,10 +15,12 @@ export class Skill {
   @Column({ length: 50 })
   name!: string;
 
-  @Index({ unique: true })
-  @Column({ length: 50 })
+  @Index('UQ_user_skills_normalized_name', { unique: true })
+  @Column({ name: 'normalized_name', length: 50 })
   normalizedName!: string;
 
-  @ManyToMany(() => UserProfile, (userProfile) => userProfile.skills)
+  @ManyToMany(() => UserProfile, (userProfile) => userProfile.skills, {
+    onDelete: 'CASCADE',
+  })
   profiles!: UserProfile[];
 }
