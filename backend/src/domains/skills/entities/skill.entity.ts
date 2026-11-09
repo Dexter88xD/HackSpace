@@ -5,7 +5,7 @@ import {
   ManyToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { UserProfile } from '../../../database/entities/user-profile.entity';
+import { UserProfile } from '../../users/entities/user-profile.entity';
 
 @Entity('user_skills')
 export class Skill {

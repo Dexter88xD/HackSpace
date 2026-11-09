@@ -7,20 +7,17 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, DataSource, QueryFailedError, Repository } from 'typeorm';
-import { Hackathon } from '../../database/entities/hackathon.entity';
+import { Hackathon } from './entities/hackathon.entity';
 import { CreateHackathonDto } from './dto/create-hackathon.dto';
 import { UpdateHackathonDto } from './dto/update-hackathon.dto';
-import { HackathonSettings } from '../../database/entities/hackathon-settings.entity';
+import { HackathonSettings } from './entities/hackathon-settings.entity';
 import { HackathonFiltersDto } from './dto/hackathons-filters.dto';
-import {
-  HackathonUser,
-  HackRoleName,
-} from '../../database/entities/hackathon-user.entity';
-import { User } from '../../database/entities/user.entity';
-import { RoleName } from '../../database/entities/user-role.entity';
-import { HackathonPhaseName } from '../../database/entities/hackathon-phase.entity';
-import { Team } from '../../database/entities/team.entity';
-import { TeamMember } from '../../database/entities/team-member.entity';
+import { HackathonUser, HackRoleName } from './entities/hackathon-user.entity';
+import { User } from '../users/entities/user.entity';
+import { RoleName } from '../users/entities/user-role.entity';
+import { HackathonPhaseName } from './entities/hackathon-phase.entity';
+import { Team } from '../teams/entities/team.entity';
+import { TeamMember } from '../teams/entities/team-member.entity';
 
 @Injectable()
 export class HackathonsService {

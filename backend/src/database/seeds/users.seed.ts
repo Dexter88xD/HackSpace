@@ -1,8 +1,11 @@
 import * as bcrypt from 'bcrypt';
 import { EntityManager } from 'typeorm';
-import { User } from '../entities/user.entity';
-import { UserProfile } from '../entities/user-profile.entity';
-import { RoleName, UserRole } from '../entities/user-role.entity';
+import { User } from '../../domains/users/entities/user.entity';
+import { UserProfile } from '../../domains/users/entities/user-profile.entity';
+import {
+  RoleName,
+  UserRole,
+} from '../../domains/users/entities/user-role.entity';
 
 const accounts = [
   {

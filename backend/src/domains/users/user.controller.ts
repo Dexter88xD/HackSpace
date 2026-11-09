@@ -12,8 +12,8 @@ import { UserService } from './user.service';
 import { CreateProfileDto } from './dto/create-profile.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 
-import { JwtAuthGuard } from '../domains/auth/guards/jwt-auth.guard';
-import type { AuthenticatedRequest } from '../domains/auth/interfaces/authenticated-request.interface';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import type { AuthenticatedRequest } from '../auth/interfaces/authenticated-request.interface';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)

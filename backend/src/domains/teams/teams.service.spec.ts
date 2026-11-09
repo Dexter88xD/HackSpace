@@ -7,13 +7,13 @@ import {
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { DataSource, EntityManager } from 'typeorm';
-import { Hackathon } from '../../database/entities/hackathon.entity';
+import { Hackathon } from '../hackathons/entities/hackathon.entity';
 import {
   HackathonUser,
   HackRoleName,
-} from '../../database/entities/hackathon-user.entity';
-import { Team } from '../../database/entities/team.entity';
-import { TeamMember } from '../../database/entities/team-member.entity';
+} from '../hackathons/entities/hackathon-user.entity';
+import { Team } from './entities/team.entity';
+import { TeamMember } from './entities/team-member.entity';
 import { TeamsService } from './teams.service';
 
 describe('TeamsService', () => {

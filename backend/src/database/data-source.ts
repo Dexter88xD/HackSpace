@@ -1,16 +1,16 @@
 import { config as loadEnv } from 'dotenv';
 import { DataSource } from 'typeorm';
-import { User } from './entities/user.entity';
-import { UserRole } from './entities/user-role.entity';
-import { UserProfile } from './entities/user-profile.entity';
+import { User } from '../domains/users/entities/user.entity';
+import { UserRole } from '../domains/users/entities/user-role.entity';
+import { UserProfile } from '../domains/users/entities/user-profile.entity';
 import { Skill } from '../domains/skills/entities/skill.entity';
-import { Hackathon } from './entities/hackathon.entity';
-import { OAuthIdentity } from './entities/oauth-identity.entity';
-import { HackathonPhase } from './entities/hackathon-phase.entity';
-import { HackathonSettings } from './entities/hackathon-settings.entity';
-import { HackathonUser } from './entities/hackathon-user.entity';
-import { Team } from './entities/team.entity';
-import { TeamMember } from './entities/team-member.entity';
+import { Hackathon } from '../domains/hackathons/entities/hackathon.entity';
+import { OAuthIdentity } from '../domains/auth/entities/oauth-identity.entity';
+import { HackathonPhase } from '../domains/hackathons/entities/hackathon-phase.entity';
+import { HackathonSettings } from '../domains/hackathons/entities/hackathon-settings.entity';
+import { HackathonUser } from '../domains/hackathons/entities/hackathon-user.entity';
+import { Team } from '../domains/teams/entities/team.entity';
+import { TeamMember } from '../domains/teams/entities/team-member.entity';
 
 loadEnv({ path: '../.env', quiet: true });
 

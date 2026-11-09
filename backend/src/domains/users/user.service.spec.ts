@@ -1,8 +1,8 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 
-import { User } from '../database/entities/user.entity';
-import { UserProfile } from '../database/entities/user-profile.entity';
+import { User } from './entities/user.entity';
+import { UserProfile } from './entities/user-profile.entity';
 
 import { UserService } from './user.service';
 

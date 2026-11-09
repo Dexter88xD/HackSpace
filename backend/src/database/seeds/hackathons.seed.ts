@@ -1,12 +1,15 @@
 import { EntityManager } from 'typeorm';
-import { User } from '../entities/user.entity';
-import { Hackathon } from '../entities/hackathon.entity';
-import { HackathonSettings } from '../entities/hackathon-settings.entity';
+import { User } from '../../domains/users/entities/user.entity';
+import { Hackathon } from '../../domains/hackathons/entities/hackathon.entity';
+import { HackathonSettings } from '../../domains/hackathons/entities/hackathon-settings.entity';
 import {
   HackathonPhase,
   HackathonPhaseName,
-} from '../entities/hackathon-phase.entity';
-import { HackathonUser, HackRoleName } from '../entities/hackathon-user.entity';
+} from '../../domains/hackathons/entities/hackathon-phase.entity';
+import {
+  HackathonUser,
+  HackRoleName,
+} from '../../domains/hackathons/entities/hackathon-user.entity';
 
 const DAY = 24 * 60 * 60 * 1000;
 const HACKATHON_COUNT = 200;

@@ -8,7 +8,7 @@ import {
   Max,
   Min,
 } from 'class-validator';
-import { HackathonPhaseName } from '../../../database/entities/hackathon-phase.entity';
+import { HackathonPhaseName } from '../entities/hackathon-phase.entity';
 
 export class HackathonFiltersDto {
   @IsOptional()
