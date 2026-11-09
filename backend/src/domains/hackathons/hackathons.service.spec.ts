@@ -31,7 +31,7 @@ describe('HackathonsService', () => {
   };
   const mockManager = {
     create: jest.fn(),
-    save: jest.fn(),
+    save: jest.fn<Promise<unknown>, [unknown]>(),
   };
   const mockDataSource = {
     transaction: jest.fn(),
