@@ -10,6 +10,20 @@ on:
       - reopened
 
 jobs:
+  compose:
+    name: Docker Compose Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare CI environment
+        run: cp .env.example .env
+
+      - name: Validate Docker Compose configuration
+        run: docker compose -f docker-compose.yml --env-file .env config -q
+
   backend:
     name: Backend Validation
     runs-on: ubuntu-latest
