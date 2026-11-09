@@ -106,9 +106,9 @@ export async function seedHackathons(
           description:
             `${format} focused on ${theme.toLowerCase()}, ` +
             'collaboration, practical innovation and problem-solving.',
-          organization_name: organizations[index % organizations.length],
-          start_at: new Date(scheduleStart),
-          end_at: new Date(scheduleStart + phases.length * 4 * DAY),
+          organizationName: organizations[index % organizations.length],
+          startAt: new Date(scheduleStart),
+          endAt: new Date(scheduleStart + phases.length * 4 * DAY),
         }),
       );
 
@@ -130,7 +130,7 @@ export async function seedHackathons(
         membershipRepository.create({
           user: organizer,
           hackathon,
-          hack_role_name: HackRoleName.ORGANIZER,
+          hackRoleName: HackRoleName.ORGANIZER,
         }),
       );
     }
@@ -139,17 +139,17 @@ export async function seedHackathons(
       settingsCreated++;
       await settingsRepository.save(
         settingsRepository.create({
-          min_team_members: 1,
-          max_team_members: 5,
-          files_limit: 3,
-          file_max_size: 10 * 1024 * 1024,
+          minTeamMembers: 1,
+          maxTeamMembers: 5,
+          filesLimit: 3,
+          fileMaxSize: 10 * 1024 * 1024,
           hackathon,
         }),
       );
     }
 
     const existingPhaseNames = new Set(
-      (hackathon.phases ?? []).map((phase) => phase.phase_name),
+      (hackathon.phases ?? []).map((phase) => phase.phaseName),
     );
 
     const missingPhases = phases.flatMap((phaseName, phaseIndex) => {
@@ -157,14 +157,14 @@ export async function seedHackathons(
         return [];
       }
 
-      const phaseStart = hackathon.start_at.getTime() + phaseIndex * 4 * DAY;
+      const phaseStart = hackathon.startAt.getTime() + phaseIndex * 4 * DAY;
 
       return [
         phaseRepository.create({
-          phase_name: phaseName,
+          phaseName: phaseName,
           description: `${phaseName.replace(/_/g, ' ')} phase`,
-          start_at: new Date(phaseStart),
-          end_at: new Date(phaseStart + 4 * DAY),
+          startAt: new Date(phaseStart),
+          endAt: new Date(phaseStart + 4 * DAY),
           hackathon,
         }),
       ];

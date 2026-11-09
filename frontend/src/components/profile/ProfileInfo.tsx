@@ -31,7 +31,7 @@ export function ProfileInfo({ profile, onEdit }: ProfileInfoProps) {
 
         <div>
           <h3 className="font-semibold">Organization</h3>
-          <p>{profile.organization_name || "Not specified"}</p>
+          <p>{profile.organizationName || "Not specified"}</p>
         </div>
 
         <div>

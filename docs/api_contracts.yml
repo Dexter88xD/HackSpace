@@ -1,9 +1,12 @@
 openapi: 3.0.3
 info:
-  title: ft_transcendence API
-  version: 0.1.0
+  title: HackSpace API
+  version: 0.2.0
+  description: |
+    HTTP API served at the backend root. The interactive Swagger UI is at /api;
+    /api is not a prefix for these endpoint paths. JSON property names use camelCase.
 servers:
-  - url: /api
+  - url: /
 security:
   - accessToken: []
 paths:
@@ -172,6 +175,416 @@ paths:
         "401": { description: Authentication required }
         "403": { description: Profile owner or admin required }
         "404": { description: Profile or skill not found }
+  /auth/register:
+    post:
+      tags: [Authentication]
+      summary: Register a new user and send an email verification code
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RegisterInput" }
+      responses:
+        "201":
+          description: Verification email requested
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Message" }
+        "400": { description: Invalid input or mismatched passwords }
+        "409": { description: Email or username already registered }
+  /auth/verify:
+    post:
+      tags: [Authentication]
+      summary: Verify email with an OTP
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VerifyInput" }
+      responses:
+        "201":
+          description: Email verified
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Message" }
+        "400": { description: Invalid or expired OTP }
+        "401": { description: Invalid verification request }
+        "409": { description: Email already verified }
+  /auth/resend-code:
+    post:
+      tags: [Authentication]
+      summary: Resend the email verification code
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        "201":
+          description: Verification email requested
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Message" }
+        "401": { description: Invalid verification request }
+        "409": { description: Email already verified }
+  /auth/signin:
+    post:
+      tags: [Authentication]
+      summary: Sign in with email or username and set an HttpOnly accessToken cookie
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [identifier, password]
+              properties:
+                identifier: { type: string }
+                password: { type: string, format: password }
+      responses:
+        "201":
+          description: Signed in; response sets accessToken cookie
+          headers:
+            Set-Cookie:
+              description: HttpOnly accessToken cookie
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Message" }
+        "401": { description: Invalid credentials or email not verified }
+  /auth/me:
+    get:
+      tags: [Authentication]
+      summary: Retrieve the authenticated user's safe public fields
+      responses:
+        "200":
+          description: Authenticated user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthenticatedUser" }
+        "401": { description: Authentication required }
+  /auth/oauth/{provider}:
+    get:
+      tags: [Authentication]
+      summary: Begin Google or 42 OAuth authorisation
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/OAuthProvider"
+      responses:
+        "302": { description: Redirect to OAuth provider and set state cookie }
+        "503": { description: OAuth provider not configured }
+  /auth/oauth/{provider}/callback:
+    get:
+      tags: [Authentication]
+      summary: Handle OAuth callback and redirect to the frontend
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/OAuthProvider"
+        - in: query
+          name: code
+          schema: { type: string }
+        - in: query
+          name: state
+          schema: { type: string }
+        - in: query
+          name: error
+          schema: { type: string }
+      responses:
+        "302": { description: Redirect to frontend, setting accessToken cookie on success }
+  /users/me/profile:
+    get:
+      tags: [Profiles]
+      summary: Read the authenticated user's profile
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Profile" }
+        "401": { description: Authentication required }
+        "404": { description: Profile not found }
+    post:
+      tags: [Profiles]
+      summary: Create the authenticated user's profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProfileInput" }
+      responses:
+        "201":
+          description: Created profile
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Profile" }
+        "401": { description: Authentication required }
+        "404": { description: User not found }
+        "409": { description: Profile already exists }
+    patch:
+      tags: [Profiles]
+      summary: Update the authenticated user's profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProfileInput" }
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Profile" }
+        "401": { description: Authentication required }
+        "404": { description: Profile not found }
+  /hackathons:
+    get:
+      tags: [Hackathons]
+      summary: List and filter hackathons
+      parameters:
+        - $ref: "#/components/parameters/HackathonFiltersSearch"
+        - $ref: "#/components/parameters/HackathonFiltersPhase"
+        - $ref: "#/components/parameters/HackathonFiltersStartDate"
+        - $ref: "#/components/parameters/HackathonFiltersEndDate"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Paginated hackathons
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HackathonList" }
+        "400": { description: Invalid filter }
+        "401": { description: Authentication required }
+    post:
+      tags: [Hackathons]
+      summary: Create hackathon and assign the creator as ORGANIZER
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/HackathonInput" }
+      responses:
+        "201":
+          description: Created hackathon
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Hackathon" }
+        "400": { description: Invalid input or date range }
+        "401": { description: Authentication required }
+  /hackathons/mine:
+    get:
+      tags: [Hackathons]
+      summary: List hackathons organised by the current user
+      description: Applies the authenticated user's ORGANIZER membership; global administrator role does not by itself expand this endpoint.
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Paginated organised hackathons
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HackathonList" }
+        "401": { description: Authentication required }
+  /hackathons/{id}:
+    parameters:
+      - $ref: "#/components/parameters/HackathonId"
+    get:
+      tags: [Hackathons]
+      summary: Retrieve hackathon details and caller's canEdit flag
+      responses:
+        "200":
+          description: Hackathon details
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HackathonDetails" }
+        "401": { description: Authentication required }
+        "404": { description: Hackathon not found }
+    patch:
+      tags: [Hackathons]
+      summary: Edit as hackathon ORGANIZER or platform ROLE_ADMIN
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/HackathonUpdate" }
+      responses:
+        "200":
+          description: Updated hackathon
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Hackathon" }
+        "400": { description: Empty or invalid update; invalid dates }
+        "401": { description: Authentication required }
+        "403": { description: Organiser or platform administrator required }
+        "404": { description: Hackathon not found }
+  /hackathons/{id}/current-phase:
+    parameters:
+      - $ref: "#/components/parameters/HackathonId"
+    get:
+      tags: [Hackathons]
+      summary: Get active phase, or null when there is no active phase
+      responses:
+        "200":
+          description: Active phase object or JSON null
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/HackathonPhase"
+                nullable: true
+        "401": { description: Authentication required }
+        "404": { description: Hackathon not found }
+  /hackathons/{id}/membership:
+    parameters:
+      - $ref: "#/components/parameters/HackathonId"
+    get:
+      tags: [Hackathons]
+      summary: Get the caller's registration status and hackathon role
+      responses:
+        "200":
+          description: Membership status
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Membership" }
+        "401": { description: Authentication required }
+        "404": { description: Hackathon not found }
+  /hackathons/{id}/register:
+    parameters:
+      - $ref: "#/components/parameters/HackathonId"
+    post:
+      tags: [Hackathons]
+      summary: Register during the active registration phase
+      responses:
+        "201":
+          description: Registered as participant
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RegistrationResult" }
+        "400": { description: Registration period not active }
+        "401": { description: Authentication required }
+        "404": { description: Hackathon not found }
+        "409": { description: Already registered }
+  /hackathons/{id}/unregister:
+    parameters:
+      - $ref: "#/components/parameters/HackathonId"
+    delete:
+      tags: [Hackathons]
+      summary: Unregister a PARTICIPANT during the active registration phase
+      responses:
+        "200":
+          description: Unregistered
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Message" }
+        "400": { description: Registration period not active }
+        "401": { description: Authentication required }
+        "403": { description: Only participants may unregister }
+        "404": { description: Hackathon not found }
+        "409": { description: User was not registered }
+  /hackathons/{hackathonId}/teams:
+    parameters:
+      - $ref: "#/components/parameters/HackathonIdNamed"
+    get:
+      tags: [Teams]
+      summary: List teams in a hackathon
+      responses:
+        "200":
+          description: Team summaries
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/TeamSummary" }
+        "401": { description: Authentication required }
+        "404": { description: Hackathon not found }
+    post:
+      tags: [Teams]
+      summary: Create a team as an eligible registered participant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TeamInput" }
+      responses:
+        "201":
+          description: Created team with its first member
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Team" }
+        "400": { description: Hackathon has ended or invalid input }
+        "401": { description: Authentication required }
+        "403": { description: Participant membership required }
+        "404": { description: Hackathon not found }
+        "409": { description: Team name already taken or membership conflict }
+  /hackathons/{hackathonId}/teams/me:
+    parameters:
+      - $ref: "#/components/parameters/HackathonIdNamed"
+    get:
+      tags: [Teams]
+      summary: Get the caller's team, or null if not in a team
+      responses:
+        "200":
+          description: Current team wrapper
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MyTeam" }
+        "401": { description: Authentication required }
+        "404": { description: Hackathon not found }
+  /teams/{id}:
+    parameters:
+      - $ref: "#/components/parameters/TeamId"
+    get:
+      tags: [Teams]
+      summary: Get a team with its members
+      responses:
+        "200":
+          description: Team details
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Team" }
+        "401": { description: Authentication required }
+        "404": { description: Team not found }
+  /teams/{id}/join:
+    parameters:
+      - $ref: "#/components/parameters/TeamId"
+    post:
+      tags: [Teams]
+      summary: Join an eligible team as a registered participant
+      responses:
+        "201":
+          description: Team details after join
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Team" }
+        "400": { description: Hackathon has ended }
+        "401": { description: Authentication required }
+        "403": { description: Participant membership required }
+        "404": { description: Team not found }
+        "409": { description: Team full or registration/team conflict }
+  /teams/{id}/leave:
+    parameters:
+      - $ref: "#/components/parameters/TeamId"
+    delete:
+      tags: [Teams]
+      summary: Leave a team
+      responses:
+        "200":
+          description: Left the team
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Message" }
+        "400": { description: Hackathon has ended }
+        "401": { description: Authentication required }
+        "404": { description: Team membership not found }
 components:
   securitySchemes:
     accessToken:
@@ -184,7 +597,230 @@ components:
       name: id
       required: true
       schema: { type: integer, minimum: 1 }
+    OAuthProvider:
+      in: path
+      name: provider
+      required: true
+      schema: { type: string, enum: [google, "42"] }
+    HackathonId:
+      in: path
+      name: id
+      required: true
+      schema: { type: integer, minimum: 1 }
+    HackathonIdNamed:
+      in: path
+      name: hackathonId
+      required: true
+      schema: { type: integer, minimum: 1 }
+    TeamId:
+      in: path
+      name: id
+      required: true
+      schema: { type: integer, minimum: 1 }
+    HackathonFiltersSearch:
+      in: query
+      name: search
+      schema: { type: string }
+    HackathonFiltersPhase:
+      in: query
+      name: phase
+      schema: { $ref: "#/components/schemas/PhaseName" }
+    HackathonFiltersStartDate:
+      in: query
+      name: startDate
+      schema: { type: string, format: date-time }
+    HackathonFiltersEndDate:
+      in: query
+      name: endDate
+      schema: { type: string, format: date-time }
+    Page:
+      in: query
+      name: page
+      schema: { type: integer, minimum: 1, default: 1 }
+    Limit:
+      in: query
+      name: limit
+      schema: { type: integer, minimum: 1, maximum: 100, default: 12 }
   schemas:
+    Message:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string }
+    RegisterInput:
+      type: object
+      required: [username, fullName, email, password, confirmPassword]
+      properties:
+        username: { type: string }
+        fullName: { type: string }
+        email: { type: string, format: email }
+        password: { type: string, format: password, minLength: 8 }
+        confirmPassword: { type: string, format: password }
+    VerifyInput:
+      type: object
+      required: [email, otp]
+      properties:
+        email: { type: string, format: email }
+        otp: { type: string }
+    AuthenticatedUser:
+      type: object
+      required: [id, username, fullName, role, email, emailVerified]
+      properties:
+        id: { type: integer }
+        username: { type: string }
+        fullName: { type: string }
+        role: { type: string, enum: [ROLE_USER, ROLE_ADMIN] }
+        email: { type: string, format: email }
+        emailVerified: { type: boolean }
+    ProfileInput:
+      type: object
+      additionalProperties: false
+      description: All properties optional; avatarUrl accepts a valid URL when supplied.
+      properties:
+        bio: { type: string, maxLength: 500 }
+        avatarUrl: { type: string, format: uri }
+        organizationName: { type: string, maxLength: 100 }
+        major: { type: string, maxLength: 100 }
+    Profile:
+      type: object
+      required: [id, bio, avatarUrl, organizationName, major]
+      properties:
+        id: { type: integer }
+        bio: { type: string, nullable: true }
+        avatarUrl: { type: string, format: uri, nullable: true }
+        organizationName: { type: string, nullable: true }
+        major: { type: string, nullable: true }
+    PhaseName:
+      type: string
+      enum: [LAUNCH, REGISTRATION, IN_PROGRESS, EVALUATION, FINISHED]
+    HackathonRole:
+      type: string
+      enum: [ORGANIZER, PARTICIPANT, JURY, MENTOR]
+    HackathonInput:
+      type: object
+      additionalProperties: false
+      required: [title, organizationName, startAt, endAt]
+      properties:
+        title: { type: string, minLength: 1 }
+        description: { type: string, nullable: true }
+        organizationName: { type: string, minLength: 1 }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+    HackathonUpdate:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        title: { type: string, minLength: 1 }
+        description: { type: string, nullable: true }
+        organizationName: { type: string, minLength: 1 }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+    Hackathon:
+      type: object
+      required: [id, title, description, organizationName, startAt, endAt, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        description: { type: string, nullable: true }
+        organizationName: { type: string }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    HackathonDetails:
+      allOf:
+        - $ref: "#/components/schemas/Hackathon"
+        - type: object
+          required: [canEdit]
+          properties:
+            canEdit: { type: boolean }
+    HackathonList:
+      type: object
+      required: [data, total, page, limit]
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/Hackathon" }
+        total: { type: integer, minimum: 0 }
+        page: { type: integer, minimum: 1 }
+        limit: { type: integer, minimum: 1 }
+    HackathonPhase:
+      type: object
+      required: [id, phaseName, description, startAt, endAt]
+      properties:
+        id: { type: integer }
+        phaseName: { $ref: "#/components/schemas/PhaseName" }
+        description: { type: string, nullable: true }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+    Membership:
+      type: object
+      required: [isRegistered, role]
+      properties:
+        isRegistered: { type: boolean }
+        role:
+          type: string
+          enum: [ORGANIZER, PARTICIPANT, JURY, MENTOR]
+          nullable: true
+    RegistrationResult:
+      type: object
+      required: [message, data]
+      properties:
+        message: { type: string }
+        data:
+          type: object
+          required: [hackathonId, userId, role]
+          properties:
+            hackathonId: { type: integer }
+            userId: { type: integer }
+            role: { $ref: "#/components/schemas/HackathonRole" }
+    TeamInput:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 50 }
+        description: { type: string, maxLength: 500, nullable: true }
+    TeamSummary:
+      type: object
+      required: [id, name, description, memberCount, maxMembers]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        memberCount: { type: integer, minimum: 0 }
+        maxMembers: { type: integer }
+    TeamMember:
+      type: object
+      required: [userId, username, fullName, joinedAt]
+      properties:
+        userId: { type: integer }
+        username: { type: string }
+        fullName: { type: string }
+        joinedAt: { type: string, format: date-time }
+    Team:
+      type: object
+      required: [id, name, description, createdAt, hackathonId, minMembers, maxMembers, members]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        hackathonId: { type: integer }
+        minMembers: { type: integer }
+        maxMembers: { type: integer }
+        members:
+          type: array
+          items: { $ref: "#/components/schemas/TeamMember" }
+    MyTeam:
+      type: object
+      required: [team]
+      properties:
+        team:
+          allOf:
+            - $ref: "#/components/schemas/Team"
+          nullable: true
     Skill:
       type: object
       required: [id, name, normalizedName]

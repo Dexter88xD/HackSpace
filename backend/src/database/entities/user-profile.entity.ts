@@ -21,30 +21,36 @@ export class UserProfile {
   @Column({ type: 'text', nullable: true })
   bio!: string | null;
 
-  @Column({ type: 'varchar', nullable: true })
-  avatar_url!: string | null;
+  @Column({ name: 'avatar_url', type: 'varchar', nullable: true })
+  avatarUrl!: string | null;
 
-  @Column({ type: 'varchar', nullable: true })
-  organization_name!: string | null;
+  @Column({ name: 'organization_name', type: 'varchar', nullable: true })
+  organizationName!: string | null;
 
   @Column({ type: 'varchar', nullable: true })
   major!: string | null;
 
-  @CreateDateColumn()
-  created_at!: Date;
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt!: Date;
 
-  @UpdateDateColumn()
-  updated_at!: Date;
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt!: Date;
 
   @OneToOne(() => User, (user) => user.profile)
-  @JoinColumn()
+  @JoinColumn({ name: 'user_id' })
   user!: User;
 
   @ManyToMany(() => Skill, (skill) => skill.profiles)
   @JoinTable({
     name: 'user_profile_skills',
-    joinColumn: { name: 'profile_id', referencedColumnName: 'id' },
-    inverseJoinColumn: { name: 'skill_id', referencedColumnName: 'id' },
+    joinColumn: {
+      name: 'profile_id',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'skill_id',
+      referencedColumnName: 'id',
+    },
   })
   skills!: Skill[];
 }

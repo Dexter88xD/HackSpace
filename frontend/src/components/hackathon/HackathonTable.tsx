@@ -58,17 +58,17 @@ function HackathonTable({ hackathons, total }: HackathonTableProps) {
                     {hackathon.title}
                   </td>
                   <td className="px-6 py-4 text-muted-foreground">
-                    {hackathon.organization_name}
+                    {hackathon.organizationName}
                   </td>
                   <td className="px-6 py-4 text-muted-foreground">
-                    {new Date(hackathon.start_at).toLocaleDateString("en-US", {
+                    {new Date(hackathon.startAt).toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
                       year: "numeric",
                     })}
                   </td>
                   <td className="px-6 py-4 text-muted-foreground">
-                    {new Date(hackathon.end_at).toLocaleDateString("en-US", {
+                    {new Date(hackathon.endAt).toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
                       year: "numeric",

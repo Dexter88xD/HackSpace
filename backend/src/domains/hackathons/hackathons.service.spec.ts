@@ -115,15 +115,15 @@ describe('HackathonsService', () => {
         id: 1,
         title: 'Original Title',
         description: null,
-        organization_name: 'HackSpace',
-        start_at: new Date('2026-11-01T09:00:00Z'),
-        end_at: new Date('2026-11-03T18:00:00Z'),
+        organizationName: 'HackSpace',
+        startAt: new Date('2026-11-01T09:00:00Z'),
+        endAt: new Date('2026-11-03T18:00:00Z'),
       };
 
       mockHackathonRepository.findOne.mockResolvedValue(hackathon);
       mockUserRepository.findOne.mockResolvedValue({
         id: 7,
-        role: { role_name: RoleName.ROLE_ADMIN },
+        role: { roleName: RoleName.ROLE_ADMIN },
       });
       mockHackathonRepository.save.mockImplementation((value: Hackathon) =>
         Promise.resolve(value),
@@ -146,17 +146,17 @@ describe('HackathonsService', () => {
         id: 1,
         title: 'Original Title',
         description: null,
-        organization_name: 'HackSpace',
-        start_at: new Date('2026-11-01T09:00:00Z'),
-        end_at: new Date('2026-11-03T18:00:00Z'),
+        organizationName: 'HackSpace',
+        startAt: new Date('2026-11-01T09:00:00Z'),
+        endAt: new Date('2026-11-03T18:00:00Z'),
       };
       const user = {
         id: 7,
-        role: { role_name: RoleName.ROLE_USER },
+        role: { roleName: RoleName.ROLE_USER },
       };
       const hackathonUser = {
         id: 2,
-        hack_role_name: HackRoleName.ORGANIZER,
+        hackRoleName: HackRoleName.ORGANIZER,
         user: { id: 7 },
         hackathon: { id: 1 },
       };
@@ -180,7 +180,7 @@ describe('HackathonsService', () => {
         where: {
           user: { id: 7 },
           hackathon: { id: 1 },
-          hack_role_name: HackRoleName.ORGANIZER,
+          hackRoleName: HackRoleName.ORGANIZER,
         },
       });
       expect(result.title).toBe('Updated title');
@@ -191,13 +191,13 @@ describe('HackathonsService', () => {
         id: 1,
         title: 'Original Title',
         description: null,
-        organization_name: 'HackSpace',
-        start_at: new Date('2026-11-01T09:00:00Z'),
-        end_at: new Date('2026-11-03T18:00:00Z'),
+        organizationName: 'HackSpace',
+        startAt: new Date('2026-11-01T09:00:00Z'),
+        endAt: new Date('2026-11-03T18:00:00Z'),
       };
       const user = {
         id: 7,
-        role: { role_name: RoleName.ROLE_USER },
+        role: { roleName: RoleName.ROLE_USER },
       };
 
       mockHackathonRepository.findOne.mockResolvedValue(hackathon);
@@ -213,7 +213,7 @@ describe('HackathonsService', () => {
         where: {
           user: { id: 7 },
           hackathon: { id: 1 },
-          hack_role_name: HackRoleName.ORGANIZER,
+          hackRoleName: HackRoleName.ORGANIZER,
         },
       });
       expect(mockHackathonRepository.save).not.toHaveBeenCalled();
@@ -224,13 +224,13 @@ describe('HackathonsService', () => {
         id: 1,
         title: 'Original Title',
         description: null,
-        organization_name: 'HackSpace',
-        start_at: new Date('2026-11-01T09:00:00Z'),
-        end_at: new Date('2026-11-03T18:00:00Z'),
+        organizationName: 'HackSpace',
+        startAt: new Date('2026-11-01T09:00:00Z'),
+        endAt: new Date('2026-11-03T18:00:00Z'),
       };
       const user = {
         id: 7,
-        role: { role_name: RoleName.ROLE_USER },
+        role: { roleName: RoleName.ROLE_USER },
       };
 
       mockHackathonRepository.findOne.mockResolvedValue(hackathon);
@@ -249,7 +249,7 @@ describe('HackathonsService', () => {
         where: {
           user: { id: 7 },
           hackathon: { id: 1 },
-          hack_role_name: HackRoleName.ORGANIZER,
+          hackRoleName: HackRoleName.ORGANIZER,
         },
       });
       expect(mockHackathonRepository.save).not.toHaveBeenCalled();
@@ -260,15 +260,15 @@ describe('HackathonsService', () => {
         id: 1,
         title: 'Original Title',
         description: null,
-        organization_name: 'HackSpace',
-        start_at: new Date('2026-11-01T09:00:00Z'),
-        end_at: new Date('2026-11-03T18:00:00Z'),
+        organizationName: 'HackSpace',
+        startAt: new Date('2026-11-01T09:00:00Z'),
+        endAt: new Date('2026-11-03T18:00:00Z'),
       };
 
       mockHackathonRepository.findOne.mockResolvedValue(hackathon);
       mockUserRepository.findOne.mockResolvedValue({
         id: 7,
-        role: { role_name: RoleName.ROLE_ADMIN },
+        role: { roleName: RoleName.ROLE_ADMIN },
       });
       await expect(
         service.update(
@@ -297,14 +297,14 @@ describe('HackathonsService', () => {
         id: 1,
         title: 'Original Title',
         description: null,
-        organization_name: 'HackSpace',
-        start_at: new Date('2026-11-01T09:00:00Z'),
-        end_at: new Date('2026-11-03T18:00:00Z'),
+        organizationName: 'HackSpace',
+        startAt: new Date('2026-11-01T09:00:00Z'),
+        endAt: new Date('2026-11-03T18:00:00Z'),
       };
       mockHackathonRepository.findOne.mockResolvedValue(hackathon);
       mockUserRepository.findOne.mockResolvedValue({
         id: 7,
-        role: { role_name: RoleName.ROLE_ADMIN },
+        role: { roleName: RoleName.ROLE_ADMIN },
       });
       await expect(service.update(1, {}, 7)).rejects.toThrow(
         BadRequestException,
@@ -338,7 +338,7 @@ describe('HackathonsService', () => {
         Hackathon,
         expect.objectContaining({
           title: 'AI Challenge',
-          organization_name: 'HackSpace',
+          organizationName: 'HackSpace',
         }),
       );
       expect(mockManager.create).toHaveBeenCalledTimes(3);
@@ -347,10 +347,10 @@ describe('HackathonsService', () => {
       expect(mockManager.create).toHaveBeenCalledWith(
         HackathonSettings,
         expect.objectContaining({
-          min_team_members: 1,
-          max_team_members: 5,
-          files_limit: 0,
-          file_max_size: 0,
+          minTeamMembers: 1,
+          maxTeamMembers: 5,
+          filesLimit: 0,
+          fileMaxSize: 0,
           hackathon: result,
         }),
       );
@@ -359,14 +359,14 @@ describe('HackathonsService', () => {
         expect.objectContaining({
           user: { id: 1 },
           hackathon: result,
-          hack_role_name: HackRoleName.ORGANIZER,
+          hackRoleName: HackRoleName.ORGANIZER,
         }),
       );
 
       expect(result).toEqual(
         expect.objectContaining({
           title: 'AI Challenge',
-          organization_name: 'HackSpace',
+          organizationName: 'HackSpace',
         }),
       );
     });
@@ -396,6 +396,33 @@ describe('HackathonsService', () => {
       await expect(service.create(dto, 1)).rejects.toThrow(BadRequestException);
 
       expect(mockDataSource.transaction).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('camelCase hackathon responses', () => {
+    it('returns the entity fields using camelCase', async () => {
+      const hackathon = {
+        id: 11,
+        title: 'Data Challenge',
+        description: null,
+        organizationName: 'HackSpace',
+        startAt: new Date('2026-11-01T09:00:00Z'),
+        endAt: new Date('2026-11-03T18:00:00Z'),
+      };
+      mockHackathonRepository.findOne.mockResolvedValue(hackathon);
+      mockUserRepository.findOne.mockResolvedValue({
+        id: 1,
+        role: { roleName: RoleName.ROLE_ADMIN },
+      });
+      const result = await service.findDetails(11, 1);
+      expect(result).toMatchObject({
+        organizationName: 'HackSpace',
+        startAt: hackathon.startAt,
+        endAt: hackathon.endAt,
+        canEdit: true,
+      });
+      expect(result).not.toHaveProperty('organization_name');
+      expect(result).not.toHaveProperty('start_at');
     });
   });
 
@@ -449,7 +476,7 @@ describe('HackathonsService', () => {
       });
 
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'hackathon.end_at >= :startDate',
+        'hackathon.endAt >= :startDate',
         { startDate: '2026-11-01' },
       );
 
@@ -473,7 +500,7 @@ describe('HackathonsService', () => {
       });
 
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'hackathon.start_at < :nextDay',
+        'hackathon.startAt < :nextDay',
         {
           nextDay: new Date('2026-11-06T00:00:00.000Z'),
         },
@@ -498,11 +525,11 @@ describe('HackathonsService', () => {
       });
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledTimes(2);
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'hackathon.end_at >= :startDate',
+        'hackathon.endAt >= :startDate',
         { startDate: '2026-11-03' },
       );
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'hackathon.start_at < :nextDay',
+        'hackathon.startAt < :nextDay',
         {
           nextDay: new Date('2026-11-06T00:00:00.000Z'),
         },
@@ -553,7 +580,7 @@ describe('HackathonsService', () => {
       expect(mockQueryBuilder.skip).toHaveBeenCalledWith(0);
       expect(mockQueryBuilder.take).toHaveBeenCalledWith(12);
       expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
-        'hackathon.start_at',
+        'hackathon.startAt',
         'ASC',
       );
       expect(mockQueryBuilder.addOrderBy).toHaveBeenCalledWith(
@@ -575,15 +602,15 @@ describe('HackathonsService', () => {
         'phase',
       );
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'phase.phase_name = :phase',
+        'phase.phaseName = :phase',
         { phase: HackathonPhaseName.REGISTRATION },
       );
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'phase.start_at <= :now',
+        'phase.startAt <= :now',
         { now: expect.any(Date) as Date },
       );
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'phase.end_at > :now',
+        'phase.endAt > :now',
         { now: expect.any(Date) as Date },
       );
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledTimes(3);
@@ -605,11 +632,11 @@ describe('HackathonsService', () => {
         { search: '%AI%' },
       );
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'hackathon.end_at >= :startDate',
+        'hackathon.endAt >= :startDate',
         { startDate: '2026-11-01' },
       );
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'hackathon.start_at < :nextDay',
+        'hackathon.startAt < :nextDay',
         { nextDay: new Date('2026-11-06T00:00:00.000Z') },
       );
       expect(mockQueryBuilder.innerJoin).toHaveBeenCalledWith(
@@ -617,15 +644,15 @@ describe('HackathonsService', () => {
         'phase',
       );
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'phase.phase_name = :phase',
+        'phase.phaseName = :phase',
         { phase: HackathonPhaseName.IN_PROGRESS },
       );
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'phase.start_at <= :now',
+        'phase.startAt <= :now',
         { now: expect.any(Date) as Date },
       );
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'phase.end_at > :now',
+        'phase.endAt > :now',
         { now: expect.any(Date) as Date },
       );
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledTimes(6);
@@ -651,7 +678,7 @@ describe('HackathonsService', () => {
         'hackathon',
       );
       expect(mockQueryBuilder.innerJoin).toHaveBeenCalledWith(
-        'hackathon.hackathon_users',
+        'hackathon.hackathonUsers',
         'membership',
       );
       expect(mockQueryBuilder.where).toHaveBeenCalledWith(
@@ -659,7 +686,7 @@ describe('HackathonsService', () => {
         { userId: 7 },
       );
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'membership.hack_role_name = :role',
+        'membership.hackRoleName = :role',
         { role: HackRoleName.ORGANIZER },
       );
       expect(result).toEqual({
@@ -680,7 +707,7 @@ describe('HackathonsService', () => {
       expect(mockQueryBuilder.skip).toHaveBeenCalledWith(5);
       expect(mockQueryBuilder.take).toHaveBeenCalledWith(5);
       expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
-        'hackathon.start_at',
+        'hackathon.startAt',
         'ASC',
       );
       expect(mockQueryBuilder.addOrderBy).toHaveBeenCalledWith(
@@ -725,7 +752,7 @@ describe('HackathonsService', () => {
     it('allows a global admin to edit', async () => {
       mockUserRepository.findOne.mockResolvedValue({
         id: 1,
-        role: { role_name: RoleName.ROLE_ADMIN },
+        role: { roleName: RoleName.ROLE_ADMIN },
       });
 
       const result = await service.findDetails(7, 1);
@@ -737,10 +764,10 @@ describe('HackathonsService', () => {
     it('allows the hackathon organiser to edit', async () => {
       mockUserRepository.findOne.mockResolvedValue({
         id: 2,
-        role: { role_name: RoleName.ROLE_USER },
+        role: { roleName: RoleName.ROLE_USER },
       });
       mockHackathonUserRepository.findOne.mockResolvedValue({
-        hack_role_name: HackRoleName.ORGANIZER,
+        hackRoleName: HackRoleName.ORGANIZER,
       });
 
       const result = await service.findDetails(7, 2);
@@ -750,7 +777,7 @@ describe('HackathonsService', () => {
         where: {
           user: { id: 2 },
           hackathon: { id: 7 },
-          hack_role_name: HackRoleName.ORGANIZER,
+          hackRoleName: HackRoleName.ORGANIZER,
         },
       });
     });
@@ -758,7 +785,7 @@ describe('HackathonsService', () => {
     it('denies editing to an unrelated user', async () => {
       mockUserRepository.findOne.mockResolvedValue({
         id: 3,
-        role: { role_name: RoleName.ROLE_USER },
+        role: { roleName: RoleName.ROLE_USER },
       });
       mockHackathonUserRepository.findOne.mockResolvedValue(null);
 

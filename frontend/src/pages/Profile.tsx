@@ -59,7 +59,7 @@ function Profile() {
 
       <ProfileHeader
         user={userQuery.data}
-        avatarUrl={profile?.avatar_url}
+        avatarUrl={profile?.avatarUrl}
       />
 
       {!profile ? (

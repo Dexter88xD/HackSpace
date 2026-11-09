@@ -7,6 +7,7 @@ import {
   OneToOne,
   ManyToOne,
   OneToMany,
+  JoinColumn,
 } from 'typeorm';
 
 import { UserProfile } from './user-profile.entity';
@@ -22,39 +23,40 @@ export class User {
   @Column({ unique: true })
   username!: string;
 
-  @Column()
-  full_name!: string;
+  @Column({ name: 'full_name' })
+  fullName!: string;
 
   @Column({ unique: true })
   email!: string;
 
-  @Column({ default: false })
-  email_verified!: boolean;
+  @Column({ name: 'email_verified', default: false })
+  emailVerified!: boolean;
 
-  @Column()
-  password_hash!: string;
+  @Column({ name: 'password_hash' })
+  passwordHash!: string;
 
-  @Column({ type: 'varchar', nullable: true })
-  otp_hash!: string | null;
+  @Column({ name: 'otp_hash', type: 'varchar', nullable: true })
+  otpHash!: string | null;
 
-  @Column({ type: 'timestamp', nullable: true })
-  otp_expires_at!: Date | null;
+  @Column({ name: 'otp_expires_at', type: 'timestamp', nullable: true })
+  otpExpiresAt!: Date | null;
 
-  @CreateDateColumn()
-  created_at!: Date;
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt!: Date;
 
-  @UpdateDateColumn()
-  updated_at!: Date;
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt!: Date;
 
   @OneToOne(() => UserProfile, (profile) => profile.user)
   profile!: UserProfile;
 
   @ManyToOne(() => UserRole, (role) => role.users)
+  @JoinColumn({ name: 'role_id' })
   role!: UserRole;
 
   @OneToMany(() => OAuthIdentity, (identity) => identity.user)
-  oauth_identities!: OAuthIdentity[];
+  oauthIdentities!: OAuthIdentity[];
 
   @OneToMany(() => HackathonUser, (hackathonUser) => hackathonUser.user)
-  hackathon_users!: HackathonUser[];
+  hackathonUsers!: HackathonUser[];
 }

@@ -1,7 +1,7 @@
 export class ProfileResponseDto {
   id!: number;
   bio!: string | null;
-  avatar_url!: string | null;
-  organization_name!: string | null;
+  avatarUrl!: string | null;
+  organizationName!: string | null;
   major!: string | null;
 }

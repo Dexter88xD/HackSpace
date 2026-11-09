@@ -89,7 +89,7 @@ export async function seedUsers(
   let profilesCreated = 0;
 
   for (const account of accounts) {
-    const role = await roleRepository.findOneBy({ role_name: account.role });
+    const role = await roleRepository.findOneBy({ roleName: account.role });
     if (!role) {
       throw new Error(`Missing role ${account.role}. Run migrations first.`);
     }
@@ -102,7 +102,7 @@ export async function seedUsers(
         (user) =>
           user.username !== account.username ||
           user.email !== account.email ||
-          user.role?.role_name !== account.role,
+          user.role?.roleName !== account.role,
       )
     ) {
       throw new Error(
@@ -120,11 +120,11 @@ export async function seedUsers(
         userRepository.create({
           username: account.username,
           email: account.email,
-          full_name: account.fullName,
-          email_verified: true,
-          password_hash: await bcrypt.hash(password, 12),
-          otp_hash: null,
-          otp_expires_at: null,
+          fullName: account.fullName,
+          emailVerified: true,
+          passwordHash: await bcrypt.hash(password, 12),
+          otpHash: null,
+          otpExpiresAt: null,
           role,
         }),
       );
@@ -138,8 +138,8 @@ export async function seedUsers(
         profileRepository.create({
           user,
           bio: account.bio,
-          avatar_url: null,
-          organization_name: account.organization,
+          avatarUrl: null,
+          organizationName: account.organization,
           major: account.major,
         }),
       );

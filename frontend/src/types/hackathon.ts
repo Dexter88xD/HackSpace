@@ -26,9 +26,9 @@ export type Hackathon = {
   id: number;
   title: string;
   description: string | null;
-  organization_name: string;
-  start_at: string;
-  end_at: string;
+  organizationName: string;
+  startAt: string;
+  endAt: string;
 };
 
 export type HackathonCardProps = {
@@ -69,8 +69,8 @@ export type HackathonUnregistrationResponse = {
 
 export type HackathonPhaseResponse = {
   id: number;
-  phase_name: HackathonPhaseName;
+  phaseName: HackathonPhaseName;
   description: string | null;
-  start_at: string;
-  end_at: string;
+  startAt: string;
+  endAt: string;
 };

@@ -21,12 +21,12 @@ export class CreateHackathonUsers1792496008033 implements MigrationInterface {
         CONSTRAINT "UQ_hackathon_users_user_hackathon"
           UNIQUE ("user_id", "hackathon_id"),
 
-        CONSTRAINT "FK_hackathon_users_user"
+        CONSTRAINT "FK_11097450ded15ef141d3d549265"
           FOREIGN KEY ("user_id")
           REFERENCES "users"("id")
           ON DELETE CASCADE,
 
-        CONSTRAINT "FK_hackathon_users_hackathon"
+        CONSTRAINT "FK_4708bd8e9b236ed2c9ba65dcbd8"
           FOREIGN KEY ("hackathon_id")
           REFERENCES "hackathons"("id")
           ON DELETE CASCADE

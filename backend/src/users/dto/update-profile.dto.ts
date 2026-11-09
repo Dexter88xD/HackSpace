@@ -8,12 +8,12 @@ export class UpdateProfileDto {
 
   @IsOptional()
   @IsUrl()
-  avatar_url?: string;
+  avatarUrl?: string;
 
   @IsOptional()
   @IsString()
   @MaxLength(100)
-  organization_name?: string;
+  organizationName?: string;
 
   @IsOptional()
   @IsString()

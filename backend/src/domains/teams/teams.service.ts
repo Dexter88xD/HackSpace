@@ -36,7 +36,7 @@ export class TeamsService {
 
   async create(hackathonId: number, dto: CreateTeamDto, userId: number) {
     const hackathon = await this.findHackathon(hackathonId);
-    if (hackathon.end_at <= new Date()) {
+    if (hackathon.endAt <= new Date()) {
       throw new BadRequestException('This hackathon has ended');
     }
 
@@ -69,7 +69,7 @@ export class TeamsService {
         await manager.save(
           manager.create(TeamMember, {
             team: savedTeam,
-            hackathon_user: registration,
+            hackathonUser: registration,
           }),
         );
         return savedTeam;
@@ -93,7 +93,7 @@ export class TeamsService {
     const teams = await this.teamRepository.find({
       where: { hackathon: { id: hackathonId } },
       relations: { members: true },
-      order: { created_at: 'ASC' },
+      order: { createdAt: 'ASC' },
     });
 
     return teams.map((team) => ({
@@ -101,7 +101,7 @@ export class TeamsService {
       name: team.name,
       description: team.description,
       memberCount: team.members.length,
-      maxMembers: hackathon.settings.max_team_members,
+      maxMembers: hackathon.settings.maxTeamMembers,
     }));
   }
 
@@ -113,7 +113,7 @@ export class TeamsService {
     if (!team) {
       throw new NotFoundException('Team not found');
     }
-    if (team.hackathon.end_at <= new Date()) {
+    if (team.hackathon.endAt <= new Date()) {
       throw new BadRequestException('This hackathon has ended');
     }
 
@@ -133,12 +133,12 @@ export class TeamsService {
         const memberCount = await manager.count(TeamMember, {
           where: { team: { id: teamId } },
         });
-        if (memberCount >= team.hackathon.settings.max_team_members) {
+        if (memberCount >= team.hackathon.settings.maxTeamMembers) {
           throw new ConflictException('This team is full');
         }
 
         await manager.save(
-          manager.create(TeamMember, { team, hackathon_user: registration }),
+          manager.create(TeamMember, { team, hackathonUser: registration }),
         );
       });
     } catch (error) {
@@ -152,14 +152,14 @@ export class TeamsService {
     const membership = await this.teamMemberRepository.findOne({
       where: {
         team: { id: teamId },
-        hackathon_user: { user: { id: userId } },
+        hackathonUser: { user: { id: userId } },
       },
       relations: { team: { hackathon: true } },
     });
     if (!membership) {
       throw new NotFoundException('You are not a member of this team');
     }
-    if (membership.team.hackathon.end_at <= new Date()) {
+    if (membership.team.hackathon.endAt <= new Date()) {
       throw new BadRequestException('This hackathon has ended');
     }
 
@@ -187,29 +187,29 @@ export class TeamsService {
       where: { id: teamId },
       relations: {
         hackathon: { settings: true },
-        members: { hackathon_user: { user: true } },
+        members: { hackathonUser: { user: true } },
       },
-      order: { members: { joined_at: 'ASC' } },
+      order: { members: { joinedAt: 'ASC' } },
     });
     if (!team) {
       throw new NotFoundException('Team not found');
     }
 
     // Only pick the fields the frontend needs, so user data such as
-    // password_hash is never sent back.
+    // passwordHash is never sent back.
     return {
       id: team.id,
       name: team.name,
       description: team.description,
-      createdAt: team.created_at,
+      createdAt: team.createdAt,
       hackathonId: team.hackathon.id,
-      minMembers: team.hackathon.settings.min_team_members,
-      maxMembers: team.hackathon.settings.max_team_members,
+      minMembers: team.hackathon.settings.minTeamMembers,
+      maxMembers: team.hackathon.settings.maxTeamMembers,
       members: team.members.map((member) => ({
-        userId: member.hackathon_user.user.id,
-        username: member.hackathon_user.user.username,
-        fullName: member.hackathon_user.user.full_name,
-        joinedAt: member.joined_at,
+        userId: member.hackathonUser.user.id,
+        username: member.hackathonUser.user.username,
+        fullName: member.hackathonUser.user.fullName,
+        joinedAt: member.joinedAt,
       })),
     };
   }
@@ -219,7 +219,7 @@ export class TeamsService {
 
     const membership = await this.teamMemberRepository.findOne({
       where: {
-        hackathon_user: {
+        hackathonUser: {
           user: { id: userId },
           hackathon: { id: hackathonId },
         },
@@ -242,7 +242,7 @@ export class TeamsService {
       where: {
         user: { id: userId },
         hackathon: { id: hackathonId },
-        hack_role_name: HackRoleName.PARTICIPANT,
+        hackRoleName: HackRoleName.PARTICIPANT,
       },
     });
     if (!registration) {
@@ -250,7 +250,7 @@ export class TeamsService {
     }
 
     const membership = await this.teamMemberRepository.findOne({
-      where: { hackathon_user: { id: registration.id } },
+      where: { hackathonUser: { id: registration.id } },
     });
     if (membership) {
       throw new ConflictException(

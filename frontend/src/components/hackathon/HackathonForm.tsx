@@ -35,9 +35,9 @@ function HackathonForm({
     defaultValues: {
       title: hackathon?.title ?? "",
       description: hackathon?.description ?? "",
-      organizationName: hackathon?.organization_name ?? "",
-      startAt: hackathon ? toDateTimeLocal(hackathon.start_at) : "",
-      endAt: hackathon ? toDateTimeLocal(hackathon.end_at) : "",
+      organizationName: hackathon?.organizationName ?? "",
+      startAt: hackathon ? toDateTimeLocal(hackathon.startAt) : "",
+      endAt: hackathon ? toDateTimeLocal(hackathon.endAt) : "",
     },
   });
 

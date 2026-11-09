@@ -50,7 +50,7 @@ describe('SkillsService', () => {
     profiles.findOneBy.mockResolvedValue({ id: 10 });
     profiles.existsBy.mockResolvedValue(true);
     users.findOne.mockResolvedValue({
-      role: { role_name: RoleName.ROLE_ADMIN },
+      role: { roleName: RoleName.ROLE_ADMIN },
     });
     skills.findOneBy.mockResolvedValue(makeSkill());
     skills.findBy.mockResolvedValue([makeSkill()]);
@@ -304,7 +304,7 @@ describe('SkillsService', () => {
     });
   });
 
-  it.each([null, { role: { role_name: RoleName.ROLE_USER } }])(
+  it.each([null, { role: { roleName: RoleName.ROLE_USER } }])(
     'rejects nonowners without admin status: %p',
     async (user) => {
       profiles.existsBy.mockResolvedValue(false);
@@ -411,7 +411,7 @@ describe('SkillsService', () => {
 
   it('prevents nonadmins from renaming or deleting shared skills', async () => {
     users.findOne.mockResolvedValue({
-      role: { role_name: RoleName.ROLE_USER },
+      role: { roleName: RoleName.ROLE_USER },
     });
     await expect(service.update(1, { name: 'TS' }, 7)).rejects.toBeInstanceOf(
       ForbiddenException,

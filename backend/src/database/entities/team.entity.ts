@@ -24,17 +24,14 @@ export class Team {
   @Column({ type: 'text', nullable: true })
   description!: string | null;
 
-  @CreateDateColumn({ type: 'timestamp' })
-  created_at!: Date;
+  @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
+  createdAt!: Date;
 
   @ManyToOne(() => Hackathon, (hackathon) => hackathon.teams, {
     nullable: false,
     onDelete: 'CASCADE',
   })
-  @JoinColumn({
-    name: 'hackathon_id',
-    foreignKeyConstraintName: 'FK_teams_hackathon',
-  })
+  @JoinColumn({ name: 'hackathon_id' })
   hackathon!: Hackathon;
 
   @OneToMany(() => TeamMember, (member) => member.team)

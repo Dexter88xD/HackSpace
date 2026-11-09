@@ -12,10 +12,11 @@ export class UserRole {
   id!: number;
 
   @Column({
+    name: 'role_name',
     type: 'enum',
     enum: RoleName,
   })
-  role_name!: RoleName;
+  roleName!: RoleName;
 
   @OneToMany(() => User, (users) => users.role)
   users!: User[];
