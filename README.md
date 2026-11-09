@@ -1,4 +1,4 @@
-_This project has been created as part of the 42 curriculum by [insert the verified 42 logins of all five contributors]._
+_This project has been created as part of the 42 curriculum by hqannouc, aait-our, sel-maaq, aedarkao, sohamdan._
 
 # HackSpace
 

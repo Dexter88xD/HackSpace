@@ -1,4 +1,6 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { User } from './entities/user.entity';
@@ -13,7 +15,7 @@ describe('UserService', () => {
     Pick<Repository<UserProfile>, 'findOne' | 'create' | 'save'>
   >;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     userRepository = {
       findOne: jest.fn(),
     };
@@ -22,10 +24,19 @@ describe('UserService', () => {
       create: jest.fn(),
       save: jest.fn(),
     };
-    service = new UserService(
-      userRepository as Repository<User>,
-      userProfileRepository as Repository<UserProfile>,
-    );
+
+    const module = await Test.createTestingModule({
+      providers: [
+        UserService,
+        { provide: getRepositoryToken(User), useValue: userRepository },
+        {
+          provide: getRepositoryToken(UserProfile),
+          useValue: userProfileRepository,
+        },
+      ],
+    }).compile();
+
+    service = module.get(UserService);
   });
 
   it('returns a sanitized profile', async () => {
@@ -111,8 +122,13 @@ describe('UserService', () => {
   });
 
   it('rejects a duplicate profile', async () => {
-    userRepository.findOne.mockResolvedValue({ id: 1 });
-    userProfileRepository.findOne.mockResolvedValue({ id: 1 });
+    const user = new User();
+    user.id = 1;
+    const profile = new UserProfile();
+    profile.id = 1;
+
+    userRepository.findOne.mockResolvedValue(user);
+    userProfileRepository.findOne.mockResolvedValue(profile);
 
     await expect(service.createProfile(1, {})).rejects.toBeInstanceOf(
       ConflictException,

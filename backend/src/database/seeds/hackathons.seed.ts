@@ -142,8 +142,6 @@ export async function seedHackathons(
       settingsCreated++;
       await settingsRepository.save(
         settingsRepository.create({
-          minTeamMembers: 1,
-          maxTeamMembers: 5,
           filesLimit: 3,
           fileMaxSize: 10 * 1024 * 1024,
           hackathon,
