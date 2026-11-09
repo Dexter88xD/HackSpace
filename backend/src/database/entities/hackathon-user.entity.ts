@@ -30,7 +30,7 @@ export class HackathonUser {
   })
   hack_role_name!: HackRoleName;
 
-  @ManyToOne(() => User, (user) => user.hackathon_users, {
+  @ManyToOne(() => User, (user) => user.hackathonUsers, {
     nullable: false,
     onDelete: 'CASCADE',
   })

@@ -15,7 +15,7 @@ export enum OAuthProvider {
 }
 
 @Entity('oauth_identities')
-@Unique(['provider', 'provider_user_id'])
+@Unique('UQ_oauth_provider_user', ['provider', 'providerUserId'])
 export class OAuthIdentity {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -23,15 +23,19 @@ export class OAuthIdentity {
   @Column({ type: 'enum', enum: OAuthProvider })
   provider!: OAuthProvider;
 
-  @Column()
-  provider_user_id!: string;
+  @Column({ name: 'provider_user_id' })
+  providerUserId!: string;
 
-  @ManyToOne(() => User, (user) => user.oauth_identities, {
+  @ManyToOne(() => User, (user) => user.oauthIdentities, {
+    nullable: false,
     onDelete: 'CASCADE',
   })
-  @JoinColumn({ name: 'userId' })
+  @JoinColumn({
+    name: 'user_id',
+    foreignKeyConstraintName: 'FK_oauth_identity_user',
+  })
   user!: User;
 
-  @CreateDateColumn()
-  created_at!: Date;
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt!: Date;
 }

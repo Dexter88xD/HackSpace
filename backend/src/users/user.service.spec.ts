@@ -32,10 +32,10 @@ describe('UserService', () => {
     const profile = {
       id: 1,
       bio: 'Bio',
-      avatar_url: null,
-      organization_name: null,
+      avatarUrl: null,
+      organizationName: null,
       major: null,
-      user: { password_hash: 'secret' },
+      user: { passwordHash: 'secret' },
     } as unknown as UserProfile;
     userProfileRepository.findOne.mockResolvedValue(profile);
 
@@ -53,8 +53,8 @@ describe('UserService', () => {
     const profile = {
       id: 1,
       bio: null,
-      avatar_url: null,
-      organization_name: null,
+      avatarUrl: null,
+      organizationName: null,
       major: null,
     } as UserProfile;
     userRepository.findOne.mockResolvedValue(user);
@@ -62,7 +62,44 @@ describe('UserService', () => {
     userProfileRepository.create.mockReturnValue(profile);
     userProfileRepository.save.mockResolvedValue(profile);
 
-    await expect(service.createProfile(1, {})).resolves.toEqual(profile);
+    await expect(service.createProfile(1, {})).resolves.toEqual({
+      id: 1,
+      bio: null,
+      avatar_url: null,
+      organization_name: null,
+      major: null,
+    });
+    expect(userProfileRepository.create).toHaveBeenCalledWith({
+      bio: null,
+      avatarUrl: null,
+      organizationName: null,
+      major: null,
+      user,
+    });
+  });
+
+  it('updates profile fields without changing the API response', async () => {
+    const profile = {
+      id: 1,
+      bio: 'Original bio',
+      avatarUrl: null,
+      organizationName: 'Old organisation',
+      major: null,
+    } as UserProfile;
+    userProfileRepository.findOne.mockResolvedValue(profile);
+    userProfileRepository.save.mockResolvedValue(profile);
+
+    await expect(
+      service.updateProfile(1, { organization_name: '1337' }),
+    ).resolves.toEqual({
+      id: 1,
+      bio: 'Original bio',
+      avatar_url: null,
+      organization_name: '1337',
+      major: null,
+    });
+    expect(profile.organizationName).toBe('1337');
+    expect(profile.bio).toBe('Original bio');
   });
 
   it('rejects a missing profile', async () => {

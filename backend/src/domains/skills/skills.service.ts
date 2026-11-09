@@ -165,7 +165,7 @@ export class SkillsService {
       where: { id: userId },
       relations: { role: true },
     });
-    if (user?.role?.role_name !== RoleName.ROLE_ADMIN)
+    if (user?.role?.roleName !== RoleName.ROLE_ADMIN)
       throw new ForbiddenException('Forbidden');
   }
 

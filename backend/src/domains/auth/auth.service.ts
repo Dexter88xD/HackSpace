@@ -56,18 +56,18 @@ export class AuthService {
     const otpHash = await bcrypt.hash(otp, 12);
     const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
     const defaultRole = await this.roleRepository.findOne({
-      where: { role_name: RoleName.ROLE_USER },
+      where: { roleName: RoleName.ROLE_USER },
     });
     if (!defaultRole) {
       throw new InternalServerErrorException('Unexpected server error');
     }
     const user = this.userRepository.create({
-      full_name: registerDto.fullName,
+      fullName: registerDto.fullName,
       username: normalizedUsername,
       email: normalizedEmail,
-      password_hash: passwordHash,
-      otp_hash: otpHash,
-      otp_expires_at: otpExpiresAt,
+      passwordHash: passwordHash,
+      otpHash: otpHash,
+      otpExpiresAt: otpExpiresAt,
       role: defaultRole,
     });
     await this.userRepository.save(user);
@@ -85,21 +85,21 @@ export class AuthService {
       where: { email: normalizedEmail },
     });
     if (!user) throw new UnauthorizedException('Invalid verification request');
-    if (user.email_verified)
+    if (user.emailVerified)
       throw new ConflictException('Email is already verified');
-    if (!user.otp_hash)
+    if (!user.otpHash)
       throw new BadRequestException('No verification code available');
-    if (!user.otp_expires_at || user.otp_expires_at < new Date()) {
+    if (!user.otpExpiresAt || user.otpExpiresAt < new Date()) {
       throw new BadRequestException('Verification code has expired');
     }
     const isOtpValid = await bcrypt.compare(
       otpVerificationDto.otp,
-      user.otp_hash,
+      user.otpHash,
     );
     if (!isOtpValid) throw new BadRequestException('Invalid OTP');
-    user.email_verified = true;
-    user.otp_hash = null;
-    user.otp_expires_at = null;
+    user.emailVerified = true;
+    user.otpHash = null;
+    user.otpExpiresAt = null;
     await this.userRepository.save(user);
     return {
       message: 'Email verified',
@@ -117,12 +117,12 @@ export class AuthService {
         { username: normalizedIdentifier },
       ],
     });
-    if (!user || !(await bcrypt.compare(loginDto.password, user.password_hash)))
+    if (!user || !(await bcrypt.compare(loginDto.password, user.passwordHash)))
       throw new UnauthorizedException({
         message: 'Invalid email or password',
         code: 'INVALID_CREDENTIALS',
       });
-    if (!user.email_verified)
+    if (!user.emailVerified)
       throw new UnauthorizedException({
         message: 'Please verify your email first',
         code: 'EMAIL_NOT_VERIFIED',
@@ -147,14 +147,14 @@ export class AuthService {
 
     if (!user) throw new UnauthorizedException('Invalid verification request');
 
-    if (user.email_verified)
+    if (user.emailVerified)
       throw new ConflictException('Email is already verified');
 
     const otp = randomInt(100000, 1000000).toString();
     const otpHash = await bcrypt.hash(otp, 12);
 
-    user.otp_hash = otpHash;
-    user.otp_expires_at = new Date(Date.now() + 10 * 60 * 1000);
+    user.otpHash = otpHash;
+    user.otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     await this.userRepository.save(user);
 
@@ -178,10 +178,10 @@ export class AuthService {
     return {
       id: user.id,
       username: user.username,
-      fullName: user.full_name,
-      role: user.role.role_name,
+      fullName: user.fullName,
+      role: user.role.roleName,
       email: user.email,
-      emailVerified: user.email_verified,
+      emailVerified: user.emailVerified,
     };
   }
 
@@ -217,7 +217,7 @@ export class AuthService {
         const identity = await identityRepository.findOne({
           where: {
             provider: provider.provider,
-            provider_user_id: profile.providerUserId,
+            providerUserId: profile.providerUserId,
           },
           relations: { user: true },
         });
@@ -229,7 +229,7 @@ export class AuthService {
           });
           if (!user) {
             const defaultRole = await roleRepository.findOne({
-              where: { role_name: RoleName.ROLE_USER },
+              where: { roleName: RoleName.ROLE_USER },
             });
             if (!defaultRole) {
               throw new InternalServerErrorException('Unexpected server error');
@@ -240,24 +240,24 @@ export class AuthService {
             );
             user = userRepository.create({
               username,
-              full_name: profile.fullName || username,
+              fullName: profile.fullName || username,
               email: normalizedEmail,
-              email_verified: true,
-              password_hash: await bcrypt.hash(
+              emailVerified: true,
+              passwordHash: await bcrypt.hash(
                 randomBytes(32).toString('hex'),
                 12,
               ),
               role: defaultRole,
             });
             user = await userRepository.save(user);
-          } else if (!user.email_verified) {
-            user.email_verified = true;
+          } else if (!user.emailVerified) {
+            user.emailVerified = true;
             user = await userRepository.save(user);
           }
 
           const newIdentity = identityRepository.create({
             provider: provider.provider,
-            provider_user_id: profile.providerUserId,
+            providerUserId: profile.providerUserId,
             user,
           });
           await identityRepository.save(newIdentity);
@@ -270,7 +270,7 @@ export class AuthService {
         const identity = await this.oauthIdentityRepository.findOne({
           where: {
             provider: provider.provider,
-            provider_user_id: profile.providerUserId,
+            providerUserId: profile.providerUserId,
           },
           relations: { user: true },
         });

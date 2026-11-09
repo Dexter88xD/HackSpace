@@ -222,7 +222,7 @@ export class HackathonsService {
       return false;
     }
 
-    if (user.role.role_name === RoleName.ROLE_ADMIN) {
+    if (user.role.roleName === RoleName.ROLE_ADMIN) {
       return true;
     }
 

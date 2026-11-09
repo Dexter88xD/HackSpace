@@ -137,17 +137,24 @@ describe('AuthService', () => {
     userRepository.findOne
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null);
-    roleRepository.findOne.mockResolvedValue({ role_name: RoleName.ROLE_USER });
+    roleRepository.findOne.mockResolvedValue({ roleName: RoleName.ROLE_USER });
 
     await expect(service.authenticateWithOAuth('google', 'code')).resolves.toBe(
       'access-token',
     );
 
     expect(userRepository.save).toHaveBeenCalled();
+    expect(identityRepository.findOne).toHaveBeenCalledWith({
+      where: {
+        provider: OAuthProvider.GOOGLE,
+        providerUserId: 'google-user',
+      },
+      relations: { user: true },
+    });
     expect(identityRepository.save).toHaveBeenCalledWith(
       expect.objectContaining({
         provider: OAuthProvider.GOOGLE,
-        provider_user_id: 'google-user',
+        providerUserId: 'google-user',
       }),
     );
   });
@@ -179,7 +186,7 @@ describe('AuthService', () => {
   });
 
   it('links a verified OAuth identity to an existing email account', async () => {
-    const user = { id: 8, email_verified: true };
+    const user = { id: 8, emailVerified: true };
     const provider = {
       provider: OAuthProvider.GOOGLE,
       fetchProfile: jest.fn().mockResolvedValue({
@@ -243,7 +250,7 @@ describe('AuthService', () => {
     userRepository.findOne
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null);
-    roleRepository.findOne.mockResolvedValue({ role_name: RoleName.ROLE_USER });
+    roleRepository.findOne.mockResolvedValue({ roleName: RoleName.ROLE_USER });
     identityRepository.save.mockRejectedValue(new Error('database failure'));
 
     await expect(

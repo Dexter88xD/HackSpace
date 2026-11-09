@@ -123,7 +123,7 @@ describe('HackathonsService', () => {
       mockHackathonRepository.findOne.mockResolvedValue(hackathon);
       mockUserRepository.findOne.mockResolvedValue({
         id: 7,
-        role: { role_name: RoleName.ROLE_ADMIN },
+        role: { roleName: RoleName.ROLE_ADMIN },
       });
       mockHackathonRepository.save.mockImplementation((value: Hackathon) =>
         Promise.resolve(value),
@@ -152,7 +152,7 @@ describe('HackathonsService', () => {
       };
       const user = {
         id: 7,
-        role: { role_name: RoleName.ROLE_USER },
+        role: { roleName: RoleName.ROLE_USER },
       };
       const hackathonUser = {
         id: 2,
@@ -197,7 +197,7 @@ describe('HackathonsService', () => {
       };
       const user = {
         id: 7,
-        role: { role_name: RoleName.ROLE_USER },
+        role: { roleName: RoleName.ROLE_USER },
       };
 
       mockHackathonRepository.findOne.mockResolvedValue(hackathon);
@@ -230,7 +230,7 @@ describe('HackathonsService', () => {
       };
       const user = {
         id: 7,
-        role: { role_name: RoleName.ROLE_USER },
+        role: { roleName: RoleName.ROLE_USER },
       };
 
       mockHackathonRepository.findOne.mockResolvedValue(hackathon);
@@ -268,7 +268,7 @@ describe('HackathonsService', () => {
       mockHackathonRepository.findOne.mockResolvedValue(hackathon);
       mockUserRepository.findOne.mockResolvedValue({
         id: 7,
-        role: { role_name: RoleName.ROLE_ADMIN },
+        role: { roleName: RoleName.ROLE_ADMIN },
       });
       await expect(
         service.update(
@@ -304,7 +304,7 @@ describe('HackathonsService', () => {
       mockHackathonRepository.findOne.mockResolvedValue(hackathon);
       mockUserRepository.findOne.mockResolvedValue({
         id: 7,
-        role: { role_name: RoleName.ROLE_ADMIN },
+        role: { roleName: RoleName.ROLE_ADMIN },
       });
       await expect(service.update(1, {}, 7)).rejects.toThrow(
         BadRequestException,
@@ -725,7 +725,7 @@ describe('HackathonsService', () => {
     it('allows a global admin to edit', async () => {
       mockUserRepository.findOne.mockResolvedValue({
         id: 1,
-        role: { role_name: RoleName.ROLE_ADMIN },
+        role: { roleName: RoleName.ROLE_ADMIN },
       });
 
       const result = await service.findDetails(7, 1);
@@ -737,7 +737,7 @@ describe('HackathonsService', () => {
     it('allows the hackathon organiser to edit', async () => {
       mockUserRepository.findOne.mockResolvedValue({
         id: 2,
-        role: { role_name: RoleName.ROLE_USER },
+        role: { roleName: RoleName.ROLE_USER },
       });
       mockHackathonUserRepository.findOne.mockResolvedValue({
         hack_role_name: HackRoleName.ORGANIZER,
@@ -758,7 +758,7 @@ describe('HackathonsService', () => {
     it('denies editing to an unrelated user', async () => {
       mockUserRepository.findOne.mockResolvedValue({
         id: 3,
-        role: { role_name: RoleName.ROLE_USER },
+        role: { roleName: RoleName.ROLE_USER },
       });
       mockHackathonUserRepository.findOne.mockResolvedValue(null);
 

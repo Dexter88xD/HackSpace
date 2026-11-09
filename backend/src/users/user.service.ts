@@ -48,8 +48,11 @@ export class UserService {
     }
 
     const profile = this.userProfileRepository.create({
-      ...dto,
-      user: user,
+      bio: dto.bio ?? null,
+      avatarUrl: dto.avatar_url ?? null,
+      organizationName: dto.organization_name ?? null,
+      major: dto.major ?? null,
+      user,
     });
 
     try {
@@ -74,7 +77,11 @@ export class UserService {
   ): Promise<ProfileResponseDto> {
     const profile = await this.findProfile(userId);
 
-    Object.assign(profile, dto);
+    if (dto.bio !== undefined) profile.bio = dto.bio;
+    if (dto.avatar_url !== undefined) profile.avatarUrl = dto.avatar_url;
+    if (dto.organization_name !== undefined)
+      profile.organizationName = dto.organization_name;
+    if (dto.major !== undefined) profile.major = dto.major;
 
     const savedProfile = await this.userProfileRepository.save(profile);
     return this.toResponse(savedProfile);
@@ -84,8 +91,8 @@ export class UserService {
     return {
       id: profile.id,
       bio: profile.bio,
-      avatar_url: profile.avatar_url,
-      organization_name: profile.organization_name,
+      avatar_url: profile.avatarUrl,
+      organization_name: profile.organizationName,
       major: profile.major,
     };
   }

@@ -47,8 +47,8 @@ describe('TeamsService', () => {
           user: {
             id: 5,
             username: 'saad',
-            full_name: 'Saad M',
-            password_hash: 'secret',
+            fullName: 'Saad M',
+            passwordHash: 'secret',
           },
         },
       },

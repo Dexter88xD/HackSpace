@@ -196,7 +196,7 @@ export class TeamsService {
     }
 
     // Only pick the fields the frontend needs, so user data such as
-    // password_hash is never sent back.
+    // passwordHash is never sent back.
     return {
       id: team.id,
       name: team.name,
@@ -208,7 +208,7 @@ export class TeamsService {
       members: team.members.map((member) => ({
         userId: member.hackathon_user.user.id,
         username: member.hackathon_user.user.username,
-        fullName: member.hackathon_user.user.full_name,
+        fullName: member.hackathon_user.user.fullName,
         joinedAt: member.joined_at,
       })),
     };
