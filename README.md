@@ -73,6 +73,7 @@ The full setup, seed safety checks, troubleshooting and destructive database res
 | `make up` / `make down`        | Start or stop the current Compose stack                                                  |
 | `make logs` / `make ps`        | Inspect service logs and state                                                           |
 | `make migration` / `make seed` | Apply database migrations and seed development data                                      |
+| `make migration-generate name=<Name>` | Generate a migration from entity changes (run `make migration` first) |
 | `make lint` / `make lint-fix`  | Check or automatically fix supported ESLint errors                                       |
 | `make typecheck`               | Typecheck backend and frontend application code                                          |
 | `make build`                   | Run NestJS and Vite application builds                                                   |

@@ -5,7 +5,7 @@ COMPOSE = docker compose -f docker-compose.yml --env-file .env
 
 .PHONY: all help up down start stop re ps logs \
         storage backend frontend \
-        migration seed db db-reset \
+        migration migration-generate seed db db-reset \
         lint lint-fix typecheck build build-images test
 
 # ==============================
@@ -38,6 +38,7 @@ help:
 	@echo "Database:"
 	@echo "  make db         Open PostgreSQL shell"
 	@echo "  make migration  Run TypeORM migrations"
+	@echo "  make migration-generate name=<Name>  Generate a migration from entity changes"
 	@echo "  make seed       Seed development users, profiles, skills and hackathons"
 	@echo "  make db-reset   Stop stack and DELETE PostgreSQL data"
 	@echo ""
@@ -92,6 +93,10 @@ db:
 
 migration:
 	$(COMPOSE) exec backend npm run typeorm migration:run -- -d src/database/data-source.ts
+
+migration-generate:
+	@test -n "$(name)" || { echo "Usage: make migration-generate name=<MigrationName>" >&2; exit 1; }
+	$(COMPOSE) exec backend npm run typeorm -- migration:generate -d src/database/data-source.ts src/database/migrations/$(name)
 
 seed:
 	$(COMPOSE) exec backend npm run seed:dev
