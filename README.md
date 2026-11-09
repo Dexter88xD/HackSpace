@@ -1,4 +1,4 @@
-*This project has been created as part of the 42 curriculum by [insert the verified 42 logins of all five contributors].*
+_This project has been created as part of the 42 curriculum by [insert the verified 42 logins of all five contributors]._
 
 # HackSpace
 
@@ -14,20 +14,18 @@ This repository is a Docker Compose monorepo containing a React/TypeScript front
 - **Teams:** create teams for a hackathon, browse teams, view your own team, join and leave teams.
 - **Authorisation:** platform-level `ROLE_USER` and `ROLE_ADMIN` roles, plus hackathon-specific membership roles. An authenticated user can create a hackathon; its organiser or a platform administrator can edit it.
 
-The Compose stack also currently includes an AI/Kafka demonstration. **It is not a completed AI mentor feature.** MinIO and Nginx configuration exists in the repository, but MinIO is commented out in the active Compose file and Nginx is not part of the running development stack. Do not treat these as delivered features.
+MinIO and Nginx configuration exists in the repository, but MinIO is commented out in the active Compose file and Nginx is not part of the running development stack. Do not treat these as delivered features.
 
 ## Technology stack and rationale
 
-| Layer | Technology | Purpose |
-| --- | --- | --- |
-| Frontend | React, TypeScript, Vite, Tailwind CSS | Component-based SPA, typed interfaces and fast development builds |
-| Frontend data/forms | Axios, TanStack Query, React Hook Form, Zod | HTTP requests, server-state caching and form validation |
-| Backend | NestJS, TypeScript, Passport/JWT | Modular HTTP API, authentication and server-side permissions |
-| Persistence | PostgreSQL 15, TypeORM | Relational data, constraints, transactions and migrations |
-| Development environment | Docker Compose, GNU Make | Reproducible service orchestration and shared developer commands |
-| Automated checks | ESLint, TypeScript, Jest, GitHub Actions | Linting, typechecking, tests and pull-request validation |
-
-The Kafka broker and AI demonstration service remain in the current Compose configuration; their removal is planned separately. The software should not be described as having completed messaging/AI functionality based on those demonstrations.
+| Layer                   | Technology                                  | Purpose                                                           |
+| ----------------------- | ------------------------------------------- | ----------------------------------------------------------------- |
+| Frontend                | React, TypeScript, Vite, Tailwind CSS       | Component-based SPA, typed interfaces and fast development builds |
+| Frontend data/forms     | Axios, TanStack Query, React Hook Form, Zod | HTTP requests, server-state caching and form validation           |
+| Backend                 | NestJS, TypeScript, Passport/JWT            | Modular HTTP API, authentication and server-side permissions      |
+| Persistence             | PostgreSQL 15, TypeORM                      | Relational data, constraints, transactions and migrations         |
+| Development environment | Docker Compose, GNU Make                    | Reproducible service orchestration and shared developer commands  |
+| Automated checks        | ESLint, TypeScript, Jest, GitHub Actions    | Linting, typechecking, tests and pull-request validation          |
 
 ## Run locally
 
@@ -69,18 +67,18 @@ The full setup, seed safety checks, troubleshooting and destructive database res
 
 ### Development commands
 
-| Command | Action |
-| --- | --- |
-| `make help` | List all available targets |
-| `make up` / `make down` | Start or stop the current Compose stack |
-| `make logs` / `make ps` | Inspect service logs and state |
-| `make migration` / `make seed` | Apply database migrations and seed development data |
-| `make lint` / `make lint-fix` | Check or automatically fix supported ESLint errors |
-| `make typecheck` | Typecheck backend and frontend application code |
-| `make build` | Run NestJS and Vite application builds |
-| `make build-images` | Build Docker images without starting them |
-| `make test` | Run backend Jest tests |
-| `make db-reset` | **Delete this project's development PostgreSQL data**; see the safety instructions first |
+| Command                        | Action                                                                                   |
+| ------------------------------ | ---------------------------------------------------------------------------------------- |
+| `make help`                    | List all available targets                                                               |
+| `make up` / `make down`        | Start or stop the current Compose stack                                                  |
+| `make logs` / `make ps`        | Inspect service logs and state                                                           |
+| `make migration` / `make seed` | Apply database migrations and seed development data                                      |
+| `make lint` / `make lint-fix`  | Check or automatically fix supported ESLint errors                                       |
+| `make typecheck`               | Typecheck backend and frontend application code                                          |
+| `make build`                   | Run NestJS and Vite application builds                                                   |
+| `make build-images`            | Build Docker images without starting them                                                |
+| `make test`                    | Run backend Jest tests                                                                   |
+| `make db-reset`                | **Delete this project's development PostgreSQL data**; see the safety instructions first |
 
 Quality commands using `docker compose exec` require the corresponding containers to be running. Backend `typecheck` currently excludes test source files; Jest runs the tests separately.
 
@@ -90,7 +88,6 @@ Quality commands using `docker compose exec` require the corresponding container
 HackSpace/
 ├── frontend/           React + Vite application
 ├── backend/            NestJS API, TypeORM entities and migrations, seeds
-├── ai_service/         Current AI/Kafka demonstration service
 ├── infrastructure/     Infrastructure configuration and scripts
 ├── docs/               Development rules, setup, routes and schema notes
 ├── .github/workflows/  Pull-request CI

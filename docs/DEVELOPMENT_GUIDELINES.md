@@ -14,28 +14,28 @@
 
 ## 2. Naming and code organisation
 
-| Layer / item | Target convention | Example |
-| --- | --- | --- |
-| TypeScript variables, functions, properties and methods | `camelCase` | `userId`, `organizationName`, `getHackathon()` |
-| Classes, interfaces, types, enums and DTO classes | `PascalCase` | `UserProfile`, `CreateHackathonDto`, `HackRoleName` |
-| Global constants and enum-like fixed configuration values | `UPPER_SNAKE_CASE` | `MAX_FILE_SIZE` |
-| Source filenames | `kebab-case` | `user-profile.entity.ts`, `create-hackathon.dto.ts` |
-| PostgreSQL tables | `snake_case` | `user_profiles`, `hackathon_users` |
-| PostgreSQL columns and foreign keys | `snake_case` | `organization_name`, `user_id`, `created_at` |
-| HTTP JSON request and response fields | `camelCase` | `organizationName`, `startAt`, `createdAt` |
-| URL paths | Lowercase resource-oriented paths, hyphenated where needed | `/hackathons/:id/current-phase` |
+| Layer / item                                              | Target convention                                          | Example                                             |
+| --------------------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------- |
+| TypeScript variables, functions, properties and methods   | `camelCase`                                                | `userId`, `organizationName`, `getHackathon()`      |
+| Classes, interfaces, types, enums and DTO classes         | `PascalCase`                                               | `UserProfile`, `CreateHackathonDto`, `HackRoleName` |
+| Global constants and enum-like fixed configuration values | `UPPER_SNAKE_CASE`                                         | `MAX_FILE_SIZE`                                     |
+| Source filenames                                          | `kebab-case`                                               | `user-profile.entity.ts`, `create-hackathon.dto.ts` |
+| PostgreSQL tables                                         | `snake_case`                                               | `user_profiles`, `hackathon_users`                  |
+| PostgreSQL columns and foreign keys                       | `snake_case`                                               | `organization_name`, `user_id`, `created_at`        |
+| HTTP JSON request and response fields                     | `camelCase`                                                | `organizationName`, `startAt`, `createdAt`          |
+| URL paths                                                 | Lowercase resource-oriented paths, hyphenated where needed | `/hackathons/:id/current-phase`                     |
 
 **One distinction matters:** TypeScript property names and physical SQL column names are **different interfaces**. Do not use a snake_case TypeScript property merely because its database column is snake_case.
 
 Use TypeORM mappings when the names differ:
 
 ```ts
-@Entity('hackathons')
+@Entity("hackathons")
 export class Hackathon {
-  @Column({ name: 'organization_name' })
+  @Column({ name: "organization_name" })
   organizationName!: string;
 
-  @Column({ name: 'start_at', type: 'timestamp' })
+  @Column({ name: "start_at", type: "timestamp" })
   startAt!: Date;
 }
 ```
@@ -71,13 +71,13 @@ These are examples of the naming convention, not a copy of the current entity. R
 
 ### Hackathon permissions
 
-| Operation | Rule |
-| --- | --- |
-| Create a hackathon (`POST /hackathons`) | Any authenticated user, whether `ROLE_USER` or `ROLE_ADMIN` |
-| Create-time membership | The creator is assigned the hackathon-specific `ORGANIZER` role |
-| Edit a hackathon (`PATCH /hackathons/:id`) | A member with `ORGANIZER` for that hackathon **or** a platform `ROLE_ADMIN` |
-| Read hackathons | Requires authentication under the current controller guard |
-| Other hackathon/team/skill actions | Enforce and test the endpoint's own business and role rules; don't infer them from this table |
+| Operation                                  | Rule                                                                                          |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| Create a hackathon (`POST /hackathons`)    | Any authenticated user, whether `ROLE_USER` or `ROLE_ADMIN`                                   |
+| Create-time membership                     | The creator is assigned the hackathon-specific `ORGANIZER` role                               |
+| Edit a hackathon (`PATCH /hackathons/:id`) | A member with `ORGANIZER` for that hackathon **or** a platform `ROLE_ADMIN`                   |
+| Read hackathons                            | Requires authentication under the current controller guard                                    |
+| Other hackathon/team/skill actions         | Enforce and test the endpoint's own business and role rules; don't infer them from this table |
 
 The repository currently implements the admin override in `HackathonsService.canEditHackathon()`. Its `canEdit` response field may help the UI, but the service must independently enforce permission on update. There is **no** frontend `/admin/hackathons` route; the current routes use `/hackathons`, `/hackathons/new` and `/hackathons/:id/edit`.
 
@@ -119,17 +119,17 @@ For all protected operations, distinguish `401` (no valid authentication) from `
 
 ### Shared npm scripts and Make targets
 
-| Command | Meaning |
-| --- | --- |
-| `npm run lint` | Check with ESLint, without modifying files |
-| `npm run lint:fix` | Apply safe ESLint autofixes |
-| `npm run typecheck` | Check the application TypeScript project(s) |
-| `npm run build` | Build the application with its own build tool |
-| `make lint` / `make lint-fix` | Lint or autofix both apps in running containers |
-| `make typecheck` | Typecheck backend and frontend applications |
-| `make build` | Run the NestJS and frontend application builds |
-| `make build-images` | Build images with Docker Compose; does not launch containers |
-| `make test` | Run backend Jest tests |
+| Command                       | Meaning                                                      |
+| ----------------------------- | ------------------------------------------------------------ |
+| `npm run lint`                | Check with ESLint, without modifying files                   |
+| `npm run lint:fix`            | Apply safe ESLint autofixes                                  |
+| `npm run typecheck`           | Check the application TypeScript project(s)                  |
+| `npm run build`               | Build the application with its own build tool                |
+| `make lint` / `make lint-fix` | Lint or autofix both apps in running containers              |
+| `make typecheck`              | Typecheck backend and frontend applications                  |
+| `make build`                  | Run the NestJS and frontend application builds               |
+| `make build-images`           | Build images with Docker Compose; does not launch containers |
+| `make test`                   | Run backend Jest tests                                       |
 
 The backend and frontend use different TypeScript compiler flags deliberately. The **shared contract is the npm script name and purpose**, not identical arguments.
 

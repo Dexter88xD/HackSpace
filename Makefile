@@ -4,7 +4,7 @@ COMPOSE = docker compose -f docker-compose.yml --env-file .env
 .DEFAULT_GOAL := all
 
 .PHONY: all help up down start stop re ps logs \
-        storage backend frontend ai broker \
+        storage backend frontend \
         migration seed db db-reset \
         lint lint-fix typecheck build build-images test
 
@@ -34,8 +34,6 @@ help:
 	@echo "  make storage    Start PostgreSQL"
 	@echo "  make backend    Start backend and dependencies"
 	@echo "  make frontend   Start frontend and PostgreSQL"
-	@echo "  make ai         Start AI service and dependencies"
-	@echo "  make broker     Start Kafka broker"
 	@echo ""
 	@echo "Database:"
 	@echo "  make db         Open PostgreSQL shell"
@@ -84,12 +82,6 @@ backend:
 
 frontend:
 	$(COMPOSE) up -d --build db frontend
-
-ai:
-	$(COMPOSE) up -d --build ai_service
-
-broker:
-	$(COMPOSE) up -d --build broker
 
 # ==============================
 # Database
