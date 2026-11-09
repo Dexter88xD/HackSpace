@@ -30,7 +30,7 @@ export class User {
   email!: string;
 
   @Column({ name: 'email_verified', default: false })
-  emailVerified!: boolean;
+  emailVerified = false;
 
   @Column({ name: 'password_hash' })
   passwordHash!: string;

@@ -29,7 +29,7 @@ export class HackathonUser {
     enumName: 'hackathon_role_name_enum',
     default: HackRoleName.PARTICIPANT,
   })
-  hackRoleName!: HackRoleName;
+  hackRoleName = HackRoleName.PARTICIPANT;
 
   @ManyToOne(() => User, (user) => user.hackathonUsers, {
     nullable: false,
