@@ -2,7 +2,6 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import cookieParser from 'cookie-parser';
 
 // Creates the Nest application, configures Swagger/OpenAPI documentation with the HackSpace API metadata
@@ -33,18 +32,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Configure the consumer
-  app.connectMicroservice<MicroserviceOptions>({
-    transport: Transport.KAFKA,
-    options: {
-      client: { brokers: [process.env.KAFKA_BROKER || 'broker:9092'] },
-      consumer: { groupId: 'demo-consumer-group' },
-    },
-  });
-
   app.use(cookieParser());
-
-  await app.startAllMicroservices();
 
   await app.listen(process.env.PORT ?? 3000);
 }

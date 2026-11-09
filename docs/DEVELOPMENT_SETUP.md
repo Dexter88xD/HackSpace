@@ -22,7 +22,7 @@ Configure `POSTGRES_PASSWORD` and `JWT_SECRET` in the root `.env`. Add `MAIL_USE
 
 **Do not create** `backend/.env` or `frontend/.env` for the Compose workflow. If you already have those files, first copy any still-needed values into the root `.env`, then delete the redundant local files. Remove the tracked `backend/.env.example` and `frontend/.env.example` templates as part of this consolidation PR after transferring all required example variables into the root `.env.example`.
 
-The Makefile provides `--env-file .env` to Docker Compose. Compose uses it to resolve `${...}` expressions in `docker-compose.yml`. The backend and the current AI service also receive the root file through their `env_file` settings. The frontend receives **only** the browser-safe `VITE_API_BASE_URL` setting through `environment`, so database, JWT, OAuth and mail secrets are not unnecessarily injected into its container. Never put a secret in a `VITE_` variable: Vite can expose these values in client-side code.
+The Makefile provides `--env-file .env` to Docker Compose. Compose uses it to resolve `${...}` expressions in `docker-compose.yml`. The backend also receive the root file through its `env_file` settings. The frontend receives **only** the browser-safe `VITE_API_BASE_URL` setting through `environment`, so database, JWT, OAuth and mail secrets are not unnecessarily injected into its container. Never put a secret in a `VITE_` variable: Vite can expose these values in client-side code.
 
 These instructions cover the **Docker Compose workflow**. Starting NestJS or Vite directly outside Docker may require loading the root `.env` into that process separately.
 
@@ -47,12 +47,12 @@ make ps
 
 `make up` builds and starts the currently configured Docker Compose stack. The local application endpoints in the checked-in Compose configuration are:
 
-| Service | Local address |
-| --- | --- |
-| Frontend | `http://localhost:5173` |
-| Backend | `http://localhost:3000` |
-| PostgreSQL | `localhost:5432` |
-| Adminer | `http://localhost:8081` |
+| Service    | Local address           |
+| ---------- | ----------------------- |
+| Frontend   | `http://localhost:5173` |
+| Backend    | `http://localhost:3000` |
+| PostgreSQL | `localhost:5432`        |
+| Adminer    | `http://localhost:8081` |
 
 These are **local development** addresses, not production HTTPS endpoints. Other enabled services and ports are defined in `docker-compose.yml`.
 
@@ -93,28 +93,28 @@ make db
 
 Run Makefile targets from the **repository root**.
 
-| Command | Behaviour |
-| --- | --- |
-| `make help` | Show the available targets |
-| `make up` | Build and start the configured Compose stack |
-| `make down` | Stop and remove Compose containers without deliberately removing the database volume |
-| `make start` / `make stop` | Start or stop existing containers |
-| `make re` | Bring the stack down, then rebuild and restart it |
-| `make ps` | Show container status |
-| `make logs` | Follow Compose logs |
-| `make storage` | Start PostgreSQL |
-| `make backend` | Start the backend and its configured Compose dependencies |
-| `make frontend` | Start the frontend and PostgreSQL |
-| `make db` | Open a PostgreSQL command-line session |
-| `make migration` | Apply TypeORM migrations |
-| `make seed` | Run the development seed script |
-| `make db-reset` | **Destructive:** stop the active Compose stack and remove only its `db_data` PostgreSQL volume (selected using project and volume labels) |
-| `make lint` | Check backend and frontend with ESLint |
-| `make lint-fix` | Apply supported ESLint fixes to both applications |
-| `make typecheck` | Check backend and frontend application TypeScript |
-| `make build` | Run the NestJS and Vite application builds |
-| `make build-images` | Build Docker images, **not** application bundles |
-| `make test` | Run the backend Jest test suite |
+| Command                    | Behaviour                                                                                                                                 |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `make help`                | Show the available targets                                                                                                                |
+| `make up`                  | Build and start the configured Compose stack                                                                                              |
+| `make down`                | Stop and remove Compose containers without deliberately removing the database volume                                                      |
+| `make start` / `make stop` | Start or stop existing containers                                                                                                         |
+| `make re`                  | Bring the stack down, then rebuild and restart it                                                                                         |
+| `make ps`                  | Show container status                                                                                                                     |
+| `make logs`                | Follow Compose logs                                                                                                                       |
+| `make storage`             | Start PostgreSQL                                                                                                                          |
+| `make backend`             | Start the backend and its configured Compose dependencies                                                                                 |
+| `make frontend`            | Start the frontend and PostgreSQL                                                                                                         |
+| `make db`                  | Open a PostgreSQL command-line session                                                                                                    |
+| `make migration`           | Apply TypeORM migrations                                                                                                                  |
+| `make seed`                | Run the development seed script                                                                                                           |
+| `make db-reset`            | **Destructive:** stop the active Compose stack and remove only its `db_data` PostgreSQL volume (selected using project and volume labels) |
+| `make lint`                | Check backend and frontend with ESLint                                                                                                    |
+| `make lint-fix`            | Apply supported ESLint fixes to both applications                                                                                         |
+| `make typecheck`           | Check backend and frontend application TypeScript                                                                                         |
+| `make build`               | Run the NestJS and Vite application builds                                                                                                |
+| `make build-images`        | Build Docker images, **not** application bundles                                                                                          |
+| `make test`                | Run the backend Jest test suite                                                                                                           |
 
 The scripts invoked by `make lint`, `make lint-fix`, `make typecheck`, `make build` and `make test` use `docker compose exec`, so the corresponding containers **must already be running**. `make build-images` does not require them to be running.
 
