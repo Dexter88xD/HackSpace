@@ -11,7 +11,7 @@ import {
 } from 'typeorm';
 
 import { User } from './user.entity';
-import { Skill } from '../../domains/skills/entities/skill.entity';
+import { Skill } from '../../skills/entities/skill.entity';
 
 @Entity('user_profiles')
 export class UserProfile {

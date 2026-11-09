@@ -12,8 +12,8 @@ import {
 
 import { UserProfile } from './user-profile.entity';
 import { UserRole } from './user-role.entity';
-import { OAuthIdentity } from './oauth-identity.entity';
-import { HackathonUser } from './hackathon-user.entity';
+import { OAuthIdentity } from '../../auth/entities/oauth-identity.entity';
+import { HackathonUser } from '../../hackathons/entities/hackathon-user.entity';
 
 @Entity('users')
 export class User {

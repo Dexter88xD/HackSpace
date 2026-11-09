@@ -5,11 +5,11 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { RoleName } from '../../../database/entities/user-role.entity';
+import { RoleName } from '../../users/entities/user-role.entity';
 import type { AuthenticatedRequest } from '../interfaces/authenticated-request.interface';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from '../../../database/entities/user.entity';
+import { User } from '../../users/entities/user.entity';
 
 @Injectable()
 export class RolesGuard implements CanActivate {

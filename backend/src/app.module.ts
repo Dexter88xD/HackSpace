@@ -8,7 +8,7 @@ import { HackathonsModule } from './domains/hackathons/hackathons.module';
 import { TeamsModule } from './domains/teams/teams.module';
 import { EmailModule } from './shared/email/email.module';
 import { SkillsModule } from './domains/skills/skills.module';
-import { UserModule } from './users/user.module';
+import { UserModule } from './domains/users/user.module';
 
 // Configures the application by loading environment variables globally, establishing the PostgreSQL
 // database connection through TypeORM with automatic entity loading and migrations required for schema

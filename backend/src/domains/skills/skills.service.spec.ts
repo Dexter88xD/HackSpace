@@ -6,9 +6,9 @@ import {
 import { QueryFailedError, Repository } from 'typeorm';
 import { SkillsService } from './skills.service';
 import { Skill } from './entities/skill.entity';
-import { UserProfile } from '../../database/entities/user-profile.entity';
-import { User } from '../../database/entities/user.entity';
-import { RoleName } from '../../database/entities/user-role.entity';
+import { UserProfile } from '../users/entities/user-profile.entity';
+import { User } from '../users/entities/user.entity';
+import { RoleName } from '../users/entities/user-role.entity';
 
 const makeSkill = (id = 1, name = 'TypeScript'): Skill =>
   ({ id, name, normalizedName: name.toLowerCase() }) as Skill;

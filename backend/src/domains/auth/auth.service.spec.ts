@@ -3,12 +3,9 @@ import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { EmailService } from '../../shared/email/email.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { User } from '../../database/entities/user.entity';
-import { RoleName, UserRole } from '../../database/entities/user-role.entity';
-import {
-  OAuthIdentity,
-  OAuthProvider,
-} from '../../database/entities/oauth-identity.entity';
+import { User } from '../users/entities/user.entity';
+import { RoleName, UserRole } from '../users/entities/user-role.entity';
+import { OAuthIdentity, OAuthProvider } from './entities/oauth-identity.entity';
 import { DataSource } from 'typeorm';
 
 describe('AuthService', () => {

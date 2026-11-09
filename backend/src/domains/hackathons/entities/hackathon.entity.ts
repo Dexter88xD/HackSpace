@@ -11,7 +11,7 @@ import {
 import { HackathonPhase } from './hackathon-phase.entity';
 import { HackathonSettings } from './hackathon-settings.entity';
 import { HackathonUser } from './hackathon-user.entity';
-import { Team } from './team.entity';
+import { Team } from '../../teams/entities/team.entity';
 
 @Check('"start_at" < "end_at"')
 @Entity('hackathons')

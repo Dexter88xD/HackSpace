@@ -8,7 +8,7 @@ import {
   PrimaryGeneratedColumn,
   Unique,
 } from 'typeorm';
-import { Hackathon } from './hackathon.entity';
+import { Hackathon } from '../../hackathons/entities/hackathon.entity';
 import { TeamMember } from './team-member.entity';
 
 // Two teams in the same hackathon cannot share a name.

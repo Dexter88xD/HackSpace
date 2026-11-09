@@ -6,9 +6,9 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, In, QueryFailedError, Repository } from 'typeorm';
-import { UserProfile } from '../../database/entities/user-profile.entity';
-import { User } from '../../database/entities/user.entity';
-import { RoleName } from '../../database/entities/user-role.entity';
+import { UserProfile } from '../users/entities/user-profile.entity';
+import { User } from '../users/entities/user.entity';
+import { RoleName } from '../users/entities/user-role.entity';
 import { AddSkillDto, AddSkillsDto } from './dto/add-skill.dto';
 import { cleanSkillName, SkillNameQueryDto } from './dto/skill-validation.dto';
 import { UpdateSkillDto } from './dto/update-skill.dto';

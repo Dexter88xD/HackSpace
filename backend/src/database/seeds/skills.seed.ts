@@ -1,6 +1,6 @@
 import { EntityManager } from 'typeorm';
-import { User } from '../entities/user.entity';
-import { UserProfile } from '../entities/user-profile.entity';
+import { User } from '../../domains/users/entities/user.entity';
+import { UserProfile } from '../../domains/users/entities/user-profile.entity';
 import { Skill } from '../../domains/skills/entities/skill.entity';
 import { cleanSkillName } from '../../domains/skills/dto/skill-validation.dto';
 

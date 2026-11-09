@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { HackathonsController } from './hackathons.controller';
 import { HackathonsService } from './hackathons.service';
-import { HackathonPhaseName } from '../../database/entities/hackathon-phase.entity';
+import { HackathonPhaseName } from './entities/hackathon-phase.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { AuthenticatedRequest } from '../auth/interfaces/authenticated-request.interface';
 

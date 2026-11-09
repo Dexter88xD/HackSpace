@@ -6,7 +6,7 @@ import {
   PrimaryGeneratedColumn,
   Unique,
 } from 'typeorm';
-import { HackathonUser } from './hackathon-user.entity';
+import { HackathonUser } from '../../hackathons/entities/hackathon-user.entity';
 import { Team } from './team.entity';
 
 // A member is a hackathon registration (hackathon_users row) placed in a team.

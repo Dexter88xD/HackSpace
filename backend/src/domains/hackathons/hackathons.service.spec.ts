@@ -1,21 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Brackets, DataSource, EntityManager } from 'typeorm';
-import { Hackathon } from '../../database/entities/hackathon.entity';
+import { Hackathon } from './entities/hackathon.entity';
 import { HackathonsService } from './hackathons.service';
 import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
-import { HackathonSettings } from '../../database/entities/hackathon-settings.entity';
-import { HackathonPhaseName } from '../../database/entities/hackathon-phase.entity';
-import {
-  HackathonUser,
-  HackRoleName,
-} from '../../database/entities/hackathon-user.entity';
-import { User } from '../../database/entities/user.entity';
-import { RoleName } from '../../database/entities/user-role.entity';
+import { HackathonSettings } from './entities/hackathon-settings.entity';
+import { HackathonPhaseName } from './entities/hackathon-phase.entity';
+import { HackathonUser, HackRoleName } from './entities/hackathon-user.entity';
+import { User } from '../users/entities/user.entity';
+import { RoleName } from '../users/entities/user-role.entity';
 
 describe('HackathonsService', () => {
   let service: HackathonsService;

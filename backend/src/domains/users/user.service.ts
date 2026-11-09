@@ -6,8 +6,8 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
 
-import { User } from '../database/entities/user.entity';
-import { UserProfile } from '../database/entities/user-profile.entity';
+import { User } from './entities/user.entity';
+import { UserProfile } from './entities/user-profile.entity';
 
 import { CreateProfileDto } from './dto/create-profile.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';

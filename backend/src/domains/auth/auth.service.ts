@@ -14,13 +14,10 @@ import { EmailService } from '../../shared/email/email.service';
 import { OtpVerificationDto } from './dto/otp-verification.dto';
 import { LoginDto } from './dto/login.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from '../../database/entities/user.entity';
+import { User } from '../users/entities/user.entity';
 import { DataSource, QueryFailedError, Repository } from 'typeorm';
-import { RoleName, UserRole } from '../../database/entities/user-role.entity';
-import {
-  OAuthIdentity,
-  OAuthProvider,
-} from '../../database/entities/oauth-identity.entity';
+import { RoleName, UserRole } from '../users/entities/user-role.entity';
+import { OAuthIdentity, OAuthProvider } from './entities/oauth-identity.entity';
 import { randomBytes } from 'crypto';
 @Injectable()
 export class AuthService {
