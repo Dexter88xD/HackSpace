@@ -161,10 +161,6 @@ export class HackathonsService {
       });
       const savedHackathon = await manager.save(hackathon);
       const hackathonSettings = manager.create(HackathonSettings, {
-        minTeamMembers: 1,
-        maxTeamMembers: 5,
-        filesLimit: 0,
-        fileMaxSize: 0,
         hackathon: savedHackathon,
       });
       await manager.save(hackathonSettings);

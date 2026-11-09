@@ -316,7 +316,8 @@ describe('HackathonsService', () => {
           callback(mockManager as unknown as EntityManager),
       );
       mockManager.create.mockImplementation(
-        (_entity: unknown, data: unknown): unknown => data,
+        (entity: new () => object, data: object) =>
+          Object.assign(new entity(), data),
       );
       mockManager.save.mockImplementation((entity: unknown): Promise<unknown> =>
         Promise.resolve(entity),
@@ -341,16 +342,20 @@ describe('HackathonsService', () => {
       expect(mockManager.create).toHaveBeenCalledTimes(3);
       expect(mockManager.save).toHaveBeenCalledTimes(3);
 
-      expect(mockManager.create).toHaveBeenCalledWith(
-        HackathonSettings,
-        expect.objectContaining({
-          minTeamMembers: 1,
-          maxTeamMembers: 5,
-          filesLimit: 0,
-          fileMaxSize: 0,
-          hackathon: result,
-        }),
-      );
+      expect(mockManager.create).toHaveBeenCalledWith(HackathonSettings, {
+        hackathon: result,
+      });
+
+      const settingsSaveCall = mockManager.save.mock.calls[1];
+      const createdSettings = settingsSaveCall[0] as HackathonSettings;
+      expect(createdSettings).toBeInstanceOf(HackathonSettings);
+      expect(createdSettings).toMatchObject({
+        minTeamMembers: 1,
+        maxTeamMembers: 5,
+        filesLimit: 0,
+        fileMaxSize: 0,
+        hackathon: result,
+      });
       expect(mockManager.create).toHaveBeenCalledWith(
         HackathonUser,
         expect.objectContaining({

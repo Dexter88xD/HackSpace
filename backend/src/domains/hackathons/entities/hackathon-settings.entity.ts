@@ -16,16 +16,16 @@ export class HackathonSettings {
   id!: number;
 
   @Column({ name: 'min_team_members' })
-  minTeamMembers!: number;
+  minTeamMembers = 1;
 
   @Column({ name: 'max_team_members' })
-  maxTeamMembers!: number;
+  maxTeamMembers = 5;
 
   @Column({ name: 'files_limit', default: 0 })
-  filesLimit!: number;
+  filesLimit = 0;
 
   @Column({ name: 'file_max_size', default: 0 })
-  fileMaxSize!: number;
+  fileMaxSize = 0;
 
   @OneToOne(() => Hackathon, (hackathon) => hackathon.settings, {
     nullable: false,
