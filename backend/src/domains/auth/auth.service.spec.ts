@@ -87,7 +87,7 @@ describe('AuthService', () => {
     process.env.GOOGLE_CLIENT_ID = 'google-client';
     process.env.GOOGLE_CLIENT_SECRET = 'google-secret';
     process.env.GOOGLE_CALLBACK_URL =
-      'http://localhost:3000/auth/oauth/google/callback';
+      'https://localhost/api/auth/oauth/google/callback';
 
     const result = service.getOAuthAuthorizationUrl('google');
     const url = new URL(result.url);
@@ -105,7 +105,7 @@ describe('AuthService', () => {
     process.env.INTRA42_CLIENT_ID = 'intra-client';
     process.env.INTRA42_CLIENT_SECRET = 'intra-secret';
     process.env.INTRA42_CALLBACK_URL =
-      'http://localhost:3000/auth/oauth/42/callback';
+      'https://localhost/api/auth/oauth/42/callback';
 
     const result = service.getOAuthAuthorizationUrl('42');
     const url = new URL(result.url);

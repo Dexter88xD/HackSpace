@@ -314,7 +314,7 @@ export class AuthService {
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET || '';
     const callbackUrl =
       process.env.GOOGLE_CALLBACK_URL ||
-      'http://localhost:3000/auth/oauth/google/callback';
+      'https://localhost/api/auth/oauth/google/callback';
     return {
       provider: OAuthProvider.GOOGLE,
       clientId,
@@ -334,7 +334,7 @@ export class AuthService {
     const clientSecret = process.env.INTRA42_CLIENT_SECRET || '';
     const callbackUrl =
       process.env.INTRA42_CALLBACK_URL ||
-      'http://localhost:3000/auth/oauth/42/callback';
+      'https://localhost/api/auth/oauth/42/callback';
     return {
       provider: OAuthProvider.INTRA42,
       clientId,

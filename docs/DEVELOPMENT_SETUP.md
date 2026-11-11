@@ -18,11 +18,11 @@ HackSpace uses **one local environment file**, `.env` at the repository root, an
 cp .env.example .env
 ```
 
-Configure `POSTGRES_PASSWORD` and `JWT_SECRET` in the root `.env`. Add `MAIL_USER` and `MAIL_PASS` there when testing email verification, and fill in the relevant OAuth credentials if needed. Set `VITE_API_BASE_URL` for frontend API requests and `FRONTEND_URL` for backend OAuth redirects; the example defaults are `http://localhost:3000` and `http://localhost:5173` respectively.
+Configure `POSTGRES_PASSWORD` and `JWT_SECRET` in the root `.env`. Add `MAIL_USER` and `MAIL_PASS` there when testing email verification, and fill in the relevant OAuth credentials if needed. The frontend sends requests through the same-origin `/api` path. Set `FRONTEND_URL` to the browser-facing application origin for backend OAuth redirects; the example uses `https://localhost`.
 
 **Do not create** `backend/.env` or `frontend/.env` for the Compose workflow. If you already have those files, first copy any still-needed values into the root `.env`, then delete the redundant local files. Remove the tracked `backend/.env.example` and `frontend/.env.example` templates as part of this consolidation PR after transferring all required example variables into the root `.env.example`.
 
-The Makefile provides `--env-file .env` to Docker Compose. Compose uses it to resolve `${...}` expressions in `docker-compose.yml`. The backend also receive the root file through its `env_file` settings. The frontend receives **only** the browser-safe `VITE_API_BASE_URL` setting through `environment`, so database, JWT, OAuth and mail secrets are not unnecessarily injected into its container. Never put a secret in a `VITE_` variable: Vite can expose these values in client-side code.
+The Makefile provides `--env-file .env` to Docker Compose. Compose uses it to resolve `${...}` expressions in `docker-compose.yml`. The backend receives the root file through its `env_file` setting. The frontend does not receive the root `.env`; its API client uses the same-origin `/api` path. Never put a secret in a `VITE_` variable: Vite can expose these values in client-side code.
 
 These instructions cover the **Docker Compose workflow**. Starting NestJS or Vite directly outside Docker may require loading the root `.env` into that process separately.
 
@@ -49,12 +49,13 @@ make ps
 
 | Service    | Local address           |
 | ---------- | ----------------------- |
-| Frontend   | `http://localhost:5173` |
-| Backend    | `http://localhost:3000` |
+| Application (Caddy) | `https://localhost` |
+| Frontend (direct)   | `http://localhost:5173` |
+| Backend (direct)    | `http://localhost:3000` |
 | PostgreSQL | `localhost:5432`        |
 | Adminer    | `http://localhost:8081` |
 
-These are **local development** addresses, not production HTTPS endpoints. Other enabled services and ports are defined in `docker-compose.yml`.
+The Caddy endpoint is the normal browser entry point. Its locally generated certificate may require accepting a browser warning. The direct frontend and backend addresses are for development diagnostics. Other enabled services and ports are defined in `docker-compose.yml`.
 
 For container status and logs:
 

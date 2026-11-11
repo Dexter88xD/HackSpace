@@ -9,8 +9,6 @@ services:
       - /app/node_modules # prevents host node_modules from shadowing the container's
     # Only browser-safe, VITE_-prefixed settings are provided to Vite.
     # Server credentials stay out of the frontend container.
-    environment:
-      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:3000}
     networks:
       - hackspace_network
 
@@ -55,6 +53,18 @@ services:
     networks:
       - hackspace_network
 
+  caddy:
+    image: caddy:2.10.2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infrastructure/caddy/Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+    networks:
+      - hackspace_network
+
   # minio:
   #   image: quay.io/minio/minio:latest
   #   command: server /data --console-address ":9001"
@@ -71,6 +81,7 @@ services:
 
 volumes:
   db_data:
+  caddy_data:
   # minio_data:
 
 networks:
