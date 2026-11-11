@@ -14,7 +14,7 @@ This repository is a Docker Compose monorepo containing a React/TypeScript front
 - **Teams:** create teams for a hackathon, browse teams, view your own team, join and leave teams.
 - **Authorisation:** platform-level `ROLE_USER` and `ROLE_ADMIN` roles, plus hackathon-specific membership roles. An authenticated user can create a hackathon; its organiser or a platform administrator can edit it.
 
-MinIO and Nginx configuration exists in the repository, but MinIO is commented out in the active Compose file and Nginx is not part of the running development stack. Do not treat these as delivered features.
+MinIO runs as local object storage using a Chainguard image pinned by immutable digest. Application uploads are not implemented yet. Nginx is not part of the running development stack.
 
 ## Technology stack and rationale
 
@@ -45,7 +45,7 @@ Create **one** local environment file in the repository root:
 cp .env.example .env
 ```
 
-Fill in the required development values, including `POSTGRES_PASSWORD` and `JWT_SECRET`. Configure SMTP credentials for email verification and provider credentials when testing OAuth. The `VITE_API_BASE_URL` variable is browser-visible and **must not contain secrets**. Do not commit `.env`; use `.env.example` for safe placeholder values only.
+Fill in the required development values, including `POSTGRES_PASSWORD`, `JWT_SECRET`, and `MINIO_ROOT_PASSWORD` (at least 8 characters). `MINIO_ROOT_USER` must contain at least 3 characters. Configure SMTP credentials for email verification and provider credentials when testing OAuth. The `VITE_API_BASE_URL` variable is browser-visible and **must not contain secrets**. Do not commit `.env`; use `.env.example` for safe placeholder values only.
 
 ### Start the application
 
@@ -56,6 +56,8 @@ make migration
 ```
 
 Open the frontend at `http://localhost:5173`; the backend API is served at `http://localhost:3000` and Adminer at `http://localhost:8081` in the current local Compose configuration.
+
+The MinIO S3 API is at `http://localhost:9000` and its console at `http://localhost:9001`; sign in using the MinIO credentials from `.env`. Containers reach the S3 API at `http://minio:9000`. Objects persist in the `minio_data` volume. `make storage` starts PostgreSQL and MinIO, and the backend waits for MinIO to become healthy.
 
 The development database can be populated with sample accounts, skills and hackathons. First enable development-only seeding and set the required seed credentials in `.env`, then run:
 
