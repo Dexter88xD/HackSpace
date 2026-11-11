@@ -18,6 +18,8 @@ import { RoleName } from '../users/entities/user-role.entity';
 import { HackathonPhaseName } from './entities/hackathon-phase.entity';
 import { Team } from '../teams/entities/team.entity';
 import { TeamMember } from '../teams/entities/team-member.entity';
+import { validatePhaseSchedule } from './utils/validate-phase-schedule';
+import { HackathonPhase } from './entities/hackathon-phase.entity';
 
 @Injectable()
 export class HackathonsService {
@@ -151,6 +153,7 @@ export class HackathonsService {
     if (startAt >= endAt) {
       throw new BadRequestException('Hackathon dates are incorrect');
     }
+    validatePhaseSchedule(dto.phases, startAt, endAt);
     return this.dataSource.transaction(async (manager) => {
       const hackathon = manager.create(Hackathon, {
         title: dto.title,
@@ -170,6 +173,16 @@ export class HackathonsService {
         hackRoleName: HackRoleName.ORGANIZER,
       });
       await manager.save(hackathonUser);
+      const phases = dto.phases.map((phase) =>
+        manager.create(HackathonPhase, {
+          phaseName: phase.phaseName,
+          description: phase.description ?? null,
+          startAt: new Date(phase.startAt),
+          endAt: new Date(phase.endAt),
+          hackathon: savedHackathon,
+        }),
+      );
+      await manager.save(phases);
       return savedHackathon;
     });
   }
