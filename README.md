@@ -14,7 +14,7 @@ This repository is a Docker Compose monorepo containing a React/TypeScript front
 - **Teams:** create teams for a hackathon, browse teams, view your own team, join and leave teams.
 - **Authorisation:** platform-level `ROLE_USER` and `ROLE_ADMIN` roles, plus hackathon-specific membership roles. An authenticated user can create a hackathon; its organiser or a platform administrator can edit it.
 
-MinIO runs as local object storage using a Chainguard image pinned by immutable digest. The backend uploads files through an S3 file manager strategy. Nginx is not part of the running development stack.
+MinIO runs as local object storage using a Chainguard image pinned by immutable digest. The backend uploads files through an S3 file manager strategy. Caddy is enabled in the development stack as the local HTTPS reverse proxy; it routes `/api/*` to the backend and other requests to the frontend.
 
 ## Technology stack and rationale
 
@@ -45,7 +45,7 @@ Create **one** local environment file in the repository root:
 cp .env.example .env
 ```
 
-Fill in the required development values, including `POSTGRES_PASSWORD`, `JWT_SECRET`, and `MINIO_ROOT_PASSWORD` (at least 8 characters). `MINIO_ROOT_USER` must contain at least 3 characters. Configure SMTP credentials for email verification and provider credentials when testing OAuth. The `VITE_API_BASE_URL` variable is browser-visible and **must not contain secrets**. Do not commit `.env`; use `.env.example` for safe placeholder values only.
+Fill in the required development values, including `POSTGRES_PASSWORD`, `JWT_SECRET`, and `MINIO_ROOT_PASSWORD` (at least 8 characters). `MINIO_ROOT_USER` must contain at least 3 characters. Configure SMTP credentials for email verification and provider credentials when testing OAuth. The frontend uses the same-origin `/api` path through Caddy; any `VITE_` variable is browser-visible and **must not contain secrets**. Do not commit `.env`; use `.env.example` for safe placeholder values only.
 
 ### Start the application
 
@@ -55,7 +55,7 @@ make ps
 make migration
 ```
 
-Open the frontend at `http://localhost:5173`; the backend API is served at `http://localhost:3000` and Adminer at `http://localhost:8081` in the current local Compose configuration.
+Open the application at `https://localhost` through Caddy. The browser may show a certificate warning because the local Caddy configuration uses an internally generated certificate. The frontend and backend are also exposed directly at `http://localhost:5173` and `http://localhost:3000` for development diagnostics; Adminer is available at `http://localhost:8081`.
 
 The MinIO S3 API is at `http://localhost:9000` and its console at `http://localhost:9001`; sign in using the MinIO credentials from `.env`. Containers reach the S3 API at `http://minio:9000`. Objects persist in the `minio_data` volume. `make storage` starts PostgreSQL and MinIO, and the backend waits for MinIO to become healthy.
 
@@ -107,7 +107,7 @@ HackSpace/
 
 ## Authentication and permissions
 
-The API uses HTTP-only access-token cookies for authentication. Google and 42 Intra OAuth start at `/auth/oauth/google` and `/auth/oauth/42`, with callbacks under the corresponding `/callback` paths. OAuth redirects use `FRONTEND_URL`.
+The API uses HTTP-only access-token cookies for authentication. Through the local Caddy entry point, Google and 42 Intra OAuth start at `/api/auth/oauth/google` and `/api/auth/oauth/42`, with callbacks under the corresponding `/callback` paths. OAuth redirects use `FRONTEND_URL`.
 
 Hackathon permissions distinguish **global platform roles** from **membership roles**:
 
@@ -150,7 +150,7 @@ AI assistance (including ChatGPT) has been used for learning, documentation draf
 
 ## Security and deployment scope
 
-The current Compose environment is for **local development**, using HTTP and development-oriented settings. It is **not a production deployment guide**. Production use requires a verified HTTPS setup, secure cookie configuration, appropriate secrets management and deployment-specific hardening.
+The current Compose environment is for **local development**, using Caddy's local HTTPS certificate and development-oriented settings. It is **not a production deployment guide**. Production use requires a verified HTTPS setup, secure cookie configuration, appropriate secrets management and deployment-specific hardening.
 
 File metadata is stored in the `files` table after a successful upload. Run the TypeORM migrations before using this endpoint. Allowed extensions are PDF, DOCX, PPTX, TXT, CSV, JPG/JPEG, and PNG, with matching declared MIME types; file contents are not inspected. Optional multipart `hackathonId` and `teamId` fields link files to existing records. A team determines its hackathon, and conflicting IDs are rejected. The stored metadata URL is unsigned; the response URL is signed for one hour.
 

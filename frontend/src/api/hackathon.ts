@@ -24,7 +24,7 @@ export const getMyHackathons = async (
 
 export const getHackathonMembership = async (hackathonId: number) => {
   const response = await api.get<HackathonMembershipResponse>(
-    `hackathons/${hackathonId}/membership`,
+    `/hackathons/${hackathonId}/membership`,
   );
   return response.data;
 };
