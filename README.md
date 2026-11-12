@@ -61,7 +61,9 @@ The MinIO S3 API is at `http://localhost:9000` and its console at `http://localh
 
 The backend uses `MINIO_ENDPOINT` (default `http://minio:9000`) and the existing `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` credentials. When running the backend outside Docker, set `MINIO_ENDPOINT=http://localhost:9000` in its environment.
 
-Upload with `curl -F 'file=@./example.txt' -F 'bucket=uploads' http://localhost:3000/files/upload`. The optional `bucket` field defaults to `default`; missing buckets are created automatically. Files use their original names as object keys, so uploading the same name to the same bucket replaces its contents. A successful request returns `S3 upload successful: <bucket>/<filename>`. This demonstration endpoint is unauthenticated; bucket contents remain private.
+Upload with `curl -F 'file=@./example.txt' -F 'bucket=uploads' http://localhost:3000/files/upload`. The optional `bucket` field defaults to `default`; missing buckets are created automatically. Each upload uses a fresh UUID as its database ID and `<uuid><original extension>` as its object key, while the original filename is preserved in metadata. Repeated uploads of the same filename are stored separately. A successful request returns `{ "url": "<signed download URL>" }`, valid for one hour and usable in an image's `src`. This demonstration endpoint is unauthenticated; bucket contents remain private.
+
+Set `MINIO_PUBLIC_ENDPOINT` to the browser-accessible S3 API address (default `http://localhost:9000`). This is used when signing download URLs; `MINIO_ENDPOINT` continues to handle uploads inside Docker. For deployment, use an HTTPS endpoint reachable by your users. Do not replace the hostname in a signed URL after generating it.
 
 The development database can be populated with sample accounts, skills and hackathons. First enable development-only seeding and set the required seed credentials in `.env`, then run:
 
@@ -149,3 +151,9 @@ AI assistance (including ChatGPT) has been used for learning, documentation draf
 ## Security and deployment scope
 
 The current Compose environment is for **local development**, using HTTP and development-oriented settings. It is **not a production deployment guide**. Production use requires a verified HTTPS setup, secure cookie configuration, appropriate secrets management and deployment-specific hardening.
+
+File metadata is stored in the `files` table after a successful upload. Run the TypeORM migrations before using this endpoint. Allowed extensions are PDF, DOCX, PPTX, TXT, CSV, JPG/JPEG, and PNG, with matching declared MIME types; file contents are not inspected. Optional multipart `hackathonId` and `teamId` fields link files to existing records. A team determines its hackathon, and conflicting IDs are rejected. The stored metadata URL is unsigned; the response URL is signed for one hour.
+
+Delete a stored file with `DELETE /files/<uuid>` (204 on success, 404 if absent). The file manager removes the storage object first, then its database row. Storage failures retain metadata; database failures after storage deletion are returned to the caller, allowing a retry to finish removing the row. Deletion uses the existing unauthenticated demonstration files controller.
+
+`MAX_FILE_UPLOAD_BYTES` sets the maximum upload size in bytes (default `10485760`, or 10 MiB). It must be a positive integer. The file manager rejects larger buffers with HTTP 413 before storage or metadata operations; files exactly at the limit are accepted.

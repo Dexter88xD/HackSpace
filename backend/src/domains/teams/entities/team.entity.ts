@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { Hackathon } from '../../hackathons/entities/hackathon.entity';
 import { TeamMember } from './team-member.entity';
+import { StoredFile } from '../../../shared/files/entities/stored-file.entity';
 
 // Two teams in the same hackathon cannot share a name.
 @Unique('UQ_teams_hackathon_name', ['hackathon', 'name'])
@@ -36,4 +37,7 @@ export class Team {
 
   @OneToMany(() => TeamMember, (member) => member.team)
   members!: TeamMember[];
+
+  @OneToMany(() => StoredFile, (file) => file.team)
+  files!: StoredFile[];
 }
