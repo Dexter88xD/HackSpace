@@ -55,6 +55,9 @@ services:
 
   caddy:
     image: caddy:2.10.2-alpine
+    depends_on:
+      - frontend
+      - backend
     restart: unless-stopped
     ports:
       - "80:80"
