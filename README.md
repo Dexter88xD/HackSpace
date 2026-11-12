@@ -14,7 +14,7 @@ This repository is a Docker Compose monorepo containing a React/TypeScript front
 - **Teams:** create teams for a hackathon, browse teams, view your own team, join and leave teams.
 - **Authorisation:** platform-level `ROLE_USER` and `ROLE_ADMIN` roles, plus hackathon-specific membership roles. An authenticated user can create a hackathon; its organiser or a platform administrator can edit it.
 
-MinIO runs as local object storage using a Chainguard image pinned by immutable digest. Application uploads are not implemented yet. Nginx is not part of the running development stack.
+MinIO runs as local object storage using a Chainguard image pinned by immutable digest. The backend uploads files through an S3 file manager strategy. Nginx is not part of the running development stack.
 
 ## Technology stack and rationale
 
@@ -58,6 +58,10 @@ make migration
 Open the frontend at `http://localhost:5173`; the backend API is served at `http://localhost:3000` and Adminer at `http://localhost:8081` in the current local Compose configuration.
 
 The MinIO S3 API is at `http://localhost:9000` and its console at `http://localhost:9001`; sign in using the MinIO credentials from `.env`. Containers reach the S3 API at `http://minio:9000`. Objects persist in the `minio_data` volume. `make storage` starts PostgreSQL and MinIO, and the backend waits for MinIO to become healthy.
+
+The backend uses `MINIO_ENDPOINT` (default `http://minio:9000`) and the existing `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` credentials. When running the backend outside Docker, set `MINIO_ENDPOINT=http://localhost:9000` in its environment.
+
+Upload with `curl -F 'file=@./example.txt' -F 'bucket=uploads' http://localhost:3000/files/upload`. The optional `bucket` field defaults to `default`; missing buckets are created automatically. Files use their original names as object keys, so uploading the same name to the same bucket replaces its contents. A successful request returns `S3 upload successful: <bucket>/<filename>`. This demonstration endpoint is unauthenticated; bucket contents remain private.
 
 The development database can be populated with sample accounts, skills and hackathons. First enable development-only seeding and set the required seed credentials in `.env`, then run:
 

@@ -16,5 +16,6 @@
 				".vscode"
 			]
 		}
-	}
+	},
+	"python.terminal.useEnvFile": true
 }
