@@ -42,7 +42,7 @@ describe('AuthController', () => {
     );
 
     expect(response.redirect).toHaveBeenCalledWith(
-      'http://localhost:5173/login?oauthError=OAuth%20authentication%20was%20cancelled',
+      'https://localhost/login?oauthError=OAuth%20authentication%20was%20cancelled',
     );
     expect(response.clearCookie).toHaveBeenCalledWith('oauthState');
   });
@@ -64,7 +64,7 @@ describe('AuthController', () => {
 
     expect(response.clearCookie).toHaveBeenCalledWith('oauthState');
     expect(response.redirect).toHaveBeenCalledWith(
-      'http://localhost:5173/login?oauthError=Invalid%20OAuth%20request',
+      'https://localhost/login?oauthError=Invalid%20OAuth%20request',
     );
   });
 });

@@ -7,7 +7,7 @@ import { AuthenticatedUser } from "@/types/auth";
 export type OAuthProvider = "google" | "42";
 
 export const startOAuth = (provider: OAuthProvider) => {
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+    const baseUrl = "/api";
     window.location.assign(`${baseUrl}/auth/oauth/${provider}`);
 };
 
