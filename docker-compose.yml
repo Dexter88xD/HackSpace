@@ -63,9 +63,9 @@ services:
       - "80:80"
       - "443:443"
     environment:
-      CADDY_HOST: ${CADDY_HOST}
-      BACKEND_HOST: ${BACKEND_HOST}
-      FRONTEND_HOST: ${FRONTEND_HOST}
+      CADDY_HOST: ${CADDY_HOST:-localhost}
+      BACKEND_HOST: ${BACKEND_HOST:-backend:3000}
+      FRONTEND_HOST: ${FRONTEND_HOST:-frontend:5173}
     volumes:
       - ./infrastructure/caddy/Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data

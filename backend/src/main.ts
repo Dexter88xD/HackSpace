@@ -5,8 +5,8 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 
 // Creates the Nest application, configures Swagger/OpenAPI documentation with the HackSpace API metadata
-// and exposes it at /api, enables global request validation with whitelist/forbidNonWhitelisted to reject
-// unexpected fields, enables CORS for the React frontend running on localhost:5173, and starts the server
+// and exposes it at /api/docs, enables global request validation with whitelist/forbidNonWhitelisted to reject
+// unexpected fields, enables CORS for the frontend origin (CORS_ORIGIN, falling back to FRONTEND_URL), and starts the server
 // using the configured PORT or 3000 as the default.
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -31,7 +31,7 @@ async function bootstrap() {
     }),
   );
   app.enableCors({
-    origin: process.env.CORS_ORIGIN,
+    origin: process.env.CORS_ORIGIN || process.env.FRONTEND_URL,
     credentials: true,
   });
 
