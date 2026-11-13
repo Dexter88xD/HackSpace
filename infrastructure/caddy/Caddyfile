@@ -1,0 +1,13 @@
+{$CADDY_HOST} {
+    tls internal
+
+    @backend path /api/*
+
+    handle @backend {
+        reverse_proxy {$BACKEND_HOST}   
+    }
+
+    handle { 
+        reverse_proxy {$FRONTEND_HOST}
+    }
+}

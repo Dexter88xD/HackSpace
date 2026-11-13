@@ -8,6 +8,7 @@ import {
   Query,
   Req,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { RegisterDto } from './dto/register.dto';
 import { AuthService } from './auth.service';
@@ -15,7 +16,6 @@ import { OtpVerificationDto } from './dto/otp-verification.dto';
 import { LoginDto } from './dto/login.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { ApiResponse } from '@nestjs/swagger';
-import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import type { AuthenticatedRequest } from './interfaces/authenticated-request.interface';
 import type { Response } from 'express';
@@ -65,7 +65,7 @@ export class AuthController {
     const { accessToken } = await this.authService.signin(loginDto);
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
-      secure: false, //TODO: false is only for development; use true in production
+      secure: true,
       sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
@@ -90,7 +90,7 @@ export class AuthController {
     const { url, state } = this.authService.getOAuthAuthorizationUrl(provider);
     res.cookie('oauthState', state, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: true,
       sameSite: 'lax',
       maxAge: 10 * 60 * 1000,
     });
@@ -106,7 +106,7 @@ export class AuthController {
     @Req() req: AuthenticatedRequest,
     @Res() res: Response,
   ) {
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendUrl = process.env.FRONTEND_URL || 'https://localhost';
     const redirectToLogin = (reason: string) =>
       res.redirect(
         `${frontendUrl}/login?oauthError=${encodeURIComponent(reason)}`,
@@ -126,7 +126,7 @@ export class AuthController {
       );
       res.cookie('accessToken', accessToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: true,
         sameSite: 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });

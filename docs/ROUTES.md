@@ -2,8 +2,9 @@
 
 This document maps the **current frontend pages** and **backend HTTP endpoints** used during local development. React Router controls frontend navigation; NestJS controllers define backend API routes. They are not interchangeable.
 
-- Frontend (Vite): `http://localhost:5173`
-- Backend (NestJS): `http://localhost:3000`
+- Application (Caddy): `https://localhost`
+- Frontend (direct Vite): `http://localhost:5173`
+- Backend (direct NestJS): `http://localhost:3000`
 
 ## Frontend pages
 
@@ -23,11 +24,11 @@ The following paths are defined in `frontend/src/App.tsx`.
 | `/register`            | Register             | Public        | Account registration                                                            |
 | `/verify-otp`          | OTP Verification     | Public        | Email verification                                                              |
 
-Frontend `ProtectedRoute` verifies authentication using `GET /auth/me`; access controls in the UI do **not** replace backend permission checks.
+Frontend `ProtectedRoute` verifies authentication using `GET /api/auth/me`; access controls in the UI do **not** replace backend permission checks.
 
 ## Backend HTTP endpoints
 
-Paths are relative to `http://localhost:3000`. **Authenticated** means the endpoint requires a valid authenticated session via `JwtAuthGuard`. Additional permissions can be checked in services.
+Paths below are listed relative to the backend `/api` prefix. Through the normal local entry point, prepend `/api` to serve them from `https://localhost/api`. **Authenticated** means the endpoint requires a valid authenticated session via `JwtAuthGuard`. Additional permissions can be checked in services.
 
 ### Authentication
 
@@ -109,10 +110,10 @@ These skill-specific permissions are enforced in `SkillsService`, including the 
 
 | URL                         | Purpose                          |
 | --------------------------- | -------------------------------- |
-| `http://localhost:3000/api` | Swagger UI                       |
+| `https://localhost/api/docs` | Swagger UI                       |
 | `http://localhost:5173`     | Frontend application             |
 | `http://localhost:8081`     | Adminer, when enabled in Compose |
 
 For local setup and environment variables, see [Development Setup](./DEVELOPMENT_SETUP.md). For coding standards and permissions, see [Development Guidelines](./DEVELOPMENT_GUIDELINES.md).
 
-**API contract:** HackSpace application request and response fields now use `camelCase`, while PostgreSQL columns remain `snake_case`. See [API Contracts](./api_contracts.yml) for current payload schemas. The interactive Swagger UI is hosted at `/api`; application endpoints themselves are rooted at `/`.
+**API contract:** HackSpace application request and response fields now use `camelCase`, while PostgreSQL columns remain `snake_case`. See [API Contracts](./api_contracts.yml) for current payload schemas. Application endpoints use the `/api` prefix; the interactive Swagger UI is hosted at `/api/docs`.
