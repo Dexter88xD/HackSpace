@@ -1,4 +1,5 @@
 import type { StoredFile } from './entities/stored-file.entity';
+import type { FileBucket } from './file-bucket';
 
 export const FILE_PUBLIC_ENDPOINT = 'FILE_PUBLIC_ENDPOINT';
 export const MAX_FILE_UPLOAD_BYTES = 'MAX_FILE_UPLOAD_BYTES';
@@ -7,7 +8,7 @@ export interface UploadFile {
   originalname: string;
   mimetype: string;
   buffer: Buffer;
-  bucket?: string;
+  bucket?: FileBucket;
   hackathonId?: number;
   teamId?: number;
 }

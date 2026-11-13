@@ -10,6 +10,7 @@ import type { Repository } from 'typeorm';
 import { S3FileManager } from './s3-file-manager';
 import { StoredFile } from './entities/stored-file.entity';
 import { FileType } from './file-type';
+import { FileBucket } from './file-bucket';
 import type { Hackathon } from '../../domains/hackathons/entities/hackathon.entity';
 import type { Team } from '../../domains/teams/entities/team.entity';
 
@@ -18,7 +19,7 @@ describe('S3FileManager', () => {
     originalname: 'example.txt',
     mimetype: 'text/plain',
     buffer: Buffer.from('example'),
-    bucket: 'uploads',
+    bucket: FileBucket.DEFAULT,
   };
   const hackathon = { id: 1 } as Hackathon;
   const team = { id: 2, hackathon } as Team;
@@ -104,11 +105,11 @@ describe('S3FileManager', () => {
     const stored = Object.assign(new StoredFile(), {
       id: '2813bd63-e537-427a-a129-d23f24ab5148',
       name: 'example.txt',
-      bucket: 'uploads',
+      bucket: FileBucket.DEFAULT,
     });
     await manager.delete(stored);
     expect(s3.deleteObject).toHaveBeenCalledWith({
-      Bucket: 'uploads',
+      Bucket: FileBucket.DEFAULT,
       Key: `${stored.id}.txt`,
     });
     expect(files.delete).toHaveBeenCalledWith(stored.id);
@@ -125,7 +126,7 @@ describe('S3FileManager', () => {
         Object.assign(new StoredFile(), {
           id: 'test',
           name: 'example.txt',
-          bucket: 'uploads',
+          bucket: FileBucket.DEFAULT,
         }),
       ),
     ).rejects.toBe(error);
@@ -140,7 +141,7 @@ describe('S3FileManager', () => {
         Object.assign(new StoredFile(), {
           id: 'test',
           name: 'example.txt',
-          bucket: 'uploads',
+          bucket: FileBucket.DEFAULT,
         }),
       ),
     ).rejects.toBe(error);
@@ -151,11 +152,11 @@ describe('S3FileManager', () => {
     const stored = Object.assign(new StoredFile(), {
       id: '2813bd63-e537-427a-a129-d23f24ab5148',
       name: 'original.txt',
-      bucket: 'saved-bucket',
+      bucket: FileBucket.DEFAULT,
     });
     const url = new URL(await manager.getFile(stored));
     expect(url.origin).toBe('http://localhost:9000');
-    expect(url.pathname).toBe(`/saved-bucket/${stored.id}.txt`);
+    expect(url.pathname).toBe(`/default/${stored.id}.txt`);
     expect(url.searchParams.get('X-Amz-Expires')).toBe('3600');
     expect(url.searchParams.get('X-Amz-Signature')).toBeTruthy();
     expect(files.save).not.toHaveBeenCalled();
@@ -170,14 +171,14 @@ describe('S3FileManager', () => {
     );
     expect(stored).toMatchObject({
       name: file.originalname,
-      bucket: 'uploads',
+      bucket: FileBucket.DEFAULT,
       fileType: FileType.TXT,
-      url: `http://localhost:9000/uploads/${stored.id}.txt`,
+      url: `http://localhost:9000/default/${stored.id}.txt`,
       hackathon: null,
       team: null,
     });
     expect(s3.putObject).toHaveBeenCalledWith({
-      Bucket: 'uploads',
+      Bucket: FileBucket.DEFAULT,
       Key: `${stored.id}.txt`,
       Body: file.buffer,
       ContentType: file.mimetype,
@@ -240,46 +241,52 @@ describe('S3FileManager', () => {
     },
   );
 
-  it.each(['default', 'uploads'])(
-    'creates missing bucket %s',
-    async (bucket) => {
-      s3.headBucket.mockRejectedValue(storageError('NotFound', 404));
-      const stored = await manager.upload({
-        ...file,
-        bucket: bucket === 'default' ? undefined : bucket,
-      });
-      expect(stored.bucket).toBe(bucket);
-      expect(s3.createBucket).toHaveBeenCalledWith({ Bucket: bucket });
-    },
-  );
+  it('checks every enum bucket at initialization and leaves existing buckets alone', async () => {
+    await manager.onModuleInit();
+    expect(s3.headBucket.mock.calls).toEqual(
+      Object.values(FileBucket).map((bucket) => [{ Bucket: bucket }]),
+    );
+    expect(s3.createBucket).not.toHaveBeenCalled();
+  });
 
-  it('tolerates concurrent creation of an owned bucket', async () => {
+  it('creates missing enum buckets during initialization', async () => {
+    s3.headBucket.mockRejectedValue(storageError('NotFound', 404));
+    await manager.onModuleInit();
+    expect(s3.createBucket).toHaveBeenCalledWith({
+      Bucket: FileBucket.DEFAULT,
+    });
+  });
+
+  it('tolerates concurrent startup creating an owned bucket', async () => {
     s3.headBucket.mockRejectedValue(storageError('NotFound', 404));
     s3.createBucket.mockRejectedValue(
       storageError('BucketAlreadyOwnedByYou', 409),
     );
-    await manager.upload(file);
-    expect(files.save).toHaveBeenCalledTimes(1);
+    await expect(manager.onModuleInit()).resolves.toBeUndefined();
   });
 
   it.each([
     storageError('Forbidden', 403),
     storageError('InternalError', 500),
     new Error('Connection refused'),
-  ])('propagates lookup failure without creating or saving', async (error) => {
+  ])('fails initialization on storage lookup errors', async (error) => {
     s3.headBucket.mockRejectedValue(error);
-    await expect(manager.upload(file)).rejects.toBe(error);
+    await expect(manager.onModuleInit()).rejects.toBe(error);
     expect(s3.createBucket).not.toHaveBeenCalled();
-    expect(files.save).not.toHaveBeenCalled();
   });
 
-  it('propagates creation failure without uploading', async () => {
+  it('fails initialization when bucket creation fails', async () => {
     const error = storageError('BucketAlreadyExists', 409);
     s3.headBucket.mockRejectedValue(storageError('NotFound', 404));
     s3.createBucket.mockRejectedValue(error);
-    await expect(manager.upload(file)).rejects.toBe(error);
-    expect(s3.putObject).not.toHaveBeenCalled();
-    expect(files.save).not.toHaveBeenCalled();
+    await expect(manager.onModuleInit()).rejects.toBe(error);
+  });
+
+  it('uploads without bucket existence checks or creation', async () => {
+    const stored = await manager.upload({ ...file, bucket: undefined });
+    expect(stored.bucket).toBe(FileBucket.DEFAULT);
+    expect(s3.headBucket).not.toHaveBeenCalled();
+    expect(s3.createBucket).not.toHaveBeenCalled();
   });
 
   it('does not save metadata or delete an object when upload fails', async () => {
@@ -296,7 +303,7 @@ describe('S3FileManager', () => {
     await expect(manager.upload(file)).rejects.toBe(error);
     const created = files.create.mock.results[0].value as StoredFile;
     expect(s3.deleteObject).toHaveBeenCalledWith({
-      Bucket: 'uploads',
+      Bucket: FileBucket.DEFAULT,
       Key: `${created.id}.txt`,
     });
   });
@@ -375,9 +382,9 @@ describe('S3FileManager', () => {
     'xn--test',
     'a'.repeat(64),
   ])('rejects invalid bucket %j before storage', async (bucket) => {
-    await expect(manager.upload({ ...file, bucket })).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(
+      manager.upload({ ...file, bucket: bucket as FileBucket }),
+    ).rejects.toBeInstanceOf(BadRequestException);
     expect(s3.headBucket).not.toHaveBeenCalled();
     expect(files.save).not.toHaveBeenCalled();
   });

@@ -12,6 +12,7 @@ import {
 
 import { User } from './user.entity';
 import { Skill } from '../../skills/entities/skill.entity';
+import { StoredFile } from '../../../shared/files/entities/stored-file.entity';
 
 @Entity('user_profiles')
 export class UserProfile {
@@ -21,8 +22,12 @@ export class UserProfile {
   @Column({ type: 'text', nullable: true })
   bio!: string | null;
 
-  @Column({ name: 'avatar_url', type: 'varchar', nullable: true })
-  avatarUrl!: string | null;
+  @OneToOne(() => StoredFile, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({
+    name: 'avatar_file_id',
+    foreignKeyConstraintName: 'FK_user_profiles_avatar_file',
+  })
+  avatar!: StoredFile | null;
 
   @Column({ name: 'organization_name', type: 'varchar', nullable: true })
   organizationName!: string | null;

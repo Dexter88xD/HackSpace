@@ -5,6 +5,7 @@ import {
   Logger,
   NotFoundException,
   PayloadTooLargeException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -24,9 +25,10 @@ import { StoredFile } from './entities/stored-file.entity';
 import { ALLOWED_FILE_TYPES } from './file-type';
 import { Hackathon } from '../../domains/hackathons/entities/hackathon.entity';
 import { Team } from '../../domains/teams/entities/team.entity';
+import { FileBucket } from './file-bucket';
 
 @Injectable()
-export class S3FileManager extends FileManager {
+export class S3FileManager extends FileManager implements OnModuleInit {
   private readonly logger = new Logger(S3FileManager.name);
 
   constructor(
@@ -45,6 +47,29 @@ export class S3FileManager extends FileManager {
 
   private objectKey(file: Pick<StoredFile, 'id' | 'name'>): string {
     return `${file.id}${extname(file.name)}`;
+  }
+
+  async onModuleInit(): Promise<void> {
+    for (const bucket of Object.values(FileBucket)) {
+      try {
+        await this.s3.headBucket({ Bucket: bucket });
+      } catch (error) {
+        if (
+          !(error instanceof S3ServiceException) ||
+          error.$metadata.httpStatusCode !== 404
+        )
+          throw error;
+        try {
+          await this.s3.createBucket({ Bucket: bucket });
+        } catch (error) {
+          if (
+            !(error instanceof S3ServiceException) ||
+            error.name !== 'BucketAlreadyOwnedByYou'
+          )
+            throw error;
+        }
+      }
+    }
   }
 
   async delete(file: StoredFile): Promise<void> {
@@ -77,14 +102,8 @@ export class S3FileManager extends FileManager {
     if (!allowed || !allowed.mimeTypes.includes(file.mimetype.toLowerCase())) {
       throw new BadRequestException('Unsupported file type or MIME mismatch');
     }
-    const bucket = file.bucket ?? 'default';
-    if (
-      !/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/.test(bucket) ||
-      bucket.includes('..') ||
-      /^(\d{1,3}\.){3}\d{1,3}$/.test(bucket) ||
-      /^(xn--|sthree-|amzn-s3-demo-)/.test(bucket) ||
-      /(-s3alias|--ol-s3|\.mrap|--x-s3|--table-s3)$/.test(bucket)
-    ) {
+    const bucket = file.bucket ?? FileBucket.DEFAULT;
+    if (!Object.values(FileBucket).includes(bucket)) {
       throw new BadRequestException('Invalid bucket name');
     }
 
@@ -120,28 +139,6 @@ export class S3FileManager extends FileManager {
       hackathon,
       team,
     });
-
-    try {
-      await this.s3.headBucket({ Bucket: bucket });
-    } catch (error) {
-      if (
-        !(error instanceof S3ServiceException) ||
-        error.$metadata.httpStatusCode !== 404
-      ) {
-        throw error;
-      }
-
-      try {
-        await this.s3.createBucket({ Bucket: bucket });
-      } catch (error) {
-        if (
-          !(error instanceof S3ServiceException) ||
-          error.name !== 'BucketAlreadyOwnedByYou'
-        ) {
-          throw error;
-        }
-      }
-    }
 
     await this.s3.putObject({
       Bucket: bucket,

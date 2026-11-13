@@ -1,6 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import type { Repository } from 'typeorm';
 import { FilesService } from './files.service';
+import { FileBucket } from './file-bucket';
 import { StoredFile } from './entities/stored-file.entity';
 
 describe('FilesService', () => {
@@ -12,7 +13,7 @@ describe('FilesService', () => {
   const stored = Object.assign(new StoredFile(), {
     id: '2813bd63-e537-427a-a129-d23f24ab5148',
     name: 'original.txt',
-    bucket: 'saved-bucket',
+    bucket: FileBucket.DEFAULT,
   });
   let upload: jest.Mock;
   let getFile: jest.Mock;

@@ -141,7 +141,7 @@ export async function seedUsers(
         profileRepository.create({
           user,
           bio: account.bio,
-          avatarUrl: null,
+          avatar: null,
           organizationName: account.organization,
           major: account.major,
         }),

@@ -1,11 +1,11 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsNotEmpty, IsString, Min, ValidateIf } from 'class-validator';
+import { IsEnum, IsInt, Min, ValidateIf } from 'class-validator';
+import { FileBucket } from '../file-bucket';
 
 export class UploadFileDto {
   @ValidateIf((_object, value: unknown) => value !== undefined)
-  @IsString()
-  @IsNotEmpty()
-  bucket?: string;
+  @IsEnum(FileBucket)
+  bucket?: FileBucket;
 
   @ValidateIf((_object, value: unknown) => value !== undefined)
   @Type(() => Number)

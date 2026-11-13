@@ -17,6 +17,8 @@ import {
 import { S3FileManager } from './s3-file-manager';
 import { getS3ConnectionToken } from 'nestjs-s3';
 import { S3 } from '@aws-sdk/client-s3';
+import { FileBucket } from './file-bucket';
+import { MulterModule } from '@nestjs/platform-express';
 
 describe('FilesController', () => {
   let app: INestApplication;
@@ -49,6 +51,7 @@ describe('FilesController', () => {
 
   beforeAll(async () => {
     const module = await Test.createTestingModule({
+      imports: [MulterModule.register({ limits: { fileSize: 10 } })],
       controllers: [FilesController],
       providers: [
         FilesService,
@@ -90,12 +93,26 @@ describe('FilesController', () => {
   });
 
   it('returns 413 for files larger than the configured limit', async () => {
-    await request(app.getHttpServer() as Server)
-      .post('/files/upload')
-      .attach('file', Buffer.alloc(11), 'example.txt')
-      .expect(413);
+    const upload = jest.spyOn(S3FileManager.prototype, 'upload');
+    try {
+      await request(app.getHttpServer() as Server)
+        .post('/files/upload')
+        .attach('file', Buffer.alloc(11), 'example.txt')
+        .expect(413);
+      expect(upload).not.toHaveBeenCalled();
+    } finally {
+      upload.mockRestore();
+    }
     expect(s3.putObject).not.toHaveBeenCalled();
     expect(files.save).not.toHaveBeenCalled();
+  });
+
+  it('accepts a multipart file exactly at the configured maximum', async () => {
+    await request(app.getHttpServer() as Server)
+      .post('/files/upload')
+      .attach('file', Buffer.alloc(10), 'example.txt')
+      .expect(201);
+    expect(s3.putObject).toHaveBeenCalledTimes(1);
   });
 
   it('deletes the file by UUID and returns an empty 204 response', async () => {
@@ -104,7 +121,7 @@ describe('FilesController', () => {
       Object.assign(new StoredFile(), {
         id,
         name: 'example.txt',
-        bucket: 'uploads',
+        bucket: FileBucket.DEFAULT,
       }),
     );
     const response = await request(app.getHttpServer() as Server)
@@ -112,7 +129,7 @@ describe('FilesController', () => {
       .expect(204);
     expect(response.text).toBe('');
     expect(s3.deleteObject).toHaveBeenCalledWith({
-      Bucket: 'uploads',
+      Bucket: FileBucket.DEFAULT,
       Key: `${id}.txt`,
     });
     expect(files.delete).toHaveBeenCalledWith(id);
@@ -155,15 +172,17 @@ describe('FilesController', () => {
   it('forwards the multipart bucket field', async () => {
     const response = await request(app.getHttpServer() as Server)
       .post('/files/upload')
-      .field('bucket', 'uploads')
+      .field('bucket', FileBucket.DEFAULT)
       .attach('file', Buffer.from('example'), 'example.txt')
       .expect(201);
 
     expect(new URL((response.body as { url: string }).url).pathname).toMatch(
-      /^\/uploads\/[0-9a-f-]{36}\.txt$/,
+      /^\/default\/[0-9a-f-]{36}\.txt$/,
     );
 
-    expect(s3.headBucket).toHaveBeenCalledWith({ Bucket: 'uploads' });
+    expect(s3.putObject).toHaveBeenCalledWith(
+      expect.objectContaining({ Bucket: FileBucket.DEFAULT }),
+    );
   });
 
   it('transforms multipart parent IDs and persists the associations', async () => {
@@ -207,7 +226,7 @@ describe('FilesController', () => {
     expect(s3.putObject).not.toHaveBeenCalled();
   });
 
-  it.each(['', 'Invalid_Bucket', 'ab', 'a..b', '192.168.1.1'])(
+  it.each(['uploads', '', 'Invalid_Bucket', 'ab', 'a..b', '192.168.1.1'])(
     'rejects invalid bucket %j',
     async (bucket) => {
       await request(app.getHttpServer() as Server)
@@ -224,7 +243,7 @@ describe('FilesController', () => {
   it('rejects repeated bucket fields', async () => {
     await request(app.getHttpServer() as Server)
       .post('/files/upload')
-      .field('bucket', 'uploads')
+      .field('bucket', FileBucket.DEFAULT)
       .field('bucket', 'other')
       .attach('file', Buffer.from('example'), 'example.txt')
       .expect(400);

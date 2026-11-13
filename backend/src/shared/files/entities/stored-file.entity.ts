@@ -9,6 +9,7 @@ import {
 import { Hackathon } from '../../../domains/hackathons/entities/hackathon.entity';
 import { Team } from '../../../domains/teams/entities/team.entity';
 import { FileType } from '../file-type';
+import { FileBucket } from '../file-bucket';
 
 @Entity('files')
 export class StoredFile {
@@ -18,8 +19,13 @@ export class StoredFile {
   @Column({ type: 'text' })
   name!: string;
 
-  @Column({ length: 63 })
-  bucket!: string;
+  @Column({
+    type: 'enum',
+    enum: FileBucket,
+    enumName: 'files_bucket_enum',
+    default: FileBucket.DEFAULT,
+  })
+  bucket!: FileBucket;
 
   @Column({ type: 'text' })
   url!: string;
