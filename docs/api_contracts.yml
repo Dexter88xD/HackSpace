@@ -366,6 +366,7 @@ paths:
     post:
       tags: [Hackathons]
       summary: Create hackathon and assign the creator as ORGANIZER
+      description: Requires exactly five ordered lifecycle phases within the hackathon dates. Each phase must have a positive duration; phases cannot overlap, but gaps and touching boundaries are allowed. Creation is transactional.
       requestBody:
         required: true
         content:
@@ -377,7 +378,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Hackathon" }
-        "400": { description: Invalid input or date range }
+        "400": { description: Invalid input, missing or duplicate phases, invalid dates or overlapping/out-of-bounds schedule }
         "401": { description: Authentication required }
   /hackathons/mine:
     get:
@@ -411,6 +412,7 @@ paths:
     patch:
       tags: [Hackathons]
       summary: Edit as hackathon ORGANIZER or platform ROLE_ADMIN
+      description: Parent fields are optional. When phases is omitted, the existing schedule is preserved; when provided, it contains one to five distinct, fully specified phase entries. The service merges those entries with stored phases and validates the full five-phase schedule before saving transactionally.
       requestBody:
         required: true
         content:
@@ -422,7 +424,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Hackathon" }
-        "400": { description: Empty or invalid update; invalid dates }
+        "400": { description: Empty or invalid update; duplicate, overlapping or out-of-bounds phases; invalid dates }
         "401": { description: Authentication required }
         "403": { description: Organiser or platform administrator required }
         "404": { description: Hackathon not found }
@@ -696,16 +698,31 @@ components:
     HackathonRole:
       type: string
       enum: [ORGANIZER, PARTICIPANT, JURY, MENTOR]
+    HackathonPhaseInput:
+      type: object
+      additionalProperties: false
+      required: [phaseName, startAt, endAt]
+      properties:
+        phaseName: { $ref: "#/components/schemas/PhaseName" }
+        description: { type: string, nullable: true, description: "Optional; defaults to null on creation. On update, omit to preserve the existing description, or send null to clear it." }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
     HackathonInput:
       type: object
       additionalProperties: false
-      required: [title, organizationName, startAt, endAt]
+      required: [title, organizationName, startAt, endAt, phases]
       properties:
         title: { type: string, minLength: 1 }
         description: { type: string, nullable: true }
         organizationName: { type: string, minLength: 1 }
         startAt: { type: string, format: date-time }
         endAt: { type: string, format: date-time }
+        phases:
+          type: array
+          minItems: 5
+          maxItems: 5
+          description: "Exactly one of each phase in order: LAUNCH, REGISTRATION, IN_PROGRESS, EVALUATION, FINISHED. Phases must fit within the hackathon dates, must not overlap, and must have startAt before endAt."
+          items: { $ref: "#/components/schemas/HackathonPhaseInput" }
     HackathonUpdate:
       type: object
       additionalProperties: false
@@ -716,6 +733,12 @@ components:
         organizationName: { type: string, minLength: 1 }
         startAt: { type: string, format: date-time }
         endAt: { type: string, format: date-time }
+        phases:
+          type: array
+          minItems: 1
+          maxItems: 5
+          description: "Optional partial schedule update. Supply only changed phases, with distinct phaseName values; all five phases are validated after merging with saved phases."
+          items: { $ref: "#/components/schemas/HackathonPhaseInput" }
     Hackathon:
       type: object
       required: [id, title, description, organizationName, startAt, endAt, createdAt, updatedAt]
@@ -728,13 +751,22 @@ components:
         endAt: { type: string, format: date-time }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+        phases:
+          type: array
+          description: "Included on create and update responses; collection/list responses may omit phases."
+          items: { $ref: "#/components/schemas/HackathonPhase" }
     HackathonDetails:
       allOf:
         - $ref: "#/components/schemas/Hackathon"
         - type: object
-          required: [canEdit]
+          required: [canEdit, phases]
           properties:
             canEdit: { type: boolean }
+            phases:
+              type: array
+              minItems: 5
+              maxItems: 5
+              items: { $ref: "#/components/schemas/HackathonPhase" }
     HackathonList:
       type: object
       required: [data, total, page, limit]

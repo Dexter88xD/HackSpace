@@ -16,7 +16,7 @@ const PHASE_DURATION = 4 * DAY;
 const HACKATHON_COUNT = 200;
 const SEED_PREFIX = '[DEV]';
 
-const themes = [
+const THEMES = [
   'Artificial Intelligence',
   'Smart Agriculture',
   'Renewable Energy',
@@ -39,7 +39,7 @@ const themes = [
   'Cultural Heritage',
 ];
 
-const formats = [
+const FORMATS = [
   'Challenge',
   'Hackathon',
   'Innovation Cup',
@@ -52,7 +52,7 @@ const formats = [
   'Quest',
 ];
 
-const organizations = [
+const ORGANIZATIONS = [
   'HackSpace',
   'Morocco Tech Community',
   'Atlas Innovation',
@@ -63,7 +63,7 @@ const organizations = [
   'Data Builders Community',
 ];
 
-const phases = [
+const PHASE_NAMES = [
   HackathonPhaseName.LAUNCH,
   HackathonPhaseName.REGISTRATION,
   HackathonPhaseName.IN_PROGRESS,
@@ -90,11 +90,11 @@ export async function seedHackathons(
   let membershipsCreated = 0;
 
   for (let index = 0; index < HACKATHON_COUNT; index++) {
-    const theme = themes[index % themes.length];
-    const format = formats[Math.floor(index / themes.length)];
+    const theme = THEMES[index % THEMES.length];
+    const format = FORMATS[Math.floor(index / THEMES.length)];
     const title = `${SEED_PREFIX} ${theme} ${format}`;
 
-    const activePhaseIndex = index % phases.length;
+    const activePhaseIndex = index % PHASE_NAMES.length;
     const scheduleStart =
       referenceTime - (activePhaseIndex * PHASE_DURATION + DAY);
 
@@ -113,9 +113,9 @@ export async function seedHackathons(
           description:
             `${format} focused on ${theme.toLowerCase()}, ` +
             'collaboration, practical innovation and problem-solving.',
-          organizationName: organizations[index % organizations.length],
+          organizationName: ORGANIZATIONS[index % ORGANIZATIONS.length],
           startAt: new Date(scheduleStart),
-          endAt: new Date(scheduleStart + phases.length * PHASE_DURATION),
+          endAt: new Date(scheduleStart + PHASE_NAMES.length * PHASE_DURATION),
         }),
       );
 
@@ -157,7 +157,7 @@ export async function seedHackathons(
       (hackathon.phases ?? []).map((phase) => phase.phaseName),
     );
 
-    const missingPhases = phases.flatMap((phaseName, phaseIndex) => {
+    const missingPhases = PHASE_NAMES.flatMap((phaseName, phaseIndex) => {
       if (existingPhaseNames.has(phaseName)) {
         return [];
       }
@@ -189,7 +189,7 @@ export async function seedHackathons(
     `Settings: ${settingsCreated} created, ${HACKATHON_COUNT - settingsCreated} skipped`,
   );
   console.log(
-    `Phases: ${phasesCreated} created, ${HACKATHON_COUNT * phases.length - phasesCreated} skipped`,
+    `Phases: ${phasesCreated} created, ${HACKATHON_COUNT * PHASE_NAMES.length - phasesCreated} skipped`,
   );
   console.log(
     `Organizers: ${membershipsCreated} created, ${HACKATHON_COUNT - membershipsCreated} skipped`,
