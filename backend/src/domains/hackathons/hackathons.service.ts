@@ -6,7 +6,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Brackets, DataSource, QueryFailedError, Repository } from 'typeorm';
+import {
+  Brackets,
+  DataSource,
+  EntityManager,
+  QueryFailedError,
+  Repository,
+} from 'typeorm';
 import { Hackathon } from './entities/hackathon.entity';
 import { CreateHackathonDto } from './dto/create-hackathon.dto';
 import { UpdateHackathonDto } from './dto/update-hackathon.dto';
@@ -18,6 +24,8 @@ import { RoleName } from '../users/entities/user-role.entity';
 import { HackathonPhaseName } from './entities/hackathon-phase.entity';
 import { Team } from '../teams/entities/team.entity';
 import { TeamMember } from '../teams/entities/team-member.entity';
+import { validatePhaseSchedule } from './utils/validate-phase-schedule';
+import { HackathonPhase } from './entities/hackathon-phase.entity';
 
 @Injectable()
 export class HackathonsService {
@@ -33,6 +41,40 @@ export class HackathonsService {
 
     private readonly dataSource: DataSource,
   ) {}
+
+  private async canEditHackathon(
+    hackathonId: number,
+    userId: number,
+    manager?: EntityManager,
+  ): Promise<boolean> {
+    const userRepository = manager?.getRepository(User) ?? this.userRepository;
+
+    const hackathonUserRepository =
+      manager?.getRepository(HackathonUser) ?? this.hackathonUserRepository;
+
+    const user = await userRepository.findOne({
+      where: { id: userId },
+      relations: { role: true },
+    });
+
+    if (!user?.role) {
+      return false;
+    }
+
+    if (user.role.roleName === RoleName.ROLE_ADMIN) {
+      return true;
+    }
+
+    const membership = await hackathonUserRepository.findOne({
+      where: {
+        user: { id: userId },
+        hackathon: { id: hackathonId },
+        hackRoleName: HackRoleName.ORGANIZER,
+      },
+    });
+
+    return !!membership;
+  }
 
   async findAll(filterQuery: HackathonFiltersDto) {
     if (
@@ -100,6 +142,7 @@ export class HackathonsService {
   async findOne(hackathonId: number) {
     const hackathon = await this.hackathonRepository.findOne({
       where: { id: hackathonId },
+      relations: { phases: true },
     });
     if (!hackathon) {
       throw new NotFoundException('Hackathon not found');
@@ -148,9 +191,16 @@ export class HackathonsService {
   async create(dto: CreateHackathonDto, userId: number) {
     const startAt = new Date(dto.startAt);
     const endAt = new Date(dto.endAt);
-    if (startAt >= endAt) {
-      throw new BadRequestException('Hackathon dates are incorrect');
+    if (
+      !Number.isFinite(startAt.getTime()) ||
+      !Number.isFinite(endAt.getTime()) ||
+      startAt >= endAt
+    ) {
+      throw new BadRequestException(
+        'Hackathon start date must be before its end date',
+      );
     }
+    validatePhaseSchedule(dto.phases, startAt, endAt);
     return this.dataSource.transaction(async (manager) => {
       const hackathon = manager.create(Hackathon, {
         title: dto.title,
@@ -170,64 +220,138 @@ export class HackathonsService {
         hackRoleName: HackRoleName.ORGANIZER,
       });
       await manager.save(hackathonUser);
-      return savedHackathon;
+      const phases = dto.phases.map((phase) =>
+        manager.create(HackathonPhase, {
+          phaseName: phase.phaseName,
+          description: phase.description ?? null,
+          startAt: new Date(phase.startAt),
+          endAt: new Date(phase.endAt),
+          hackathon: savedHackathon,
+        }),
+      );
+      await manager.save(HackathonPhase, phases);
+
+      return manager.findOneOrFail(Hackathon, {
+        where: { id: savedHackathon.id },
+        relations: { phases: true },
+      });
     });
   }
 
   async update(hackathonId: number, dto: UpdateHackathonDto, userId: number) {
-    const hackathon = await this.findOne(hackathonId);
-    const canEdit = await this.canEditHackathon(hackathonId, userId);
-    if (!canEdit) {
-      throw new ForbiddenException('Forbidden');
-    }
-    if (Object.keys(dto).length === 0) {
+    if (Object.values(dto).every((value) => value === undefined)) {
       throw new BadRequestException(
         'At least one field must be provided for an update',
       );
     }
-    const startAt = dto.startAt ? new Date(dto.startAt) : hackathon.startAt;
-    const endAt = dto.endAt ? new Date(dto.endAt) : hackathon.endAt;
-    if (startAt >= endAt) {
-      throw new BadRequestException('Hackathon dates are incorrect');
+
+    if (dto.phases === null) {
+      throw new BadRequestException('Phases must be an array when provided');
     }
 
-    hackathon.title = dto.title ?? hackathon.title;
-    hackathon.description =
-      dto.description === undefined ? hackathon.description : dto.description;
-    hackathon.organizationName =
-      dto.organizationName ?? hackathon.organizationName;
-    hackathon.startAt = startAt;
-    hackathon.endAt = endAt;
+    if (dto.phases !== undefined) {
+      const names = dto.phases.map((phase) => phase.phaseName);
 
-    return this.hackathonRepository.save(hackathon);
-  }
+      if (new Set(names).size !== names.length) {
+        throw new BadRequestException('Duplicate phase names are not allowed');
+      }
+    }
 
-  private async canEditHackathon(
-    hackathonId: number,
-    userId: number,
-  ): Promise<boolean> {
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-      relations: { role: true },
+    return this.dataSource.transaction(async (manager) => {
+      const hackathon = await manager
+        .getRepository(Hackathon)
+        .createQueryBuilder('hackathon')
+        .leftJoinAndSelect('hackathon.phases', 'phase')
+        .where('hackathon.id = :hackathonId', { hackathonId })
+        .orderBy('phase.startAt', 'ASC')
+        .setLock('pessimistic_write', undefined, ['hackathon'])
+        .getOne();
+
+      if (!hackathon) {
+        throw new NotFoundException('Hackathon not found');
+      }
+
+      const canEdit = await this.canEditHackathon(hackathonId, userId, manager);
+
+      if (!canEdit) {
+        throw new ForbiddenException('Forbidden');
+      }
+
+      const startAt =
+        dto.startAt !== undefined ? new Date(dto.startAt) : hackathon.startAt;
+
+      const endAt =
+        dto.endAt !== undefined ? new Date(dto.endAt) : hackathon.endAt;
+
+      if (
+        !Number.isFinite(startAt.getTime()) ||
+        !Number.isFinite(endAt.getTime()) ||
+        startAt >= endAt
+      ) {
+        throw new BadRequestException(
+          'Hackathon start date must be before its end date',
+        );
+      }
+
+      const phasesToValidate = hackathon.phases.map((existingPhase) => {
+        const incomingPhase = dto.phases?.find(
+          (phase) => phase.phaseName === existingPhase.phaseName,
+        );
+
+        return {
+          phaseName: existingPhase.phaseName,
+          description:
+            incomingPhase?.description === undefined
+              ? existingPhase.description
+              : incomingPhase.description,
+          startAt:
+            incomingPhase?.startAt ?? existingPhase.startAt.toISOString(),
+          endAt: incomingPhase?.endAt ?? existingPhase.endAt.toISOString(),
+        };
+      });
+
+      validatePhaseSchedule(phasesToValidate, startAt, endAt);
+
+      hackathon.title = dto.title ?? hackathon.title;
+      hackathon.description =
+        dto.description === undefined ? hackathon.description : dto.description;
+      hackathon.organizationName =
+        dto.organizationName ?? hackathon.organizationName;
+      hackathon.startAt = startAt;
+      hackathon.endAt = endAt;
+
+      await manager.save(Hackathon, hackathon);
+
+      if (dto.phases !== undefined) {
+        const updatedPhases: HackathonPhase[] = [];
+
+        for (const incomingPhase of dto.phases) {
+          const existingPhase = hackathon.phases.find(
+            (phase) => phase.phaseName === incomingPhase.phaseName,
+          );
+
+          if (!existingPhase) {
+            throw new BadRequestException(
+              `Phase ${incomingPhase.phaseName} does not exist`,
+            );
+          }
+
+          existingPhase.description =
+            incomingPhase.description === undefined
+              ? existingPhase.description
+              : incomingPhase.description;
+
+          existingPhase.startAt = new Date(incomingPhase.startAt);
+          existingPhase.endAt = new Date(incomingPhase.endAt);
+
+          updatedPhases.push(existingPhase);
+        }
+
+        await manager.save(HackathonPhase, updatedPhases);
+      }
+
+      return hackathon;
     });
-
-    if (!user?.role) {
-      return false;
-    }
-
-    if (user.role.roleName === RoleName.ROLE_ADMIN) {
-      return true;
-    }
-
-    const membership = await this.hackathonUserRepository.findOne({
-      where: {
-        user: { id: userId },
-        hackathon: { id: hackathonId },
-        hackRoleName: HackRoleName.ORGANIZER,
-      },
-    });
-
-    return !!membership;
   }
 
   async getHackathonCurrentPhase(hackathonId: number) {
