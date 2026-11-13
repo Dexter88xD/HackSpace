@@ -12,6 +12,7 @@ import {
 } from '../../domains/hackathons/entities/hackathon-user.entity';
 
 const DAY = 24 * 60 * 60 * 1000;
+const PHASE_DURATION = 4 * DAY;
 const HACKATHON_COUNT = 200;
 const SEED_PREFIX = '[DEV]';
 
@@ -80,7 +81,9 @@ export async function seedHackathons(
   const phaseRepository = manager.getRepository(HackathonPhase);
   const membershipRepository = manager.getRepository(HackathonUser);
 
-  const now = Date.now();
+  const now = new Date();
+  now.setUTCHours(12, 0, 0, 0);
+  const referenceTime = now.getTime();
   let created = 0;
   let settingsCreated = 0;
   let phasesCreated = 0;
@@ -92,7 +95,8 @@ export async function seedHackathons(
     const title = `${SEED_PREFIX} ${theme} ${format}`;
 
     const activePhaseIndex = index % phases.length;
-    const scheduleStart = now - (activePhaseIndex * 4 + 1) * DAY;
+    const scheduleStart =
+      referenceTime - (activePhaseIndex * PHASE_DURATION + DAY);
 
     let hackathon = await hackathonRepository.findOne({
       where: { title },
@@ -111,7 +115,7 @@ export async function seedHackathons(
             'collaboration, practical innovation and problem-solving.',
           organizationName: organizations[index % organizations.length],
           startAt: new Date(scheduleStart),
-          endAt: new Date(scheduleStart + phases.length * 4 * DAY),
+          endAt: new Date(scheduleStart + phases.length * PHASE_DURATION),
         }),
       );
 
@@ -158,14 +162,15 @@ export async function seedHackathons(
         return [];
       }
 
-      const phaseStart = hackathon.startAt.getTime() + phaseIndex * 4 * DAY;
+      const phaseStart =
+        hackathon.startAt.getTime() + phaseIndex * PHASE_DURATION;
 
       return [
         phaseRepository.create({
           phaseName: phaseName,
           description: `${phaseName.replace(/_/g, ' ')} phase`,
           startAt: new Date(phaseStart),
-          endAt: new Date(phaseStart + 4 * DAY),
+          endAt: new Date(phaseStart + PHASE_DURATION),
           hackathon,
         }),
       ];
