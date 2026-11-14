@@ -35,6 +35,6 @@ export class Friendship {
     @Column({ name: 'accepted_at', type: 'timestamptz', nullable: true})
     acceptedAt!: Date | null;
 
-    @Column({ type: 'varchar', length: 20 })
+    @Column({ type: 'varchar', length: 20, default: FriendshipStatus.PENDING })
     status!: FriendshipStatus;
 }
