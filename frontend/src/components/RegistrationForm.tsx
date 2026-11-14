@@ -18,10 +18,12 @@ import {
   FieldError,
   FieldGroup,
   FieldLabel,
+  FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { OAuthButtons } from "@/components/OAuthButtons";
 import { useMutation } from "@tanstack/react-query";
-import { register, startOAuth } from "@/api/auth";
+import { register } from "@/api/auth";
 import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -48,46 +50,55 @@ export function RegistrationForm({
     registerMutation.mutate(data);
   };
   return (
-    <Card {...props}>
-      <CardHeader>
+    <Card className="border-primary/10 shadow-lg shadow-primary/5" {...props}>
+      <CardHeader className="text-center">
         <CardTitle>Create an account</CardTitle>
         <CardDescription>
-          Enter your information below to create your account
+          Join HackSpace and start building with your community
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={form.handleSubmit((data) => onSubmit(data))}>
-          <FieldGroup>
-            <Field>
-              <FieldLabel htmlFor="full-name">Full Name</FieldLabel>
-              <Input
-                id="full-name"
-                type="text"
-                placeholder="Full Name"
-                {...form.register("fullName")}
-              />
-            </Field>
-            {form.formState.errors.fullName && (
-              <FieldError>{form.formState.errors.fullName.message}</FieldError>
-            )}
-            <Field>
-              <FieldLabel htmlFor="username">Username</FieldLabel>
-              <Input
-                id="username"
-                type="text"
-                placeholder="Username"
-                {...form.register("username")}
-              />
-            </Field>
-            {form.formState.errors.username && (
-              <FieldError>{form.formState.errors.username.message}</FieldError>
-            )}
+          <FieldGroup className="gap-3">
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field>
+                <FieldLabel htmlFor="full-name">Full Name</FieldLabel>
+                <Input
+                  id="full-name"
+                  type="text"
+                  placeholder="Laarbi Lhilali"
+                  autoComplete="name"
+                  {...form.register("fullName")}
+                />
+                {form.formState.errors.fullName && (
+                  <FieldError>
+                    {form.formState.errors.fullName.message}
+                  </FieldError>
+                )}
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="username">Username</FieldLabel>
+                <Input
+                  id="username"
+                  type="text"
+                  placeholder="pseudo"
+                  autoComplete="username"
+                  {...form.register("username")}
+                />
+                {form.formState.errors.username && (
+                  <FieldError>
+                    {form.formState.errors.username.message}
+                  </FieldError>
+                )}
+              </Field>
+            </div>
             <Field>
               <FieldLabel htmlFor="email">Email</FieldLabel>
               <Input
                 id="email"
                 type="email"
-                placeholder="Email"
+                placeholder="you@example.com"
+                autoComplete="email"
                 {...form.register("email")}
               />
               {form.formState.errors.email && (
@@ -99,6 +110,8 @@ export function RegistrationForm({
               <Input
                 id="password"
                 type="password"
+                placeholder="Create a strong password"
+                autoComplete="new-password"
                 {...form.register("password")}
               />
               <FieldDescription>
@@ -117,9 +130,10 @@ export function RegistrationForm({
               <Input
                 id="confirm-password"
                 type="password"
+                placeholder="Repeat your password"
+                autoComplete="new-password"
                 {...form.register("confirmPassword")}
               />
-              <FieldDescription>Please confirm your password.</FieldDescription>
             </Field>
             {form.formState.errors.confirmPassword && (
               <FieldError>
@@ -135,7 +149,11 @@ export function RegistrationForm({
             )}
             <FieldGroup>
               <Field>
-                <Button type="submit" disabled={registerMutation.isPending}>
+                <Button
+                  className="mt-1 shadow-sm shadow-primary/20 transition-all hover:-translate-y-0.5 hover:shadow-md hover:shadow-primary/25"
+                  type="submit"
+                  disabled={registerMutation.isPending}
+                >
                   {registerMutation.isPending && (
                     <Loader2 className="animate-spin" />
                   )}
@@ -143,22 +161,15 @@ export function RegistrationForm({
                     ? "Creating..."
                     : "Create Account"}
                 </Button>
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() => startOAuth("google")}
-                >
-                  Sign up with Google
-                </Button>
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() => startOAuth("42")}
-                >
-                  Sign up with 42 Intra
-                </Button>
+                <FieldSeparator className="my-2 *:data-[slot=field-separator-content]:bg-card">
+                  Or
+                </FieldSeparator>
+                <OAuthButtons />
                 <FieldDescription className="px-6 text-center">
-                  Already have an account? <Link to={'/login'} className="underline underline-offset-4">Sign in</Link>
+                  Already have an account?{" "}
+                  <Link to={"/login"} className="underline underline-offset-4">
+                    Sign in
+                  </Link>
                 </FieldDescription>
               </Field>
             </FieldGroup>
