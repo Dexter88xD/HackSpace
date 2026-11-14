@@ -13,6 +13,17 @@ export enum HackathonRoleName {
   MENTOR = "MENTOR",
 }
 
+export enum HackathonSortField {
+  START_AT = "startAt",
+  CREATED_AT = "createdAt",
+  TITLE = "title",
+}
+
+export enum SortOrder {
+  DESC = "desc",
+  ASC = "asc",
+}
+
 export type HackathonFiltersType = {
   search?: string;
   phase?: HackathonPhaseName;
@@ -20,6 +31,8 @@ export type HackathonFiltersType = {
   endDate?: string;
   page?: number;
   limit?: number;
+  sortBy?: HackathonSortField;
+  sortOrder?: SortOrder;
 };
 
 export type Hackathon = {
@@ -52,7 +65,6 @@ export type HackathonMembershipResponse = {
   isRegistered: boolean;
   role: HackathonRoleName | null;
 };
-
 
 export type HackathonRegistrationResponse = {
   message: string;
