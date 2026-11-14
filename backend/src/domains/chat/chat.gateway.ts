@@ -17,6 +17,7 @@ import { JoinRoomDto } from './dto/join-room.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ChatMember } from './entities/chat-member.entity';
 import { Repository } from 'typeorm';
+import { MessageDto } from './dto/message.dto';
 
 @WebSocketGateway({
   namespace: '/chat',
@@ -94,4 +95,8 @@ export class ChatGateWay
       },
     };
   }
+
+
+  @SubscribeMessage('sebd-message')
+  async handleMessage(@ConnectedSocket() client: AuthenticatedSocket, @MessageBody() data: MessageDto) {}
 }
