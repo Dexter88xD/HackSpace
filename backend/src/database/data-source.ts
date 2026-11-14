@@ -11,6 +11,7 @@ import { HackathonSettings } from '../domains/hackathons/entities/hackathon-sett
 import { HackathonUser } from '../domains/hackathons/entities/hackathon-user.entity';
 import { Team } from '../domains/teams/entities/team.entity';
 import { TeamMember } from '../domains/teams/entities/team-member.entity';
+import { Friendship } from '../domains/friendships/entities/friend.entity';
 
 loadEnv({ path: '../.env', quiet: true });
 
@@ -34,6 +35,7 @@ export default new DataSource({
     HackathonUser,
     Team,
     TeamMember,
+    Friendship,
   ],
 
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
