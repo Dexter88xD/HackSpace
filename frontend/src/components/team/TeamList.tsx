@@ -1,13 +1,21 @@
-import type { TeamSummary } from "@/types/team";
+import type { MyJoinRequest, TeamSummary } from "@/types/team";
 import { Button } from "@/components/ui/button";
 
 type TeamListProps = {
   teams: TeamSummary[];
-  onJoin: (teamId: number) => void;
-  isJoining: boolean;
+  myRequests: MyJoinRequest[];
+  onRequest: (teamId: number) => void;
+  onCancel: (requestId: number) => void;
+  isBusy: boolean;
 };
 
-function TeamList({ teams, onJoin, isJoining }: TeamListProps) {
+function TeamList({
+  teams,
+  myRequests,
+  onRequest,
+  onCancel,
+  isBusy,
+}: TeamListProps) {
   if (teams.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
@@ -20,6 +28,9 @@ function TeamList({ teams, onJoin, isJoining }: TeamListProps) {
     <ul className="divide-y rounded-xl border border-border bg-card shadow-sm">
       {teams.map((team) => {
         const isFull = team.memberCount >= team.maxMembers;
+        const pending = myRequests.find(
+          (request) => request.teamId === team.id,
+        );
 
         return (
           <li
@@ -30,15 +41,26 @@ function TeamList({ teams, onJoin, isJoining }: TeamListProps) {
               <p className="font-medium break-words">{team.name}</p>
               <p className="text-sm text-muted-foreground">
                 {team.memberCount} / {team.maxMembers} members
+                {pending && " · Request pending"}
               </p>
             </div>
-            <Button
-              variant="outline"
-              disabled={isFull || isJoining}
-              onClick={() => onJoin(team.id)}
-            >
-              {isFull ? "Full" : "Join"}
-            </Button>
+            {pending ? (
+              <Button
+                variant="outline"
+                disabled={isBusy}
+                onClick={() => onCancel(pending.id)}
+              >
+                Cancel request
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                disabled={isFull || isBusy}
+                onClick={() => onRequest(team.id)}
+              >
+                {isFull ? "Full" : "Request to join"}
+              </Button>
+            )}
           </li>
         );
       })}

@@ -13,6 +13,7 @@ export type Team = {
   hackathonId: number;
   minMembers: number;
   maxMembers: number;
+  leaderId: number | null;
   members: TeamMember[];
 };
 
@@ -31,4 +32,19 @@ export type MyTeamResponse = {
 export type TeamPayload = {
   name: string;
   description: string | null;
+};
+
+export type MyJoinRequest = {
+  id: number;
+  teamId: number;
+  status: "PENDING" | "ACCEPTED" | "REJECTED";
+  createdAt: string;
+};
+
+export type TeamJoinRequest = {
+  id: number;
+  userId: number;
+  username: string;
+  fullName: string;
+  createdAt: string;
 };
