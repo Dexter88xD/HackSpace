@@ -17,7 +17,11 @@ import { Hackathon } from './entities/hackathon.entity';
 import { CreateHackathonDto } from './dto/create-hackathon.dto';
 import { UpdateHackathonDto } from './dto/update-hackathon.dto';
 import { HackathonSettings } from './entities/hackathon-settings.entity';
-import { HackathonFiltersDto } from './dto/hackathons-filters.dto';
+import {
+  HackathonFiltersDto,
+  HackathonSortField,
+  SortOrder,
+} from './dto/hackathons-filters.dto';
 import { HackathonUser, HackRoleName } from './entities/hackathon-user.entity';
 import { User } from '../users/entities/user.entity';
 import { RoleName } from '../users/entities/user-role.entity';
@@ -124,8 +128,18 @@ export class HackathonsService {
         .andWhere('phase.endAt > :now', { now });
     }
 
+    const sortField: Record<HackathonSortField, string> = {
+      [HackathonSortField.CREATED_AT]: 'hackathon.createdAt',
+      [HackathonSortField.START_AT]: 'hackathon.startAt',
+      [HackathonSortField.TITLE]: 'hackathon.title',
+    };
+
+    const selectedField = filterQuery.sortBy ?? HackathonSortField.START_AT;
+    const sortColumn = sortField[selectedField];
+    const selectedOrder = filterQuery.sortOrder ?? SortOrder.ASC;
+    const sortDirection = selectedOrder === SortOrder.DESC ? 'DESC' : 'ASC';
     query
-      .orderBy('hackathon.startAt', 'ASC')
+      .orderBy(sortColumn, sortDirection)
       .addOrderBy('hackathon.id', 'ASC')
       .skip((pageNumber - 1) * pageLimit)
       .take(pageLimit);
