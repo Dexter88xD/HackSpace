@@ -37,6 +37,6 @@ import { OAuthIdentity } from './entities/oauth-identity.entity';
   ],
   controllers: [AuthController],
   providers: [AuthService, EmailService, JwtStrategy, RolesGuard],
-  exports: [RolesGuard],
+  exports: [RolesGuard, JwtModule],
 })
 export class AuthModule {}

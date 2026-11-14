@@ -2,9 +2,13 @@
     tls internal
 
     @backend path /api/*
-
     handle @backend {
-        reverse_proxy {$BACKEND_HOST}   
+        reverse_proxy {$BACKEND_HOST}
+    }
+
+    @socketio path /socket.io/*
+    handle @socketio {
+        reverse_proxy {$BACKEND_HOST}
     }
 
     handle { 

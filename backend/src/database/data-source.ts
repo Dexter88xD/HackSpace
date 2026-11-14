@@ -11,6 +11,9 @@ import { HackathonSettings } from '../domains/hackathons/entities/hackathon-sett
 import { HackathonUser } from '../domains/hackathons/entities/hackathon-user.entity';
 import { Team } from '../domains/teams/entities/team.entity';
 import { TeamMember } from '../domains/teams/entities/team-member.entity';
+import { ChatMember } from '../domains/chat/entities/chat-member.entity';
+import { Message } from '../domains/chat/entities/message.entity';
+import { ChatRoom } from '../domains/chat/entities/chat-room.entity';
 
 loadEnv({ path: '../.env', quiet: true });
 
@@ -34,6 +37,9 @@ export default new DataSource({
     HackathonUser,
     Team,
     TeamMember,
+    ChatRoom,
+    ChatMember,
+    Message,
   ],
 
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
