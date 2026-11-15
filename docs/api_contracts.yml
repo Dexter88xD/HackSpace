@@ -366,7 +366,7 @@ paths:
     post:
       tags: [Hackathons]
       summary: Create hackathon and assign the creator as ORGANIZER
-      description: Requires exactly five ordered lifecycle phases within the hackathon dates. Each phase must have a positive duration; phases cannot overlap, but gaps and touching boundaries are allowed. Creation is transactional.
+      description: Requires exactly five ordered, consecutive lifecycle phases covering the entire hackathon duration. Each phase must have a positive duration, with no gaps or overlaps. The first phase starts when the hackathon begins, and the final phase ends when the hackathon ends. Creation is transactional.
       requestBody:
         required: true
         content:
@@ -378,7 +378,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Hackathon" }
-        "400": { description: Invalid input, missing or duplicate phases, invalid dates or overlapping/out-of-bounds schedule }
+        "400": { description: Invalid input, missing or duplicate phases, invalid dates, gaps, overlaps or misaligned hackathon boundaries }
         "401": { description: Authentication required }
   /hackathons/mine:
     get:
@@ -424,7 +424,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Hackathon" }
-        "400": { description: Empty or invalid update; duplicate, overlapping or out-of-bounds phases; invalid dates }
+        "400": { description: Empty or invalid update; duplicate phases, invalid dates, gaps, overlaps or misaligned hackathon boundaries }
         "401": { description: Authentication required }
         "403": { description: Organiser or platform administrator required }
         "404": { description: Hackathon not found }
@@ -721,7 +721,7 @@ components:
           type: array
           minItems: 5
           maxItems: 5
-          description: "Exactly one of each phase in order: LAUNCH, REGISTRATION, IN_PROGRESS, EVALUATION, FINISHED. Phases must fit within the hackathon dates, must not overlap, and must have startAt before endAt."
+          description: "Exactly one of each phase in order: LAUNCH, REGISTRATION, IN_PROGRESS, EVALUATION, FINISHED. Every phase must have a positive duration. The first phase must start when the hackathon starts, each subsequent phase must start exactly when the preceding phase ends, and the final phase must end when the hackathon ends. Gaps and overlaps are not allowed."
           items: { $ref: "#/components/schemas/HackathonPhaseInput" }
     HackathonUpdate:
       type: object
