@@ -248,7 +248,14 @@ export class AuthService {
             });
             user = await userRepository.save(user);
           } else if (!user.emailVerified) {
+            // The password was never proven to belong to the inbox owner, so replace it.
             user.emailVerified = true;
+            user.passwordHash = await bcrypt.hash(
+              randomBytes(32).toString('hex'),
+              12,
+            );
+            user.otpHash = null;
+            user.otpExpiresAt = null;
             user = await userRepository.save(user);
           }
 
