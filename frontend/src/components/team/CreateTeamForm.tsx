@@ -30,11 +30,7 @@ function CreateTeamForm({
   });
 
   return (
-    <form
-      noValidate
-      onSubmit={handleSubmit(onSubmit)}
-      className="space-y-6 rounded-xl border border-border bg-card p-6 shadow-sm"
-    >
+    <form noValidate onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div className="space-y-2">
         <Label htmlFor="name">
           Team name <span className="text-destructive">*</span>

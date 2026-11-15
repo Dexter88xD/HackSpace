@@ -19,13 +19,13 @@ function TeamList({
   if (teams.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        No teams yet. Create the first one below.
+        No teams yet. Create the first one.
       </p>
     );
   }
 
   return (
-    <ul className="divide-y rounded-xl border border-border bg-card shadow-sm">
+    <ul className="divide-y">
       {teams.map((team) => {
         const isFull = team.memberCount >= team.maxMembers;
         const pending = myRequests.find(
@@ -35,7 +35,7 @@ function TeamList({
         return (
           <li
             key={team.id}
-            className="flex items-center justify-between gap-4 px-4 py-3"
+            className="flex items-center justify-between gap-4 py-3"
           >
             <div className="min-w-0">
               <p className="font-medium break-words">{team.name}</p>

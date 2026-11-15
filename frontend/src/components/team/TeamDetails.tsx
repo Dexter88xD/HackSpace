@@ -1,55 +1,72 @@
+import type { ReactNode } from "react";
 import type { Team } from "@/types/team";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import ConfirmButton from "./ConfirmButton";
 
 type TeamDetailsProps = {
   team: Team;
+  // Buttons shown next to the team name (edit, delete, leave).
+  actions: ReactNode;
   // Only passed when the current user is the leader.
   onRemove?: (userId: number) => void;
   isRemoving?: boolean;
 };
 
-function TeamDetails({ team, onRemove, isRemoving }: TeamDetailsProps) {
+function TeamDetails({
+  team,
+  actions,
+  onRemove,
+  isRemoving,
+}: TeamDetailsProps) {
   const memberCount = team.members.length;
 
   return (
-    <div className="space-y-6 rounded-xl border border-border bg-card p-6 shadow-sm">
-      <div>
-        <h2 className="text-2xl font-semibold">{team.name}</h2>
-        <p className="mt-2 whitespace-pre-wrap break-words text-muted-foreground">
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-xl font-semibold">{team.name}</CardTitle>
+        <CardDescription className="whitespace-pre-wrap break-words">
           {team.description || "No description provided."}
-        </p>
-      </div>
+        </CardDescription>
+        <CardAction className="flex flex-wrap justify-end gap-2">
+          {actions}
+        </CardAction>
+      </CardHeader>
 
-      <div>
+      <CardContent>
         <h3 className="font-semibold">
           Members ({memberCount} / {team.maxMembers})
         </h3>
         {memberCount < team.minMembers && (
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-muted-foreground">
             This hackathon needs at least {team.minMembers} members per team.
           </p>
         )}
-        <ul className="mt-3 divide-y rounded-lg border">
+        <ul className="mt-2 divide-y">
           {team.members.map((member) => {
             const isLeader = member.userId === team.leaderId;
 
             return (
               <li
                 key={member.userId}
-                className="flex items-center justify-between gap-4 px-4 py-3"
+                className="flex items-center justify-between gap-4 py-3"
               >
                 <div className="min-w-0">
                   <p className="font-medium">
                     {member.fullName}
                     {isLeader && (
-                      <span className="ml-2 text-xs text-muted-foreground">
+                      <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                         Leader
                       </span>
                     )}
                   </p>
-                  <p className="text-sm text-muted-foreground">
-                    @{member.username}
-                  </p>
+                  <p className="text-muted-foreground">@{member.username}</p>
                 </div>
                 {onRemove && !isLeader && (
                   <ConfirmButton
@@ -66,8 +83,8 @@ function TeamDetails({ team, onRemove, isRemoving }: TeamDetailsProps) {
             );
           })}
         </ul>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 

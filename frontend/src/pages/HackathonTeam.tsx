@@ -25,7 +25,15 @@ import TeamDetails from "@/components/team/TeamDetails";
 import TeamList from "@/components/team/TeamList";
 import HackathonDetailsState from "@/components/hackathon/HackathonDetailsState";
 import { Spinner } from "@/components/ui/spinner";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { parseHackathonId } from "@/lib/hackathon-id";
 import { shouldRetryQuery } from "@/lib/query-retry";
 import type { TeamFormValues } from "@/schemas/team.schema";
@@ -61,9 +69,9 @@ export default function HackathonTeam() {
     },
     enabled: hackathonId !== null,
     retry: shouldRetryQuery,
-    // Check again every 10 seconds, so members, joins and leaves show up
+    // Check again every 4 seconds, so members, joins and leaves show up
     // without reloading the page.
-    refetchInterval: 10000,
+    refetchInterval: 4000,
   });
 
   const { data: currentUser } = useQuery({
@@ -115,7 +123,7 @@ export default function HackathonTeam() {
     },
     enabled: isLeader,
     retry: shouldRetryQuery,
-    refetchInterval: 10000,
+    refetchInterval: 4000,
   });
 
   // Saves the team returned by the backend and refreshes the lists.
@@ -235,13 +243,20 @@ export default function HackathonTeam() {
   ].find((action) => action.isError);
 
   return (
-    <section className="mx-auto w-full max-w-3xl px-4 py-8">
-      <h1 className="mb-6 text-3xl font-bold">
+    <section className="mx-auto w-full max-w-4xl space-y-6 px-4 py-8">
+      <Link
+        to={`/hackathons/${hackathonId}`}
+        className="text-sm text-muted-foreground hover:underline"
+      >
+        ← Back to hackathon
+      </Link>
+
+      <h1 className="text-3xl font-bold">
         {team ? "Your team" : "Join or create a team"}
       </h1>
 
       {failedAction && (
-        <p role="alert" className="mb-4 text-sm text-destructive">
+        <p role="alert" className="text-sm text-destructive">
           {errorMessage(failedAction.error, "Something went wrong.")}
         </p>
       )}
@@ -249,24 +264,31 @@ export default function HackathonTeam() {
       {team ? (
         <>
           {isEditing ? (
-            <>
-              <CreateTeamForm
-                defaultValues={{
-                  name: team.name,
-                  description: team.description ?? "",
-                }}
-                submitLabel="Save"
-                onSubmit={(values) =>
-                  updateMutation.mutate({ teamId: team.id, values })
-                }
-                isSubmitting={updateMutation.isPending}
-              />
-              <div className="mt-2 flex justify-end">
-                <Button variant="ghost" onClick={() => setIsEditing(false)}>
-                  Cancel
-                </Button>
-              </div>
-            </>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-xl font-semibold">
+                  Edit team
+                </CardTitle>
+                <CardAction>
+                  <Button variant="ghost" onClick={() => setIsEditing(false)}>
+                    Cancel
+                  </Button>
+                </CardAction>
+              </CardHeader>
+              <CardContent>
+                <CreateTeamForm
+                  defaultValues={{
+                    name: team.name,
+                    description: team.description ?? "",
+                  }}
+                  submitLabel="Save"
+                  onSubmit={(values) =>
+                    updateMutation.mutate({ teamId: team.id, values })
+                  }
+                  isSubmitting={updateMutation.isPending}
+                />
+              </CardContent>
+            </Card>
           ) : (
             <TeamDetails
               team={team}
@@ -277,95 +299,110 @@ export default function HackathonTeam() {
                   : undefined
               }
               isRemoving={removeMutation.isPending}
+              actions={
+                <>
+                  {isLeader && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsEditing(true)}
+                    >
+                      Edit
+                    </Button>
+                  )}
+                  {isLeader && (
+                    <ConfirmButton
+                      label="Delete"
+                      title="Delete this team?"
+                      description="All members will be removed. This cannot be undone."
+                      confirmLabel="Delete"
+                      onConfirm={() => deleteMutation.mutate(team.id)}
+                      isPending={deleteMutation.isPending}
+                    />
+                  )}
+                  <ConfirmButton
+                    label="Leave"
+                    title="Leave this team?"
+                    description={
+                      isLeader
+                        ? "The next oldest member becomes leader. If you are the last member, the team will be deleted."
+                        : "If you are the last member, the team will be deleted."
+                    }
+                    confirmLabel="Leave"
+                    onConfirm={() => leaveMutation.mutate(team.id)}
+                    isPending={leaveMutation.isPending}
+                  />
+                </>
+              }
             />
           )}
 
-          <div className="mt-4 flex flex-wrap justify-end gap-2">
-            {isLeader && !isEditing && (
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() => setIsEditing(true)}
-              >
-                Edit Team
-              </Button>
-            )}
-
-            {isLeader && (
-              <ConfirmButton
-                label="Delete Team"
-                title="Delete this team?"
-                description="All members will be removed. This cannot be undone."
-                confirmLabel="Delete"
-                onConfirm={() => deleteMutation.mutate(team.id)}
-                isPending={deleteMutation.isPending}
-              />
-            )}
-
-            <ConfirmButton
-              label="Leave Team"
-              title="Leave this team?"
-              description={
-                isLeader
-                  ? "The next oldest member becomes leader. If you are the last member, the team will be deleted."
-                  : "If you are the last member, the team will be deleted."
-              }
-              confirmLabel="Leave"
-              onConfirm={() => leaveMutation.mutate(team.id)}
-              isPending={leaveMutation.isPending}
-            />
-          </div>
-
           {isLeader && (
-            <>
-              <h2 className="mt-8 mb-3 text-xl font-semibold">Join requests</h2>
-
-              {isLoadingRequests ? (
-                <Spinner />
-              ) : isRequestsError ? (
-                <p role="alert" className="text-sm text-destructive">
-                  Failed to load join requests.
-                </p>
-              ) : (
-                <JoinRequestList
-                  requests={joinRequests}
-                  onAccept={(requestId) => acceptMutation.mutate(requestId)}
-                  onReject={(requestId) => rejectMutation.mutate(requestId)}
-                  isBusy={acceptMutation.isPending || rejectMutation.isPending}
-                />
-              )}
-            </>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-xl font-semibold">
+                  Join requests
+                </CardTitle>
+                <CardDescription>
+                  Participants asking to join your team.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoadingRequests ? (
+                  <Spinner />
+                ) : isRequestsError ? (
+                  <p role="alert" className="text-destructive">
+                    Failed to load join requests.
+                  </p>
+                ) : (
+                  <JoinRequestList
+                    requests={joinRequests}
+                    onAccept={(requestId) => acceptMutation.mutate(requestId)}
+                    onReject={(requestId) => rejectMutation.mutate(requestId)}
+                    isBusy={
+                      acceptMutation.isPending || rejectMutation.isPending
+                    }
+                  />
+                )}
+              </CardContent>
+            </Card>
           )}
         </>
       ) : (
-        <>
-          <h2 className="mb-3 text-xl font-semibold">Teams</h2>
+        <div className="grid items-start gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl font-semibold">Teams</CardTitle>
+              <CardDescription>
+                Ask to join a team. Its leader accepts or rejects you.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <TeamList
+                teams={teams ?? []}
+                myRequests={myRequests ?? []}
+                onRequest={(teamId) => requestMutation.mutate(teamId)}
+                onCancel={(requestId) => cancelMutation.mutate(requestId)}
+                isBusy={requestMutation.isPending || cancelMutation.isPending}
+              />
+            </CardContent>
+          </Card>
 
-          <TeamList
-            teams={teams ?? []}
-            myRequests={myRequests ?? []}
-            onRequest={(teamId) => requestMutation.mutate(teamId)}
-            onCancel={(requestId) => cancelMutation.mutate(requestId)}
-            isBusy={requestMutation.isPending || cancelMutation.isPending}
-          />
-
-          <h2 className="mt-8 mb-3 text-xl font-semibold">Create a team</h2>
-
-          <CreateTeamForm
-            onSubmit={(values) => mutation.mutate(values)}
-            isSubmitting={mutation.isPending}
-          />
-        </>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl font-semibold">
+                Create a team
+              </CardTitle>
+              <CardDescription>You will be its leader.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CreateTeamForm
+                onSubmit={(values) => mutation.mutate(values)}
+                isSubmitting={mutation.isPending}
+              />
+            </CardContent>
+          </Card>
+        </div>
       )}
-
-      <div className="mt-8">
-        <Link
-          to={`/hackathons/${hackathonId}`}
-          className={buttonVariants({ variant: "outline", size: "lg" })}
-        >
-          Back to Hackathon
-        </Link>
-      </div>
     </section>
   );
 }

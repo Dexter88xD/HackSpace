@@ -21,11 +21,11 @@ function JoinRequestList({
   }
 
   return (
-    <ul className="divide-y rounded-xl border border-border bg-card shadow-sm">
+    <ul className="divide-y">
       {requests.map((request) => (
         <li
           key={request.id}
-          className="flex items-center justify-between gap-4 px-4 py-3"
+          className="flex items-center justify-between gap-4 py-3"
         >
           <div className="min-w-0">
             <p className="font-medium">{request.fullName}</p>

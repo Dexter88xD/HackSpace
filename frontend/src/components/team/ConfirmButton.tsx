@@ -17,7 +17,7 @@ type ConfirmButtonProps = {
   confirmLabel: string;
   onConfirm: () => void;
   isPending: boolean;
-  size?: "sm" | "lg";
+  size?: "default" | "sm";
 };
 
 // A button that asks "are you sure?" before running the action.
@@ -28,7 +28,7 @@ function ConfirmButton({
   confirmLabel,
   onConfirm,
   isPending,
-  size = "lg",
+  size = "default",
 }: ConfirmButtonProps) {
   return (
     <AlertDialog>
