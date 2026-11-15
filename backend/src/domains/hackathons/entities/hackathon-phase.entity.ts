@@ -4,6 +4,7 @@ import {
   Column,
   ManyToOne,
   Check,
+  Unique,
   JoinColumn,
 } from 'typeorm';
 import { Hackathon } from './hackathon.entity';
@@ -17,6 +18,7 @@ export enum HackathonPhaseName {
 }
 
 @Check(`"start_at" < "end_at"`)
+@Unique('UQ_hackathon_phase_name', ['hackathon', 'phaseName'])
 @Entity('hackathon_phases')
 export class HackathonPhase {
   @PrimaryGeneratedColumn()

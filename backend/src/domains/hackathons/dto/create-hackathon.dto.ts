@@ -1,10 +1,16 @@
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
   IsDateString,
   IsNotEmpty,
   IsOptional,
   IsString,
   Matches,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+import { HackathonPhaseDto } from './hackathon-phase.dto';
 
 export class CreateHackathonDto {
   @IsString()
@@ -22,6 +28,13 @@ export class CreateHackathonDto {
     message: 'Organization name must contain non-whitespace characters',
   })
   organizationName!: string;
+
+  @IsArray()
+  @ArrayMaxSize(5)
+  @ArrayMinSize(5)
+  @ValidateNested({ each: true })
+  @Type(() => HackathonPhaseDto)
+  phases!: HackathonPhaseDto[];
 
   @IsDateString({ strict: true })
   startAt!: string;

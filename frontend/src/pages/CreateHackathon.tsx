@@ -5,6 +5,7 @@ import HackathonForm from "@/components/hackathon/HackathonForm";
 import { createHackathon } from "@/api/hackathon-management";
 import type { HackathonFormValues } from "@/schemas/hackathon.schema";
 import type { HackathonPayload } from "@/types/hackathon-management";
+import { HackathonPhaseName } from "@/types/hackathon";
 import { getReturnTo } from "@/lib/navigation";
 
 function CreateHackathon() {
@@ -17,8 +18,12 @@ function CreateHackathon() {
     mutationFn: createHackathon,
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["management-hackathons"] }),
-        queryClient.invalidateQueries({ queryKey: ["hackathons"] }),
+        queryClient.invalidateQueries({
+          queryKey: ["management-hackathons"],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["hackathons"],
+        }),
       ]);
 
       navigate("/hackathons");
@@ -27,10 +32,18 @@ function CreateHackathon() {
 
   function handleCreate(data: HackathonFormValues) {
     const payload: HackathonPayload = {
-      ...data,
+      title: data.title,
       description: data.description.trim() || null,
+      organizationName: data.organizationName,
       startAt: new Date(data.startAt).toISOString(),
       endAt: new Date(data.endAt).toISOString(),
+
+      phases: data.phases.map((phase) => ({
+        phaseName: HackathonPhaseName[phase.phaseName],
+        description: phase.description.trim() || null,
+        startAt: new Date(phase.startAt).toISOString(),
+        endAt: new Date(phase.endAt).toISOString(),
+      })),
     };
 
     mutation.mutate(payload);
