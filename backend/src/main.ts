@@ -6,7 +6,7 @@ import cookieParser from 'cookie-parser';
 
 // Creates the Nest application, configures Swagger/OpenAPI documentation with the HackSpace API metadata
 // and exposes it at /api/docs, enables global request validation with whitelist/forbidNonWhitelisted to reject
-// unexpected fields, enables CORS for the frontend origin (CORS_ORIGIN, falling back to FRONTEND_URL), and starts the server
+// unexpected fields, enables CORS for the frontend origin set in CORS_ORIGIN, and starts the server
 // using the configured PORT or 3000 as the default.
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
