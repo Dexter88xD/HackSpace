@@ -10,4 +10,11 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // Dev convenience: lets http://localhost:5173 reach the API without Caddy.
+  // The main entry point is still https://localhost.
+  server: {
+    proxy: {
+      "/api": "http://backend:3000",
+    },
+  },
 });
