@@ -12,6 +12,8 @@ export default defineConfig({
   },
   // Dev convenience: lets http://localhost:5173 reach the API without Caddy.
   // The main entry point is still https://localhost.
+  // TODO(team): remove this proxy before the defense, so the app is only
+  // reachable over HTTPS through Caddy.
   server: {
     proxy: {
       "/api": "http://backend:3000",
