@@ -1,4 +1,10 @@
-import { IsInt, IsPositive, IsString, MinLength, MaxLength} from 'class-validator';
+import {
+  IsInt,
+  IsPositive,
+  IsString,
+  MinLength,
+  MaxLength,
+} from 'class-validator';
 
 export class MessageDto {
   @IsInt()

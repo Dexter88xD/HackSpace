@@ -6,18 +6,24 @@ import {
   OnGatewayInit,
   SubscribeMessage,
   WebSocketGateway,
+  WebSocketServer,
   WsException,
 } from '@nestjs/websockets';
 import { Namespace } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { parse } from 'cookie';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
-import type { AuthenticatedSocket } from './interfaces/socket.interface';
+import type {
+  AuthenticatedSocket,
+  AuthenticatedSocketData,
+} from './interfaces/socket.interface';
 import { JoinRoomDto } from './dto/join-room.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ChatMember } from './entities/chat-member.entity';
 import { Repository } from 'typeorm';
 import { MessageDto } from './dto/message.dto';
+import { ChatService } from './chat.service';
+import { LeaveRoomDto } from './dto/leave-room.dto';
 
 @WebSocketGateway({
   namespace: '/chat',
@@ -31,9 +37,13 @@ export class ChatGateWay
 {
   constructor(
     private readonly jwtService: JwtService,
+    private readonly chatService: ChatService,
     @InjectRepository(ChatMember)
     private readonly chatMembershipRepository: Repository<ChatMember>,
   ) {}
+
+  @WebSocketServer()
+  server!: Namespace;
 
   afterInit(server: Namespace) {
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
@@ -73,11 +83,15 @@ export class ChatGateWay
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() data: JoinRoomDto,
   ) {
-    const usedId = client.data.user?.sub;
+    const userId = client.data.user?.sub;
+
+    if (!userId) {
+      throw new WsException('Unauthorized');
+    }
 
     const membership = await this.chatMembershipRepository.findOne({
       where: {
-        user: { id: usedId },
+        user: { id: userId },
         chatRoom: { id: data.chatRoomId },
       },
     });
@@ -87,7 +101,6 @@ export class ChatGateWay
     }
 
     await client.join(`chat:${data.chatRoomId}`);
-
     return {
       event: 'joined-room',
       data: {
@@ -96,7 +109,43 @@ export class ChatGateWay
     };
   }
 
+  @SubscribeMessage('send-message')
+  async handleMessage(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: MessageDto,
+  ) {
+    const userId = client.data.user?.sub;
 
-  @SubscribeMessage('sebd-message')
-  async handleMessage(@ConnectedSocket() client: AuthenticatedSocket, @MessageBody() data: MessageDto) {}
+    if (!userId) {
+      throw new WsException('Unauthorized');
+    }
+
+    const savedMessage = await this.chatService.createMessage(
+      userId,
+      data.chatRoomId,
+      data.content,
+    );
+    this.server.to(`chat:${data.chatRoomId}`).emit('new-message', savedMessage);
+  }
+
+  @SubscribeMessage('leave-chat')
+  async handleLeaveChat(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: LeaveRoomDto,
+  ) {
+    await client.leave(`chat:${data.chatRoomId}`);
+  }
+
+  async removeUserFromRoom(userId: number, chatRoomId: number) {
+    const room = `chat:${chatRoomId}`;
+
+    const sockets = await this.server.in(room).fetchSockets();
+
+    for (const socket of sockets) {
+      const socketData = socket.data as AuthenticatedSocketData;
+      if (socketData.user?.sub === userId) {
+        socket.leave(room);
+      }
+    }
+  }
 }

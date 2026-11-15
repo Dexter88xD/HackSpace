@@ -1,7 +1,7 @@
 import { Socket } from 'socket.io';
 import { JwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 
-interface AuthenticatedSocketData {
+export interface AuthenticatedSocketData {
   user?: JwtPayload;
 }
 

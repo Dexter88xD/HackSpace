@@ -23,10 +23,14 @@ import { TeamMember } from './entities/team-member.entity';
 import { TeamJoinRequest } from './entities/team-join-request.entity';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
+import { ChatMember } from '../chat/entities/chat-member.entity';
+import { ChatGateWay } from '../chat/chat.gateway';
+import { ChatRoom, ChatRoomType } from '../chat/entities/chat-room.entity';
 
 @Injectable()
 export class TeamsService {
   constructor(
+    private readonly chatGateway: ChatGateWay,
     @InjectRepository(Team)
     private readonly teamRepository: Repository<Team>,
 
@@ -42,6 +46,11 @@ export class TeamsService {
     @InjectRepository(HackathonUser)
     private readonly hackathonUserRepository: Repository<HackathonUser>,
 
+    @InjectRepository(ChatMember)
+    private readonly chatMemberRepository: Repository<ChatMember>,
+
+    @InjectRepository(ChatRoom)
+    private readonly chatRoomRepository: Repository<ChatRoom>,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -77,12 +86,28 @@ export class TeamsService {
             hackathon,
           }),
         );
+
         await manager.save(
           manager.create(TeamMember, {
             team: savedTeam,
             hackathonUser: registration,
           }),
         );
+
+        const chatRoom = manager.create(ChatRoom, {
+          title: `${savedTeam.name} Chat`,
+          chatRoomType: ChatRoomType.TEAM,
+          team: savedTeam,
+        });
+
+        const savedChatRoom = await manager.save(ChatRoom, chatRoom);
+
+        const chatMember = manager.create(ChatMember, {
+          user: { id: userId },
+          chatRoom: savedChatRoom,
+        });
+
+        await manager.save(ChatMember, chatMember);
         return savedTeam;
       });
     } catch (error) {
@@ -255,7 +280,7 @@ export class TeamsService {
       where: { id: requestId },
       relations: {
         team: { hackathon: { settings: true, phases: true } },
-        hackathonUser: true,
+        hackathonUser: { user: true },
       },
     });
     if (!request) {
@@ -265,17 +290,21 @@ export class TeamsService {
 
     try {
       await this.dataSource.transaction(async (manager) => {
-        // Lock the team row: accepts, removals and leaves on this team now
-        // run one at a time, so two accepts can't both take the last spot.
-        await manager.findOne(Team, {
+        const lockedTeam = await manager.findOne(Team, {
           where: { id: team.id },
           lock: { mode: 'pessimistic_write' },
+          relations: {
+            chatRoom: true,
+          },
         });
+
         await this.checkLeader(manager, team.id, userId);
         this.checkRegistrationOpen(team.hackathon);
 
-        // If nothing was deleted, the request was already answered or
-        // cancelled.
+        if (!lockedTeam) {
+          throw new NotFoundException('Team not found');
+        }
+
         const deleted = await manager.delete(TeamJoinRequest, requestId);
         if (!deleted.affected) {
           throw new BadRequestException('This request was already answered');
@@ -288,19 +317,30 @@ export class TeamsService {
           throw new ConflictException('This team is full');
         }
 
-        // If the user joined another team in the meantime, the unique
-        // hackathon_user_id constraint rejects this insert.
         await manager.save(
           manager.create(TeamMember, {
-            team,
+            team: lockedTeam,
             hackathonUser: request.hackathonUser,
           }),
         );
 
-        // The user is in a team now, so their other requests are removed.
         await manager.delete(TeamJoinRequest, {
           hackathonUser: { id: request.hackathonUser.id },
         });
+
+        const chatRoom = await manager.findOne(ChatRoom, {
+          where: { team: { id: team.id } },
+        });
+        if (!chatRoom) {
+          throw new NotFoundException('Team chat room not found');
+        }
+
+        await manager.save(
+          manager.create(ChatMember, {
+            user: { id: request.hackathonUser.user.id },
+            chatRoom,
+          }),
+        );
       });
     } catch (error) {
       throw this.toConflict(error);
@@ -325,27 +365,54 @@ export class TeamsService {
   }
 
   async removeMember(teamId: number, memberUserId: number, userId: number) {
-    const team = await this.findTeam(teamId);
-    if (team.hackathon.endAt <= new Date()) {
-      throw new BadRequestException('This hackathon has ended');
-    }
     if (memberUserId === userId) {
       throw new BadRequestException(
         'Leave the team instead of removing yourself',
       );
     }
-    await this.checkLeader(this.dataSource.manager, teamId, userId);
 
-    const member = await this.teamMemberRepository.findOne({
-      where: {
-        team: { id: teamId },
-        hackathonUser: { user: { id: memberUserId } },
-      },
+    const chatRoomId = await this.dataSource.transaction(async (manager) => {
+      const team = await manager.findOne(Team, {
+        where: { id: teamId },
+        relations: { hackathon: true },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!team) {
+        throw new NotFoundException('Team not found');
+      }
+      if (team.hackathon.endAt <= new Date()) {
+        throw new BadRequestException('This hackathon has ended');
+      }
+
+      await this.checkLeader(manager, teamId, userId);
+
+      const member = await manager.findOne(TeamMember, {
+        where: {
+          team: { id: teamId },
+          hackathonUser: { user: { id: memberUserId } },
+        },
+      });
+      if (!member) {
+        throw new NotFoundException('This user is not a member of this team');
+      }
+
+      const chatRoom = await manager.findOne(ChatRoom, {
+        where: { team: { id: teamId } },
+      });
+      if (!chatRoom) {
+        throw new NotFoundException('Team chat room not found');
+      }
+
+      await manager.delete(ChatMember, {
+        user: { id: memberUserId },
+        chatRoom: { id: chatRoom.id },
+      });
+      await manager.remove(TeamMember, member);
+
+      return chatRoom.id;
     });
-    if (!member) {
-      throw new NotFoundException('This user is not a member of this team');
-    }
-    await this.teamMemberRepository.remove(member);
+
+    await this.chatGateway.removeUserFromRoom(memberUserId, chatRoomId);
 
     return this.findOne(teamId);
   }
@@ -356,7 +423,7 @@ export class TeamsService {
         team: { id: teamId },
         hackathonUser: { user: { id: userId } },
       },
-      relations: { team: { hackathon: true } },
+      relations: { team: { hackathon: true, chatRoom: true } },
     });
     if (!membership) {
       throw new NotFoundException('You are not a member of this team');
@@ -365,14 +432,21 @@ export class TeamsService {
       throw new BadRequestException('This hackathon has ended');
     }
 
-    // The leader is the oldest member, so when the leader leaves the next
-    // oldest member becomes leader. A team left with no members is deleted.
+    const chatRoomId = membership.team.chatRoom.id;
+
+    // A team left with no members is deleted.
     await this.dataSource.transaction(async (manager) => {
       await manager.findOne(Team, {
         where: { id: teamId },
         lock: { mode: 'pessimistic_write' },
       });
+
       await manager.remove(membership);
+
+      await manager.delete(ChatMember, {
+        user: { id: userId },
+        chatRoom: { id: chatRoomId },
+      });
 
       const remaining = await manager.count(TeamMember, {
         where: { team: { id: teamId } },
@@ -381,6 +455,8 @@ export class TeamsService {
         await manager.delete(Team, teamId);
       }
     });
+
+    await this.chatGateway.removeUserFromRoom(userId, chatRoomId);
 
     return { message: 'You left the team' };
   }
@@ -391,6 +467,7 @@ export class TeamsService {
       relations: {
         hackathon: { settings: true },
         members: { hackathonUser: { user: true } },
+        chatRoom: true,
       },
       order: { members: { joinedAt: 'ASC', id: 'ASC' } },
     });
@@ -417,6 +494,9 @@ export class TeamsService {
         fullName: member.hackathonUser.user.fullName,
         joinedAt: member.joinedAt,
       })),
+      chatRoom: {
+        id: team.chatRoom.id,
+      },
     };
   }
 

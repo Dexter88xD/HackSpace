@@ -9,6 +9,7 @@ import { ChatService } from './chat.service';
 import { Team } from '../teams/entities/team.entity';
 import { ChatGateWay } from './chat.gateway';
 import { AuthModule } from '../auth/auth.module';
+import { ChatController } from './chat.controller';
 
 @Module({
   imports: [
@@ -22,6 +23,8 @@ import { AuthModule } from '../auth/auth.module';
     ]),
     AuthModule,
   ],
+  controllers: [ChatController],
   providers: [ChatService, ChatGateWay],
+  exports: [ChatGateWay],
 })
 export class ChatModule {}
