@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
+import { IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 
 export class CreateProfileDto {
   @IsOptional()
@@ -7,8 +7,8 @@ export class CreateProfileDto {
   bio?: string;
 
   @IsOptional()
-  @IsUrl()
-  avatarUrl?: string;
+  @IsUUID()
+  avatarFileId?: string | null;
 
   @IsOptional()
   @IsString()
