@@ -147,31 +147,11 @@ export default function HackathonFilters({
         </SelectTrigger>
 
         <SelectContent>
-          <SelectItem value={`${HackathonSortField.START_AT}:${SortOrder.ASC}`}>
-            Starting soonest
-          </SelectItem>
-
-          <SelectItem
-            value={`${HackathonSortField.START_AT}:${SortOrder.DESC}`}
-          >
-            Starting latest
-          </SelectItem>
-          <SelectItem value={`${HackathonSortField.TITLE}:${SortOrder.ASC}`}>
-            Title A–Z
-          </SelectItem>
-          <SelectItem value={`${HackathonSortField.TITLE}:${SortOrder.DESC}`}>
-            Title Z–A
-          </SelectItem>
-          <SelectItem
-            value={`${HackathonSortField.CREATED_AT}:${SortOrder.ASC}`}
-          >
-            Oldest created
-          </SelectItem>
-          <SelectItem
-            value={`${HackathonSortField.CREATED_AT}:${SortOrder.DESC}`}
-          >
-            Newest created
-          </SelectItem>
+          {Object.entries(sortOptions).map(([key, option]) => (
+            <SelectItem key={key} value={key}>
+              {option.label}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
 
