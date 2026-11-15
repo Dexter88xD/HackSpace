@@ -78,7 +78,7 @@ export default function HackathonTeam() {
   });
 
   const team = data?.team ?? null;
-  const isLeader = !!team && team.leaderId === currentUser?.id;
+  const isLeader = team !== null && team.leaderId === currentUser?.id;
 
   const { data: teams } = useQuery({
     queryKey: ["teams", hackathonId],
@@ -112,7 +112,13 @@ export default function HackathonTeam() {
     isError: isRequestsError,
   } = useQuery({
     queryKey: ["join-requests", team?.id],
-    queryFn: () => getJoinRequests(team!.id),
+    queryFn: () => {
+      if (team === null) {
+        throw new Error("No team");
+      }
+
+      return getJoinRequests(team.id);
+    },
     enabled: isLeader,
     retry: shouldRetryQuery,
   });
@@ -220,25 +226,38 @@ export default function HackathonTeam() {
     );
   }
 
-  const memberError = removeMutation.isError
-    ? errorMessage(removeMutation.error, "Failed to remove member.")
-    : leaveMutation.isError
-      ? errorMessage(leaveMutation.error, "Failed to leave team.")
-      : deleteMutation.isError
-        ? errorMessage(deleteMutation.error, "Failed to delete team.")
-        : null;
+  // Each section shows the error of the last action that failed in it.
+  let memberError = null;
+  if (removeMutation.isError) {
+    memberError = errorMessage(
+      removeMutation.error,
+      "Failed to remove member.",
+    );
+  } else if (leaveMutation.isError) {
+    memberError = errorMessage(leaveMutation.error, "Failed to leave team.");
+  } else if (deleteMutation.isError) {
+    memberError = errorMessage(deleteMutation.error, "Failed to delete team.");
+  }
 
-  const requestError = acceptMutation.isError
-    ? errorMessage(acceptMutation.error, "Failed to accept request.")
-    : rejectMutation.isError
-      ? errorMessage(rejectMutation.error, "Failed to reject request.")
-      : null;
+  let requestError = null;
+  if (acceptMutation.isError) {
+    requestError = errorMessage(
+      acceptMutation.error,
+      "Failed to accept request.",
+    );
+  } else if (rejectMutation.isError) {
+    requestError = errorMessage(
+      rejectMutation.error,
+      "Failed to reject request.",
+    );
+  }
 
-  const listError = requestMutation.isError
-    ? errorMessage(requestMutation.error, "Failed to send request.")
-    : cancelMutation.isError
-      ? errorMessage(cancelMutation.error, "Failed to cancel request.")
-      : null;
+  let listError = null;
+  if (requestMutation.isError) {
+    listError = errorMessage(requestMutation.error, "Failed to send request.");
+  } else if (cancelMutation.isError) {
+    listError = errorMessage(cancelMutation.error, "Failed to cancel request.");
+  }
 
   return (
     <section className="mx-auto w-full max-w-3xl px-4 py-8">

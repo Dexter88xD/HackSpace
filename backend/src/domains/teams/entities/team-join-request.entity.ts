@@ -1,39 +1,22 @@
 import {
-  Column,
   CreateDateColumn,
   Entity,
-  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  Unique,
 } from 'typeorm';
 import { HackathonUser } from '../../hackathons/entities/hackathon-user.entity';
 import { Team } from './team.entity';
 
-export enum JoinRequestStatus {
-  PENDING = 'PENDING',
-  ACCEPTED = 'ACCEPTED',
-  REJECTED = 'REJECTED',
-}
-
-// A registration asking to join a team. Answered requests are kept as
-// history, so only one PENDING request per team and user is allowed.
-@Index('UQ_team_join_requests_pending', ['team', 'hackathonUser'], {
-  unique: true,
-  where: `"status" = 'PENDING'`,
-})
+// A participant asking to join a team. A row only exists while the request
+// is waiting: accepting, rejecting or cancelling it deletes the row.
+// A user can have one request per team.
+@Unique('UQ_team_join_requests_team_user', ['team', 'hackathonUser'])
 @Entity('team_join_requests')
 export class TeamJoinRequest {
   @PrimaryGeneratedColumn({ primaryKeyConstraintName: 'PK_team_join_requests' })
   id!: number;
-
-  @Column({
-    type: 'enum',
-    enum: JoinRequestStatus,
-    enumName: 'team_join_request_status_enum',
-    default: JoinRequestStatus.PENDING,
-  })
-  status!: JoinRequestStatus;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt!: Date;

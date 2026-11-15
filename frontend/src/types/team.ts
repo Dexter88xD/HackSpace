@@ -37,7 +37,6 @@ export type TeamPayload = {
 export type MyJoinRequest = {
   id: number;
   teamId: number;
-  status: "PENDING" | "ACCEPTED" | "REJECTED";
   createdAt: string;
 };
 

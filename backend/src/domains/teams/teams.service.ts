@@ -20,10 +20,7 @@ import {
 } from '../hackathons/entities/hackathon-user.entity';
 import { Team } from './entities/team.entity';
 import { TeamMember } from './entities/team-member.entity';
-import {
-  JoinRequestStatus,
-  TeamJoinRequest,
-} from './entities/team-join-request.entity';
+import { TeamJoinRequest } from './entities/team-join-request.entity';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
 
@@ -178,14 +175,10 @@ export class TeamsService {
       throw new ConflictException('This team is full');
     }
 
-    const pending = await this.joinRequestRepository.findOne({
-      where: {
-        team: { id: teamId },
-        hackathonUser: { id: registration.id },
-        status: JoinRequestStatus.PENDING,
-      },
+    const existing = await this.joinRequestRepository.findOne({
+      where: { team: { id: teamId }, hackathonUser: { id: registration.id } },
     });
-    if (pending) {
+    if (existing) {
       throw new ConflictException('You already requested to join this team');
     }
 
@@ -201,12 +194,7 @@ export class TeamsService {
       throw this.toConflict(error);
     }
 
-    return {
-      id: request.id,
-      teamId,
-      status: request.status,
-      createdAt: request.createdAt,
-    };
+    return { id: request.id, teamId, createdAt: request.createdAt };
   }
 
   async findMyRequests(hackathonId: number, userId: number) {
@@ -214,7 +202,6 @@ export class TeamsService {
 
     const requests = await this.joinRequestRepository.find({
       where: {
-        status: JoinRequestStatus.PENDING,
         hackathonUser: {
           user: { id: userId },
           hackathon: { id: hackathonId },
@@ -227,7 +214,6 @@ export class TeamsService {
     return requests.map((request) => ({
       id: request.id,
       teamId: request.team.id,
-      status: request.status,
       createdAt: request.createdAt,
     }));
   }
@@ -239,11 +225,8 @@ export class TeamsService {
     if (!request) {
       throw new NotFoundException('Join request not found');
     }
-    if (request.status !== JoinRequestStatus.PENDING) {
-      throw new BadRequestException('This request was already answered');
-    }
 
-    await this.joinRequestRepository.remove(request);
+    await this.joinRequestRepository.delete(requestId);
 
     return { message: 'Join request cancelled' };
   }
@@ -253,7 +236,7 @@ export class TeamsService {
     await this.checkLeader(this.dataSource.manager, teamId, userId);
 
     const requests = await this.joinRequestRepository.find({
-      where: { team: { id: teamId }, status: JoinRequestStatus.PENDING },
+      where: { team: { id: teamId } },
       relations: { hackathonUser: { user: true } },
       order: { createdAt: 'ASC' },
     });
@@ -291,14 +274,10 @@ export class TeamsService {
         await this.checkLeader(manager, team.id, userId);
         this.checkRegistrationOpen(team.hackathon);
 
-        // Only a PENDING request can be accepted. Checking the status in the
-        // UPDATE itself means a request can't be answered twice.
-        const answered = await manager.update(
-          TeamJoinRequest,
-          { id: requestId, status: JoinRequestStatus.PENDING },
-          { status: JoinRequestStatus.ACCEPTED },
-        );
-        if (!answered.affected) {
+        // If nothing was deleted, the request was already answered or
+        // cancelled.
+        const deleted = await manager.delete(TeamJoinRequest, requestId);
+        if (!deleted.affected) {
           throw new BadRequestException('This request was already answered');
         }
 
@@ -318,15 +297,10 @@ export class TeamsService {
           }),
         );
 
-        // The user is in a team now, so their other requests are closed.
-        await manager.update(
-          TeamJoinRequest,
-          {
-            hackathonUser: { id: request.hackathonUser.id },
-            status: JoinRequestStatus.PENDING,
-          },
-          { status: JoinRequestStatus.REJECTED },
-        );
+        // The user is in a team now, so their other requests are removed.
+        await manager.delete(TeamJoinRequest, {
+          hackathonUser: { id: request.hackathonUser.id },
+        });
       });
     } catch (error) {
       throw this.toConflict(error);
@@ -345,13 +319,7 @@ export class TeamsService {
     }
     await this.checkLeader(this.dataSource.manager, request.team.id, userId);
 
-    const answered = await this.joinRequestRepository.update(
-      { id: requestId, status: JoinRequestStatus.PENDING },
-      { status: JoinRequestStatus.REJECTED },
-    );
-    if (!answered.affected) {
-      throw new BadRequestException('This request was already answered');
-    }
+    await this.joinRequestRepository.delete(requestId);
 
     return { message: 'Join request rejected' };
   }
@@ -366,25 +334,18 @@ export class TeamsService {
         'Leave the team instead of removing yourself',
       );
     }
+    await this.checkLeader(this.dataSource.manager, teamId, userId);
 
-    await this.dataSource.transaction(async (manager) => {
-      await manager.findOne(Team, {
-        where: { id: teamId },
-        lock: { mode: 'pessimistic_write' },
-      });
-      await this.checkLeader(manager, teamId, userId);
-
-      const member = await manager.findOne(TeamMember, {
-        where: {
-          team: { id: teamId },
-          hackathonUser: { user: { id: memberUserId } },
-        },
-      });
-      if (!member) {
-        throw new NotFoundException('This user is not a member of this team');
-      }
-      await manager.remove(member);
+    const member = await this.teamMemberRepository.findOne({
+      where: {
+        team: { id: teamId },
+        hackathonUser: { user: { id: memberUserId } },
+      },
     });
+    if (!member) {
+      throw new NotFoundException('This user is not a member of this team');
+    }
+    await this.teamMemberRepository.remove(member);
 
     return this.findOne(teamId);
   }
@@ -448,7 +409,8 @@ export class TeamsService {
       minMembers: team.hackathon.settings.minTeamMembers,
       maxMembers: team.hackathon.settings.maxTeamMembers,
       // Members are sorted oldest first, so the first one is the leader.
-      leaderId: team.members[0]?.hackathonUser.user.id ?? null,
+      leaderId:
+        team.members.length > 0 ? team.members[0].hackathonUser.user.id : null,
       members: team.members.map((member) => ({
         userId: member.hackathonUser.user.id,
         username: member.hackathonUser.user.username,
@@ -489,17 +451,25 @@ export class TeamsService {
   }
 
   // The leader is the member who joined first.
-  private async checkLeader(
-    manager: EntityManager,
-    teamId: number,
-    userId: number,
-  ) {
+  private async findLeaderId(manager: EntityManager, teamId: number) {
     const leader = await manager.findOne(TeamMember, {
       where: { team: { id: teamId } },
       relations: { hackathonUser: { user: true } },
       order: { joinedAt: 'ASC', id: 'ASC' },
     });
-    if (leader?.hackathonUser.user.id !== userId) {
+    if (!leader) {
+      return null;
+    }
+    return leader.hackathonUser.user.id;
+  }
+
+  private async checkLeader(
+    manager: EntityManager,
+    teamId: number,
+    userId: number,
+  ) {
+    const leaderId = await this.findLeaderId(manager, teamId);
+    if (leaderId !== userId) {
       throw new ForbiddenException('Only the team leader can do this');
     }
   }
@@ -512,13 +482,8 @@ export class TeamsService {
         hackRoleName: HackRoleName.ORGANIZER,
       },
     });
-    if (organizer) {
-      return;
-    }
-
-    try {
-      await this.checkLeader(this.dataSource.manager, team.id, userId);
-    } catch {
+    const leaderId = await this.findLeaderId(this.dataSource.manager, team.id);
+    if (!organizer && leaderId !== userId) {
       throw new ForbiddenException(
         'Only the team leader or an organizer can do this',
       );
@@ -533,7 +498,7 @@ export class TeamsService {
       throw new BadRequestException('This hackathon has ended');
     }
 
-    const registration = hackathon.phases?.find(
+    const registration = hackathon.phases.find(
       (phase) => phase.phaseName === HackathonPhaseName.REGISTRATION,
     );
     if (
@@ -573,26 +538,21 @@ export class TeamsService {
   }
 
   // Two requests at the same moment can both pass the checks; the unique
-  // constraints then reject the second one.
+  // constraints in the database then reject the second one.
   private toConflict(error: unknown) {
-    const driverError = (
-      error as QueryFailedError & {
-        driverError?: { code?: string; constraint?: string };
-      }
-    ).driverError;
-    if (error instanceof QueryFailedError && driverError?.code === '23505') {
-      switch (driverError.constraint) {
-        case 'UQ_teams_hackathon_name':
-          return new ConflictException('A team with this name already exists');
-        case 'UQ_team_join_requests_pending':
-          return new ConflictException(
-            'You already requested to join this team',
-          );
-        default:
-          return new ConflictException(
-            'This user is already in a team for this hackathon',
-          );
-      }
+    if (!(error instanceof QueryFailedError)) {
+      return error;
+    }
+    if (error.message.includes('UQ_teams_hackathon_name')) {
+      return new ConflictException('A team with this name already exists');
+    }
+    if (error.message.includes('UQ_team_join_requests_team_user')) {
+      return new ConflictException('You already requested to join this team');
+    }
+    if (error.message.includes('UQ_team_members_hackathon_user')) {
+      return new ConflictException(
+        'This user is already in a team for this hackathon',
+      );
     }
     return error;
   }
