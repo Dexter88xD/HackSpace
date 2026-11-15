@@ -19,22 +19,13 @@ import {
 } from "@/api/team";
 import { getMe } from "@/api/auth";
 import CreateTeamForm from "@/components/team/CreateTeamForm";
+import ConfirmButton from "@/components/team/ConfirmButton";
 import JoinRequestList from "@/components/team/JoinRequestList";
 import TeamDetails from "@/components/team/TeamDetails";
 import TeamList from "@/components/team/TeamList";
 import HackathonDetailsState from "@/components/hackathon/HackathonDetailsState";
 import { Spinner } from "@/components/ui/spinner";
 import { Button, buttonVariants } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { parseHackathonId } from "@/lib/hackathon-id";
 import { shouldRetryQuery } from "@/lib/query-retry";
 import type { TeamFormValues } from "@/schemas/team.schema";
@@ -70,6 +61,9 @@ export default function HackathonTeam() {
     },
     enabled: hackathonId !== null,
     retry: shouldRetryQuery,
+    // Check again every 10 seconds, so members, joins and leaves show up
+    // without reloading the page.
+    refetchInterval: 10000,
   });
 
   const { data: currentUser } = useQuery({
@@ -121,6 +115,7 @@ export default function HackathonTeam() {
     },
     enabled: isLeader,
     retry: shouldRetryQuery,
+    refetchInterval: 10000,
   });
 
   // Saves the team returned by the backend and refreshes the lists.
@@ -226,38 +221,18 @@ export default function HackathonTeam() {
     );
   }
 
-  // Each section shows the error of the last action that failed in it.
-  let memberError = null;
-  if (removeMutation.isError) {
-    memberError = errorMessage(
-      removeMutation.error,
-      "Failed to remove member.",
-    );
-  } else if (leaveMutation.isError) {
-    memberError = errorMessage(leaveMutation.error, "Failed to leave team.");
-  } else if (deleteMutation.isError) {
-    memberError = errorMessage(deleteMutation.error, "Failed to delete team.");
-  }
-
-  let requestError = null;
-  if (acceptMutation.isError) {
-    requestError = errorMessage(
-      acceptMutation.error,
-      "Failed to accept request.",
-    );
-  } else if (rejectMutation.isError) {
-    requestError = errorMessage(
-      rejectMutation.error,
-      "Failed to reject request.",
-    );
-  }
-
-  let listError = null;
-  if (requestMutation.isError) {
-    listError = errorMessage(requestMutation.error, "Failed to send request.");
-  } else if (cancelMutation.isError) {
-    listError = errorMessage(cancelMutation.error, "Failed to cancel request.");
-  }
+  // The error of the action that failed, shown once at the top of the page.
+  const failedAction = [
+    mutation,
+    requestMutation,
+    cancelMutation,
+    acceptMutation,
+    rejectMutation,
+    removeMutation,
+    updateMutation,
+    deleteMutation,
+    leaveMutation,
+  ].find((action) => action.isError);
 
   return (
     <section className="mx-auto w-full max-w-3xl px-4 py-8">
@@ -265,15 +240,16 @@ export default function HackathonTeam() {
         {team ? "Your team" : "Join or create a team"}
       </h1>
 
+      {failedAction && (
+        <p role="alert" className="mb-4 text-sm text-destructive">
+          {errorMessage(failedAction.error, "Something went wrong.")}
+        </p>
+      )}
+
       {team ? (
         <>
           {isEditing ? (
             <>
-              {updateMutation.isError && (
-                <p role="alert" className="mb-4 text-sm text-destructive">
-                  {errorMessage(updateMutation.error, "Failed to update team.")}
-                </p>
-              )}
               <CreateTeamForm
                 defaultValues={{
                   name: team.name,
@@ -304,12 +280,6 @@ export default function HackathonTeam() {
             />
           )}
 
-          {memberError && (
-            <p role="alert" className="mt-4 text-sm text-destructive">
-              {memberError}
-            </p>
-          )}
-
           <div className="mt-4 flex flex-wrap justify-end gap-2">
             {isLeader && !isEditing && (
               <Button
@@ -322,83 +292,33 @@ export default function HackathonTeam() {
             )}
 
             {isLeader && (
-              <AlertDialog>
-                <AlertDialogTrigger
-                  render={<Button variant="outline" size="lg" />}
-                >
-                  Delete Team
-                </AlertDialogTrigger>
-
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete this team?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      All members will be removed. This cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-
-                  <AlertDialogAction
-                    render={
-                      <Button
-                        variant="default"
-                        size="lg"
-                        disabled={deleteMutation.isPending}
-                        onClick={() => deleteMutation.mutate(team.id)}
-                      />
-                    }
-                  >
-                    {deleteMutation.isPending ? "Deleting..." : "Delete"}
-                  </AlertDialogAction>
-                </AlertDialogContent>
-              </AlertDialog>
+              <ConfirmButton
+                label="Delete Team"
+                title="Delete this team?"
+                description="All members will be removed. This cannot be undone."
+                confirmLabel="Delete"
+                onConfirm={() => deleteMutation.mutate(team.id)}
+                isPending={deleteMutation.isPending}
+              />
             )}
 
-            <AlertDialog>
-              <AlertDialogTrigger
-                render={<Button variant="outline" size="lg" />}
-              >
-                Leave Team
-              </AlertDialogTrigger>
-
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Leave this team?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    {isLeader
-                      ? "The next oldest member becomes leader. If you are the last member, the team will be deleted."
-                      : "If you are the last member, the team will be deleted."}
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-
-                <AlertDialogAction
-                  render={
-                    <Button
-                      variant="default"
-                      size="lg"
-                      disabled={leaveMutation.isPending}
-                      onClick={() => leaveMutation.mutate(team.id)}
-                    />
-                  }
-                >
-                  {leaveMutation.isPending ? "Leaving..." : "Leave"}
-                </AlertDialogAction>
-              </AlertDialogContent>
-            </AlertDialog>
+            <ConfirmButton
+              label="Leave Team"
+              title="Leave this team?"
+              description={
+                isLeader
+                  ? "The next oldest member becomes leader. If you are the last member, the team will be deleted."
+                  : "If you are the last member, the team will be deleted."
+              }
+              confirmLabel="Leave"
+              onConfirm={() => leaveMutation.mutate(team.id)}
+              isPending={leaveMutation.isPending}
+            />
           </div>
 
           {isLeader && (
             <>
               <h2 className="mt-8 mb-3 text-xl font-semibold">Join requests</h2>
-
-              {requestError && (
-                <p role="alert" className="mb-4 text-sm text-destructive">
-                  {requestError}
-                </p>
-              )}
 
               {isLoadingRequests ? (
                 <Spinner />
@@ -421,12 +341,6 @@ export default function HackathonTeam() {
         <>
           <h2 className="mb-3 text-xl font-semibold">Teams</h2>
 
-          {listError && (
-            <p role="alert" className="mb-4 text-sm text-destructive">
-              {listError}
-            </p>
-          )}
-
           <TeamList
             teams={teams ?? []}
             myRequests={myRequests ?? []}
@@ -436,12 +350,6 @@ export default function HackathonTeam() {
           />
 
           <h2 className="mt-8 mb-3 text-xl font-semibold">Create a team</h2>
-
-          {mutation.isError && (
-            <p role="alert" className="mb-4 text-sm text-destructive">
-              {errorMessage(mutation.error, "Failed to create team.")}
-            </p>
-          )}
 
           <CreateTeamForm
             onSubmit={(values) => mutation.mutate(values)}

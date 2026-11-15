@@ -1,5 +1,5 @@
 import type { Team } from "@/types/team";
-import { Button } from "@/components/ui/button";
+import ConfirmButton from "./ConfirmButton";
 
 type TeamDetailsProps = {
   team: Team;
@@ -52,14 +52,15 @@ function TeamDetails({ team, onRemove, isRemoving }: TeamDetailsProps) {
                   </p>
                 </div>
                 {onRemove && !isLeader && (
-                  <Button
-                    variant="outline"
+                  <ConfirmButton
+                    label="Remove"
+                    title={`Remove ${member.fullName}?`}
+                    description="They will need to request to join again."
+                    confirmLabel="Remove"
+                    onConfirm={() => onRemove(member.userId)}
+                    isPending={!!isRemoving}
                     size="sm"
-                    disabled={isRemoving}
-                    onClick={() => onRemove(member.userId)}
-                  >
-                    Remove
-                  </Button>
+                  />
                 )}
               </li>
             );
