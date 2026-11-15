@@ -1,7 +1,6 @@
 import {
   ArrayMaxSize,
   ArrayMinSize,
-  ArrayNotEmpty,
   IsArray,
   IsDateString,
   IsNotEmpty,
@@ -31,7 +30,6 @@ export class CreateHackathonDto {
   organizationName!: string;
 
   @IsArray()
-  @ArrayNotEmpty()
   @ArrayMaxSize(5)
   @ArrayMinSize(5)
   @ValidateNested({ each: true })

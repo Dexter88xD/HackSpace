@@ -245,10 +245,6 @@ export class HackathonsService {
       );
     }
 
-    if (dto.phases === null) {
-      throw new BadRequestException('Phases must be an array when provided');
-    }
-
     if (dto.phases !== undefined) {
       const names = dto.phases.map((phase) => phase.phaseName);
 
