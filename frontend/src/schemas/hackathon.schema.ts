@@ -75,7 +75,6 @@ export const hackathonSchema = z
         continue;
       }
 
-      // Each phase must have a positive duration.
       if (phaseStart >= phaseEnd) {
         ctx.addIssue({
           code: "custom",
@@ -84,32 +83,33 @@ export const hackathonSchema = z
         });
       }
 
-      // A phase cannot start before the hackathon.
-      if (validHackathonDates && phaseStart < hackathonStart) {
+      if (validHackathonDates && i === 0 && phaseStart !== hackathonStart) {
         ctx.addIssue({
           code: "custom",
-          message: "Phase cannot start before the hackathon",
+          message: "Launch phase must start when the hackathon begins.",
           path: ["phases", i, "startAt"],
         });
       }
 
-      // A phase cannot end after the hackathon.
-      if (validHackathonDates && phaseEnd > hackathonEnd) {
+      if (
+        validHackathonDates &&
+        i === data.phases.length - 1 &&
+        phaseEnd !== hackathonEnd
+      ) {
         ctx.addIssue({
           code: "custom",
-          message: "Phase cannot end after the hackathon",
+          message: "Finished phase must end when the hackathon ends.",
           path: ["phases", i, "endAt"],
         });
       }
 
-      // Compare with the preceding phase to detect overlaps.
       if (i > 0) {
         const previousEnd = new Date(data.phases[i - 1].endAt).getTime();
 
-        if (Number.isFinite(previousEnd) && phaseStart < previousEnd) {
+        if (Number.isFinite(previousEnd) && phaseStart !== previousEnd) {
           ctx.addIssue({
             code: "custom",
-            message: "Phase overlaps with the previous phase",
+            message: "Phase must start exactly when the previous phase ends.",
             path: ["phases", i, "startAt"],
           });
         }

@@ -1,6 +1,5 @@
-
 import { Fragment, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   hackathonSchema,
@@ -21,6 +20,19 @@ function toDateTimeLocal(iso: string): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+function displayDateTime(value?: string): string {
+  if (!value) return "Not set";
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "Invalid date";
+  return date.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function HackathonForm({
   hackathon,
   onSubmit,
@@ -32,10 +44,12 @@ function HackathonForm({
 
   const {
     register,
+    control,
     handleSubmit,
     trigger,
     getValues,
     setError,
+    setValue,
     formState: { errors },
   } = useForm<HackathonFormValues>({
     resolver: zodResolver(hackathonSchema),
@@ -61,6 +75,8 @@ function HackathonForm({
     },
   });
 
+  const phases = useWatch({ control, name: "phases" });
+
   const goToPhases = async () => {
     const valid = await trigger([
       "title",
@@ -82,6 +98,8 @@ function HackathonForm({
       return;
     }
 
+    setValue("phases.0.startAt", startAt);
+    setValue("phases.4.endAt", endAt);
     setStep(2);
   };
 
@@ -225,105 +243,104 @@ function HackathonForm({
       )}
 
       {step === 2 && (
-        <fieldset className="space-y-4">
-          <legend className="text-lg font-semibold">
-            Hackathon Phases
-          </legend>
-
+        <fieldset className="space-y-3">
+          <legend className="text-base font-semibold">Hackathon Phases</legend>
           <p className="text-sm text-muted-foreground">
-            Configure the five phases in order. Each phase must fall
-            within the hackathon dates, and phases must not overlap.
+            Set four phase boundaries. Each phase starts when the previous one
+            ends; the hackathon dates define the first start and final end.
           </p>
 
-          {PHASE_ORDER.map((phaseName, index) => (
-            <div
-              key={phaseName}
-              className="space-y-4 rounded-lg border border-border p-4"
-            >
-              <h3 className="font-medium">
-                {index + 1}. {phaseName.replace(/_/g, " ")}
-              </h3>
+          <div className="space-y-2">
+            {PHASE_ORDER.map((phaseName, index) => (
+              <div
+                key={phaseName}
+                className="grid gap-3 rounded-lg border border-border p-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1.3fr)] md:items-start"
+              >
+                <input
+                  type="hidden"
+                  {...register(`phases.${index}.phaseName`)}
+                />
+                <input type="hidden" {...register(`phases.${index}.startAt`)} />
 
-              <input
-                type="hidden"
-                {...register(`phases.${index}.phaseName`)}
-              />
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor={`phase-${index}-start`}>
-                    Start date
-                  </Label>
-
-                  <Input
-                    id={`phase-${index}-start`}
-                    type="datetime-local"
-                    {...register(`phases.${index}.startAt`)}
-                    aria-invalid={
-                      !!errors.phases?.[index]?.startAt
-                    }
-                  />
-
+                <div className="min-w-0 space-y-1">
+                  <h3 className="text-sm font-semibold">
+                    {index + 1}. {phaseName.replace(/_/g, " ")}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">Starts</p>
+                  <p className="text-sm font-medium">
+                    {displayDateTime(phases?.[index]?.startAt)}
+                  </p>
                   {errors.phases?.[index]?.startAt && (
-                    <p
-                      role="alert"
-                      className="text-sm text-destructive"
-                    >
+                    <p role="alert" className="text-xs text-destructive">
                       {errors.phases[index]?.startAt?.message}
+                    </p>
+                  )}
+                  {errors.phases?.[index]?.phaseName && (
+                    <p role="alert" className="text-xs text-destructive">
+                      {errors.phases[index]?.phaseName?.message}
                     </p>
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor={`phase-${index}-end`}>
-                    End date
-                  </Label>
-
-                  <Input
-                    id={`phase-${index}-end`}
-                    type="datetime-local"
-                    {...register(`phases.${index}.endAt`)}
-                    aria-invalid={
-                      !!errors.phases?.[index]?.endAt
-                    }
-                  />
-
+                <div className="min-w-0 space-y-1">
+                  {index < PHASE_ORDER.length - 1 ? (
+                    <>
+                      <Label htmlFor={`phase-${index}-end`} className="text-xs">
+                        Ends / Next phase starts
+                      </Label>
+                      <Input
+                        id={`phase-${index}-end`}
+                        type="datetime-local"
+                        className="h-9"
+                        {...register(`phases.${index}.endAt`, {
+                          onChange: (event) => {
+                            setValue(
+                              `phases.${index + 1}.startAt`,
+                              event.target.value,
+                              { shouldDirty: true, shouldValidate: true },
+                            );
+                          },
+                        })}
+                        aria-invalid={!!errors.phases?.[index]?.endAt}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <input
+                        type="hidden"
+                        {...register(`phases.${index}.endAt`)}
+                      />
+                      <p className="text-xs text-muted-foreground">Ends</p>
+                      <p className="text-sm font-medium">
+                        {displayDateTime(phases?.[index]?.endAt)}
+                      </p>
+                    </>
+                  )}
                   {errors.phases?.[index]?.endAt && (
-                    <p
-                      role="alert"
-                      className="text-sm text-destructive"
-                    >
+                    <p role="alert" className="text-xs text-destructive">
                       {errors.phases[index]?.endAt?.message}
                     </p>
                   )}
                 </div>
+
+                <div className="min-w-0 space-y-1">
+                  <Label
+                    htmlFor={`phase-${index}-description`}
+                    className="text-xs"
+                  >
+                    Description (optional)
+                  </Label>
+                  <Textarea
+                    id={`phase-${index}-description`}
+                    {...register(`phases.${index}.description`)}
+                    rows={1}
+                    className="min-h-9 resize-y"
+                    placeholder="Optional phase details..."
+                  />
+                </div>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor={`phase-${index}-description`}>
-                  Description (optional)
-                </Label>
-
-                <Textarea
-                  id={`phase-${index}-description`}
-                  {...register(`phases.${index}.description`)}
-                  rows={2}
-                  placeholder={`Describe the ${phaseName
-                    .toLowerCase()
-                    .replace(/_/g, " ")} phase...`}
-                />
-              </div>
-
-              {errors.phases?.[index]?.phaseName && (
-                <p
-                  role="alert"
-                  className="text-sm text-destructive"
-                >
-                  {errors.phases[index]?.phaseName?.message}
-                </p>
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
         </fieldset>
       )}
 
@@ -340,11 +357,7 @@ function HackathonForm({
               Cancel
             </Link>
 
-            <Button
-              type="button"
-              size="lg"
-              onClick={goToPhases}
-            >
+            <Button type="button" size="lg" onClick={goToPhases}>
               Next: Configure Phases
             </Button>
           </Fragment>
@@ -360,11 +373,7 @@ function HackathonForm({
               Back
             </Button>
 
-            <Button
-              type="submit"
-              size="lg"
-              disabled={isSubmitting}
-            >
+            <Button type="submit" size="lg" disabled={isSubmitting}>
               {isSubmitting
                 ? "Saving..."
                 : isEditing

@@ -11,12 +11,14 @@ export function validatePhaseSchedule(
   const hackathonEnd = hackathonEndAt.getTime();
 
   if (!Number.isFinite(hackathonStart) || !Number.isFinite(hackathonEnd)) {
-    throw new BadRequestException('Invalid hackathon start or end date');
+    throw new BadRequestException(
+      'Hackathon start and end dates must be valid dates.',
+    );
   }
 
   if (hackathonStart >= hackathonEnd) {
     throw new BadRequestException(
-      'Hackathon start date must be before its end date',
+      'Hackathon start date must be earlier than its end date.',
     );
   }
 
@@ -29,9 +31,7 @@ export function validatePhaseSchedule(
   ];
 
   if (phases.length !== validPhaseOrder.length) {
-    throw new BadRequestException(
-      `A hackathon schedule must contain exactly ${validPhaseOrder.length} phases`,
-    );
+    throw new BadRequestException('A hackathon must have exactly 5 phases.');
   }
 
   let previousEnd: number | null = null;
@@ -42,37 +42,37 @@ export function validatePhaseSchedule(
 
     if (!Number.isFinite(start) || !Number.isFinite(end)) {
       throw new BadRequestException(
-        `Phase ${phase.phaseName} has an invalid start or end date`,
+        `${phase.phaseName}: Start and end dates must be valid.`,
       );
     }
 
     if (start >= end) {
       throw new BadRequestException(
-        `Phase ${phase.phaseName} must start before it ends`,
-      );
-    }
-
-    if (start < hackathonStart) {
-      throw new BadRequestException(
-        `Phase ${phase.phaseName} cannot start before the hackathon`,
-      );
-    }
-
-    if (end > hackathonEnd) {
-      throw new BadRequestException(
-        `Phase ${phase.phaseName} cannot end after the hackathon`,
+        `${phase.phaseName}: Start date must be earlier than end date.`,
       );
     }
 
     if (phase.phaseName !== validPhaseOrder[i]) {
       throw new BadRequestException(
-        `Invalid phase order: expected ${validPhaseOrder[i]}, received ${phase.phaseName}`,
+        `Invalid phase order: expected ${validPhaseOrder[i]}, but received ${phase.phaseName}.`,
       );
     }
 
-    if (previousEnd !== null && start < previousEnd) {
+    if (i === 0 && start !== hackathonStart) {
       throw new BadRequestException(
-        `Phase ${phase.phaseName} overlaps with the previous phase`,
+        `Launch phase must start when the hackathon begins.`,
+      );
+    }
+
+    if (i === validPhaseOrder.length - 1 && end !== hackathonEnd) {
+      throw new BadRequestException(
+        `Finished phase must end when the hackathon ends.`,
+      );
+    }
+
+    if (previousEnd !== null && start !== previousEnd) {
+      throw new BadRequestException(
+        `${phase.phaseName}: Start date must match the previous phase's end date.`,
       );
     }
 
