@@ -1,13 +1,23 @@
 {$CADDY_HOST} {
-    tls internal
+	tls internal
 
-    @backend path /api/*
+	@backend path /api/*
 
-    handle @backend {
-        reverse_proxy {$BACKEND_HOST}   
-    }
+	handle @backend {
+		reverse_proxy {$BACKEND_HOST}
+	}
 
-    handle { 
-        reverse_proxy {$FRONTEND_HOST}
-    }
+	handle {
+		reverse_proxy {$FRONTEND_HOST}
+	}
+}
+
+{$MINIO_API_DOMAIN} {
+	tls internal
+	reverse_proxy {$MINIO_API_HOST}
+}
+
+{$MINIO_CONSOLE_DOMAIN} {
+	tls internal
+	reverse_proxy {$MINIO_CONSOLE_HOST}
 }

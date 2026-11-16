@@ -12,6 +12,7 @@ import { HackathonUser } from '../domains/hackathons/entities/hackathon-user.ent
 import { Team } from '../domains/teams/entities/team.entity';
 import { TeamMember } from '../domains/teams/entities/team-member.entity';
 import { TeamJoinRequest } from '../domains/teams/entities/team-join-request.entity';
+import { StoredFile } from '../shared/files/entities/stored-file.entity';
 
 loadEnv({ path: '../.env', quiet: true });
 
@@ -36,6 +37,7 @@ export default new DataSource({
     Team,
     TeamMember,
     TeamJoinRequest,
+    StoredFile,
   ],
 
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
