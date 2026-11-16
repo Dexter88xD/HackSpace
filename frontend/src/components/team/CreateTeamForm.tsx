@@ -9,24 +9,28 @@ import { Label } from "@/components/ui/label";
 type CreateTeamFormProps = {
   onSubmit: (data: TeamFormValues) => void;
   isSubmitting: boolean;
+  // Used by the edit form to start from the current name and description.
+  defaultValues?: TeamFormValues;
+  submitLabel?: string;
 };
 
-function CreateTeamForm({ onSubmit, isSubmitting }: CreateTeamFormProps) {
+function CreateTeamForm({
+  onSubmit,
+  isSubmitting,
+  defaultValues = { name: "", description: "" },
+  submitLabel = "Create Team",
+}: CreateTeamFormProps) {
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<TeamFormValues>({
     resolver: zodResolver(teamSchema),
-    defaultValues: { name: "", description: "" },
+    defaultValues,
   });
 
   return (
-    <form
-      noValidate
-      onSubmit={handleSubmit(onSubmit)}
-      className="space-y-6 rounded-xl border border-border bg-card p-6 shadow-sm"
-    >
+    <form noValidate onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div className="space-y-2">
         <Label htmlFor="name">
           Team name <span className="text-destructive">*</span>
@@ -65,7 +69,7 @@ function CreateTeamForm({ onSubmit, isSubmitting }: CreateTeamFormProps) {
       </div>
       <div className="flex justify-end">
         <Button type="submit" size="lg" disabled={isSubmitting}>
-          {isSubmitting ? "Creating..." : "Create Team"}
+          {isSubmitting ? "Saving..." : submitLabel}
         </Button>
       </div>
     </form>
