@@ -1,6 +1,5 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ChatRoom } from './entities/chat-room.entity';
 import { Repository } from 'typeorm';
 import { ChatMember } from './entities/chat-member.entity';
 import { Message } from './entities/message.entity';
@@ -9,8 +8,6 @@ import { WsException } from '@nestjs/websockets';
 @Injectable()
 export class ChatService {
   constructor(
-    @InjectRepository(ChatRoom)
-    private readonly chatRoomRepository: Repository<ChatRoom>,
     @InjectRepository(ChatMember)
     private readonly chatMemberRepository: Repository<ChatMember>,
     @InjectRepository(Message)
@@ -39,7 +36,25 @@ export class ChatService {
       chatRoom: { id: chatRoomId },
     });
 
-    return this.messageRepository.save(message);
+    const savedMessage = await this.messageRepository.save(message);
+
+    return this.messageRepository.findOneOrFail({
+      where: {
+        id: savedMessage.id,
+      },
+      relations: {
+        sender: true,
+      },
+      select: {
+        id: true,
+        content: true,
+        sentAt: true,
+        sender: {
+          id: true,
+          username: true,
+        },
+      },
+    });
   }
 
   async getMessages(userId: number, chatRoomId: number) {

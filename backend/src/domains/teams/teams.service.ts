@@ -293,9 +293,6 @@ export class TeamsService {
         const lockedTeam = await manager.findOne(Team, {
           where: { id: team.id },
           lock: { mode: 'pessimistic_write' },
-          relations: {
-            chatRoom: true,
-          },
         });
 
         await this.checkLeader(manager, team.id, userId);

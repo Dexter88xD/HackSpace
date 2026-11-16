@@ -38,6 +38,7 @@ import { parseHackathonId } from "@/lib/hackathon-id";
 import { shouldRetryQuery } from "@/lib/query-retry";
 import type { TeamFormValues } from "@/schemas/team.schema";
 import type { Team } from "@/types/team";
+import Chat from "@/components/Chat/Chat";
 
 function errorMessage(error: unknown, fallback: string) {
   return isAxiosError(error)
@@ -58,6 +59,11 @@ export default function HackathonTeam() {
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
 
+  const { data: currentUser } = useQuery({
+    queryKey: ["me"],
+    queryFn: getMe,
+    retry: shouldRetryQuery,
+  });
   const { data, isPending, isError, error, refetch } = useQuery({
     queryKey: ["my-team", hackathonId],
     queryFn: () => {
@@ -73,12 +79,6 @@ export default function HackathonTeam() {
     // without reloading the page.
     refetchInterval: 4000,
   });
-
-  const { data: currentUser } = useQuery({
-    queryKey: ["me"],
-    queryFn: getMe,
-  });
-
   const team = data?.team ?? null;
   const isLeader = team !== null && team.leaderId === currentUser?.id;
 
@@ -404,6 +404,9 @@ export default function HackathonTeam() {
             </CardContent>
           </Card>
         </div>
+      )}
+      {team && currentUser && (
+        <Chat chatRoomId={team.chatRoom.id} currentUserId={currentUser.id} />
       )}
     </section>
   );

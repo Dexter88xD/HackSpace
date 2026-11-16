@@ -1,4 +1,5 @@
 import {
+  Ack,
   ConnectedSocket,
   MessageBody,
   OnGatewayConnection,
@@ -24,6 +25,7 @@ import { Repository } from 'typeorm';
 import { MessageDto } from './dto/message.dto';
 import { ChatService } from './chat.service';
 import { LeaveRoomDto } from './dto/leave-room.dto';
+import { Message } from './entities/message.entity';
 
 @WebSocketGateway({
   namespace: '/chat',
@@ -82,50 +84,86 @@ export class ChatGateWay
   async handleJoinRoom(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() data: JoinRoomDto,
+    @Ack() ack: (response: { success: boolean; error?: string }) => void,
   ) {
-    const userId = client.data.user?.sub;
+    try {
+      const userId = client.data.user?.sub;
 
-    if (!userId) {
-      throw new WsException('Unauthorized');
+      if (!userId) {
+        throw new WsException('Unauthorized');
+      }
+
+      const membership = await this.chatMembershipRepository.findOne({
+        where: {
+          user: { id: userId },
+          chatRoom: { id: data.chatRoomId },
+        },
+      });
+
+      if (!membership) {
+        throw new WsException('You are not a member of this chat room');
+      }
+
+      await client.join(`chat:${data.chatRoomId}`);
+
+      ack({
+        success: true,
+      });
+
+      return {
+        event: 'joined-room',
+        data: {
+          chatRoomId: data.chatRoomId,
+        },
+      };
+    } catch (error) {
+      ack({
+        success: false,
+        error:
+          error instanceof Error ? error.message : 'Failed to join chat room',
+      });
     }
-
-    const membership = await this.chatMembershipRepository.findOne({
-      where: {
-        user: { id: userId },
-        chatRoom: { id: data.chatRoomId },
-      },
-    });
-
-    if (!membership) {
-      throw new WsException('You are not a member of this chat room');
-    }
-
-    await client.join(`chat:${data.chatRoomId}`);
-    return {
-      event: 'joined-room',
-      data: {
-        chatRoomid: data.chatRoomId,
-      },
-    };
   }
 
   @SubscribeMessage('send-message')
   async handleMessage(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() data: MessageDto,
+    @Ack()
+    ack: (response: {
+      success: boolean;
+      message?: Message;
+      error?: string;
+    }) => void,
   ) {
-    const userId = client.data.user?.sub;
+    try {
+      const userId = client.data.user?.sub;
 
-    if (!userId) {
-      throw new WsException('Unauthorized');
+      if (!userId) {
+        throw new WsException('Unauthorized');
+      }
+
+      const savedMessage = await this.chatService.createMessage(
+        userId,
+        data.chatRoomId,
+        data.content,
+      );
+
+      this.server
+        .to(`chat:${data.chatRoomId}`)
+        .emit('new-message', savedMessage);
+
+      ack({
+        success: true,
+        message: savedMessage,
+      });
+    } catch (error) {
+      ack({
+        success: false,
+        error:
+          error instanceof Error ? error.message : 'Failed to send message',
+      });
     }
-
-    const savedMessage = await this.chatService.createMessage(
-      userId,
-      data.chatRoomId,
-      data.content,
-    );
-    this.server.to(`chat:${data.chatRoomId}`).emit('new-message', savedMessage);
   }
 
   @SubscribeMessage('leave-chat')
