@@ -11,6 +11,7 @@ import { HackathonSettings } from '../domains/hackathons/entities/hackathon-sett
 import { HackathonUser } from '../domains/hackathons/entities/hackathon-user.entity';
 import { Team } from '../domains/teams/entities/team.entity';
 import { TeamMember } from '../domains/teams/entities/team-member.entity';
+import { TeamJoinRequest } from '../domains/teams/entities/team-join-request.entity';
 import { StoredFile } from '../shared/files/entities/stored-file.entity';
 
 loadEnv({ path: '../.env', quiet: true });
@@ -35,6 +36,7 @@ export default new DataSource({
     HackathonUser,
     Team,
     TeamMember,
+    TeamJoinRequest,
     StoredFile,
   ],
 
