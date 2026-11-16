@@ -13,35 +13,93 @@ import {
   SelectItem,
 } from "../ui/select";
 import { SearchIcon } from "lucide-react";
-import { HackathonFiltersType, HackathonPhaseName } from "@/types/hackathon";
+import {
+  HackathonFiltersType,
+  HackathonPhaseName,
+  HackathonSortField,
+  SortOrder,
+} from "@/types/hackathon";
 import React, { useState } from "react";
 import { DateRange } from "react-day-picker";
 import { format } from "date-fns";
 
+const sortOptions: Record<
+  string,
+  {
+    sortBy: HackathonSortField;
+    sortOrder: SortOrder;
+    label: string;
+  }
+> = {
+  "startAt:asc": {
+    sortBy: HackathonSortField.START_AT,
+    sortOrder: SortOrder.ASC,
+    label: "Starting soonest",
+  },
 
-// This component provides search, phase, and date filters for hackathons.
-// When submitted, it updates the filters and resets pagination to page 1.
+  "startAt:desc": {
+    sortBy: HackathonSortField.START_AT,
+    sortOrder: SortOrder.DESC,
+    label: "Starting latest",
+  },
+
+  "title:asc": {
+    sortBy: HackathonSortField.TITLE,
+    sortOrder: SortOrder.ASC,
+    label: "Title A–Z",
+  },
+
+  "title:desc": {
+    sortBy: HackathonSortField.TITLE,
+    sortOrder: SortOrder.DESC,
+    label: "Title Z–A",
+  },
+
+  "createdAt:asc": {
+    sortBy: HackathonSortField.CREATED_AT,
+    sortOrder: SortOrder.ASC,
+    label: "Oldest created",
+  },
+
+  "createdAt:desc": {
+    sortBy: HackathonSortField.CREATED_AT,
+    sortOrder: SortOrder.DESC,
+    label: "Newest created",
+  },
+};
+
+// Provides search, phase, date, and sorting controls.
+// Sorting applies immediately; other filters apply on form submission.
 export default function HackathonFilters({
   setFilters,
+  filters,
 }: {
   setFilters: React.Dispatch<React.SetStateAction<HackathonFiltersType>>;
+  filters: HackathonFiltersType;
 }) {
   const [search, setSearch] = useState("");
   const [phase, setPhase] = useState<HackathonPhaseName>();
   const [date, setDate] = useState<DateRange>();
+  const selectedSortKey =
+    filters.sortBy && filters.sortOrder
+      ? `${filters.sortBy}:${filters.sortOrder}`
+      : null;
 
   return (
-    <form className="flex items-center gap-4 bg-white border p-5 rounded-xl flex-wrap" onSubmit={(e) => {
-      e.preventDefault();
-      setFilters((prev) => ({
-        ...prev,
-        search: search || undefined,
-        phase,
-        startDate: date?.from ? format(date.from, "yyyy-MM-dd") : undefined,
-        endDate: date?.to ? format(date.to, "yyyy-MM-dd") : undefined,
-        page: 1,
-      }))
-    }}>
+    <form
+      className="flex items-center gap-4 bg-white border p-5 rounded-xl flex-wrap"
+      onSubmit={(e) => {
+        e.preventDefault();
+        setFilters((prev) => ({
+          ...prev,
+          search: search || undefined,
+          phase,
+          startDate: date?.from ? format(date.from, "yyyy-MM-dd") : undefined,
+          endDate: date?.to ? format(date.to, "yyyy-MM-dd") : undefined,
+          page: 1,
+        }));
+      }}
+    >
       <Select
         onValueChange={(value) => {
           setPhase(value === "All" ? undefined : (value as HackathonPhaseName));
@@ -66,27 +124,59 @@ export default function HackathonFilters({
         </SelectContent>
       </Select>
 
+      <Select
+        value={selectedSortKey}
+        onValueChange={(value) => {
+          if (typeof value !== "string") return;
 
-  <div className="flex-1 min-w-[250px]">
-          <InputGroup className="flex-1">
-        <InputGroupInput
-          type="search"
-          placeholder="Search hackathons..."
-          maxLength={50}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <InputGroupAddon>
-          <SearchIcon />
-        </InputGroupAddon>
-      </InputGroup>
-  </div>
+          const selectedSort = sortOptions[value];
+          if (!selectedSort) return;
 
-  <div className="shrink-0">
-      <DatePickerWithRange onDateChange={setDate} />
-  </div>
+          setFilters((prev) => ({
+            ...prev,
+            sortBy: selectedSort.sortBy,
+            sortOrder: selectedSort.sortOrder,
+            page: 1,
+          }));
+        }}
+      >
+        <SelectTrigger className="w-full sm:w-44">
+          <SelectValue placeholder="Sort by">
+            {selectedSortKey ? sortOptions[selectedSortKey]?.label : undefined}
+          </SelectValue>
+        </SelectTrigger>
 
-      <Button type="submit" className="shrink-0">Search</Button>
+        <SelectContent>
+          {Object.entries(sortOptions).map(([key, option]) => (
+            <SelectItem key={key} value={key}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <div className="flex-1 min-w-[250px]">
+        <InputGroup className="flex-1">
+          <InputGroupInput
+            type="search"
+            placeholder="Search hackathons..."
+            maxLength={50}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <InputGroupAddon>
+            <SearchIcon />
+          </InputGroupAddon>
+        </InputGroup>
+      </div>
+
+      <div className="shrink-0">
+        <DatePickerWithRange onDateChange={setDate} />
+      </div>
+
+      <Button type="submit" className="shrink-0">
+        Search
+      </Button>
     </form>
   );
 }

@@ -3,7 +3,11 @@ import HackathonForm from "@/components/hackathon/HackathonForm";
 import type { HackathonFormValues } from "@/schemas/hackathon.schema";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getHackathonById, updateHackathon } from "@/api/hackathon-management";
-import type { HackathonPayload } from "@/types/hackathon-management";
+import type {
+  HackathonPhasePayload,
+  UpdateHackathonPayload,
+} from "@/types/hackathon-management";
+import { HackathonPhaseName } from "@/types/hackathon";
 import { isAxiosError } from "axios";
 import { getMe } from "@/api/auth";
 import HackathonDetailsState from "@/components/hackathon/HackathonDetailsState";
@@ -49,7 +53,7 @@ function EditHackathon() {
   });
 
   const mutation = useMutation({
-    mutationFn: (payload: HackathonPayload) => {
+    mutationFn: (payload: UpdateHackathonPayload) => {
       if (hackathonId === null) {
         throw new Error("Invalid hackathon ID");
       }
@@ -58,8 +62,12 @@ function EditHackathon() {
     },
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["management-hackathons"] }),
-        queryClient.invalidateQueries({ queryKey: ["hackathons"] }),
+        queryClient.invalidateQueries({
+          queryKey: ["management-hackathons"],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["hackathons"],
+        }),
       ]);
 
       navigate(returnTo);
@@ -112,12 +120,50 @@ function EditHackathon() {
   }
 
   function handleEdit(data: HackathonFormValues) {
-    const payload: HackathonPayload = {
-      ...data,
+    if (!hackathon) return;
+
+    const changedPhases: HackathonPhasePayload[] = [];
+
+    for (const phase of data.phases) {
+      const existingPhase = hackathon.phases.find(
+        (saved) => saved.phaseName === phase.phaseName,
+      );
+
+      if (!existingPhase) {
+        throw new Error(`Saved phase ${phase.phaseName} was not found`);
+      }
+
+      const startAt = new Date(phase.startAt).toISOString();
+      const endAt = new Date(phase.endAt).toISOString();
+      const description = phase.description.trim() || null;
+
+      const datesChanged =
+        startAt !== new Date(existingPhase.startAt).toISOString() ||
+        endAt !== new Date(existingPhase.endAt).toISOString();
+
+      const descriptionChanged = description !== existingPhase.description;
+
+      if (datesChanged || descriptionChanged) {
+        changedPhases.push({
+          phaseName: HackathonPhaseName[phase.phaseName],
+          description,
+          startAt,
+          endAt,
+        });
+      }
+    }
+
+    const payload: UpdateHackathonPayload = {
+      title: data.title,
       description: data.description.trim() || null,
+      organizationName: data.organizationName,
       startAt: new Date(data.startAt).toISOString(),
       endAt: new Date(data.endAt).toISOString(),
     };
+
+    if (changedPhases.length > 0) {
+      payload.phases = changedPhases;
+    }
 
     mutation.mutate(payload);
   }
@@ -125,6 +171,7 @@ function EditHackathon() {
   return (
     <section className="mx-auto w-full max-w-3xl px-4 py-8">
       <h1 className="mb-6 text-3xl font-bold">Edit Hackathon</h1>
+
       {mutation.isError && (
         <p role="alert" className="mb-4 text-sm text-destructive">
           {updateErrorMessage}

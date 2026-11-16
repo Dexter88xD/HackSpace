@@ -10,6 +10,17 @@ import {
 } from 'class-validator';
 import { HackathonPhaseName } from '../entities/hackathon-phase.entity';
 
+export enum HackathonSortField {
+  START_AT = 'startAt',
+  TITLE = 'title',
+  CREATED_AT = 'createdAt',
+}
+
+export enum SortOrder {
+  ASC = 'asc',
+  DESC = 'desc',
+}
+
 export class HackathonFiltersDto {
   @IsOptional()
   @IsString()
@@ -39,4 +50,12 @@ export class HackathonFiltersDto {
   @IsOptional()
   @IsEnum(HackathonPhaseName)
   phase?: HackathonPhaseName;
+
+  @IsOptional()
+  @IsEnum(HackathonSortField)
+  sortBy?: HackathonSortField;
+
+  @IsOptional()
+  @IsEnum(SortOrder)
+  sortOrder?: SortOrder;
 }

@@ -26,7 +26,7 @@ function HackathonExplorer() {
       <h1 className="mb-6 text-center font-heading text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
         Hackathon Explorer
       </h1>
-      <HackathonFilters setFilters={setFilters} />
+      <HackathonFilters setFilters={setFilters} filters={filters} />
       <div className="flex flex-1 flex-col">
         {isLoading ? (
           <div className="flex flex-1 items-center justify-center">

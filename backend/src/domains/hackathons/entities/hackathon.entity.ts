@@ -12,6 +12,7 @@ import { HackathonPhase } from './hackathon-phase.entity';
 import { HackathonSettings } from './hackathon-settings.entity';
 import { HackathonUser } from './hackathon-user.entity';
 import { Team } from '../../teams/entities/team.entity';
+import { StoredFile } from '../../../shared/files/entities/stored-file.entity';
 
 @Check('"start_at" < "end_at"')
 @Entity('hackathons')
@@ -54,4 +55,7 @@ export class Hackathon {
 
   @OneToMany(() => Team, (team) => team.hackathon)
   teams!: Team[];
+
+  @OneToMany(() => StoredFile, (file) => file.hackathon)
+  files!: StoredFile[];
 }
