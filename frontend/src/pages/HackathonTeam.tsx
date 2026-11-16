@@ -93,6 +93,7 @@ export default function HackathonTeam() {
     },
     enabled: hackathonId !== null && data?.team === null,
     retry: shouldRetryQuery,
+    refetchInterval: 4000,
   });
 
   const { data: myRequests } = useQuery({
@@ -106,6 +107,7 @@ export default function HackathonTeam() {
     },
     enabled: hackathonId !== null && data?.team === null,
     retry: shouldRetryQuery,
+    refetchInterval: 4000,
   });
 
   const {
