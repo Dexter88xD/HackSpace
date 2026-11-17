@@ -1,15 +1,16 @@
-
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LoaderCircle } from "lucide-react";
 import axios from "axios";
 
-import { getMe } from "@/api/auth";
+import { getMe, logout } from "@/api/auth";
 import { getProfile } from "@/api/profile";
 
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { ProfileInfo } from "@/components/profile/ProfileInfo";
 import { ProfileForm } from "@/components/profile/ProfileForm";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 function Profile() {
   const [isEditing, setIsEditing] = useState(false);
@@ -25,6 +26,17 @@ function Profile() {
     queryFn: getProfile,
     retry: false,
     enabled: userQuery.isSuccess,
+  });
+
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const logoutMutation = useMutation({
+    mutationFn: logout,
+    onSuccess: () => {
+      queryClient.clear();
+      navigate("/login", { replace: true });
+    },
   });
 
   const profileNotFound =
@@ -57,10 +69,21 @@ function Profile() {
         {profile ? "My Profile" : "Create Your Profile"}
       </h1>
 
-      <ProfileHeader
-        user={userQuery.data}
-        avatarUrl={profile?.avatarUrl}
-      />
+      <ProfileHeader user={userQuery.data} avatarUrl={profile?.avatarUrl} />
+      <Button
+        type="button"
+        variant="outline"
+        disabled={logoutMutation.isPending}
+        onClick={() => logoutMutation.mutate()}
+      >
+        {logoutMutation.isPending ? "Logging out..." : "Log out"}
+      </Button>
+
+      {logoutMutation.isError && (
+        <p role="alert" className="text-sm text-red-600">
+          Logout failed. Please try again.
+        </p>
+      )}
 
       {!profile ? (
         <ProfileForm />
@@ -71,10 +94,7 @@ function Profile() {
           onSuccess={() => setIsEditing(false)}
         />
       ) : (
-        <ProfileInfo
-          profile={profile}
-          onEdit={() => setIsEditing(true)}
-        />
+        <ProfileInfo profile={profile} onEdit={() => setIsEditing(true)} />
       )}
     </div>
   );
