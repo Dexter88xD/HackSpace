@@ -39,6 +39,7 @@ Paths below are listed relative to the backend `/api` prefix. Through the normal
 | `POST` | `/auth/verify`                | Public         | Verify an email using an OTP                      |
 | `POST` | `/auth/resend-code`           | Public         | Request another verification code                 |
 | `POST` | `/auth/signin`                | Public         | Sign in and set the HttpOnly `accessToken` cookie |
+| `POST` | `/auth/logout`                | Public         | Clear the HttpOnly `accessToken` cookie           |
 | `GET`  | `/auth/me`                    | Authenticated  | Return current authenticated user details         |
 | `GET`  | `/auth/oauth/google`          | Public         | Begin Google OAuth                                |
 | `GET`  | `/auth/oauth/google/callback` | OAuth callback | Finish Google OAuth and redirect                  |

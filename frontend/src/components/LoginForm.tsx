@@ -31,8 +31,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import axios from "axios";
 
 // Handles login using React Hook Form, Zod and TanStack Query.
-// After successful cookie-based authentication, fetches the current user,
-// updates the authentication cache and redirects to Home.
+// After successful cookie-based authentication, clears cached session data,
+// fetches the current user, updates ["me"] and redirects to Home.
 // Handles login errors, session verification failures and unverified emails.
 export function LoginForm({
   className,
@@ -49,6 +49,8 @@ export function LoginForm({
   const loginMutation = useMutation({
     mutationFn: login,
     onSuccess: async () => {
+      queryClient.clear();
+
       try {
         const user = await getMe();
 

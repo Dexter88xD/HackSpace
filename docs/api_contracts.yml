@@ -260,6 +260,22 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Message" }
         "401": { description: Invalid credentials or email not verified }
+  /auth/logout:
+  post:
+    tags: [Authentication]
+    summary: Log out by clearing the HttpOnly accessToken cookie
+    description: Clears the browser authentication cookie. Does not revoke previously issued JWTs. Can be called without an active session.
+    security: []
+    responses:
+      "201":
+        description: Logged out; response expires the accessToken cookie
+        headers:
+          Set-Cookie:
+            description: Expired HttpOnly accessToken cookie
+            schema: { type: string }
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Message" }
   /auth/me:
     get:
       tags: [Authentication]
