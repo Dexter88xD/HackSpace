@@ -52,7 +52,7 @@ export class TeamsService {
     @InjectRepository(ChatRoom)
     private readonly chatRoomRepository: Repository<ChatRoom>,
     private readonly dataSource: DataSource,
-  ) {}
+  ) { }
 
   async create(hackathonId: number, dto: CreateTeamDto, userId: number) {
     const hackathon = await this.findHackathon(hackathonId);
@@ -314,6 +314,13 @@ export class TeamsService {
           throw new ConflictException('This team is full');
         }
 
+        const chatRoom = await manager.findOne(ChatRoom, {
+          where: { team: { id: team.id } },
+        });
+        if (!chatRoom) {
+          throw new NotFoundException('Team chat room not found');
+        }
+
         await manager.save(
           manager.create(TeamMember, {
             team: lockedTeam,
@@ -324,13 +331,6 @@ export class TeamsService {
         await manager.delete(TeamJoinRequest, {
           hackathonUser: { id: request.hackathonUser.id },
         });
-
-        const chatRoom = await manager.findOne(ChatRoom, {
-          where: { team: { id: team.id } },
-        });
-        if (!chatRoom) {
-          throw new NotFoundException('Team chat room not found');
-        }
 
         await manager.save(
           manager.create(ChatMember, {
