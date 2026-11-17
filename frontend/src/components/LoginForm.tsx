@@ -23,20 +23,17 @@ import { useForm } from "react-hook-form";
 import { LoginFormData, loginSchema } from "@/schemas/login.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { login } from "@/api/auth";
+import { getMe, login } from "@/api/auth";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { FieldError } from "@/components/ui/field";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import axios from "axios";
 
-// Login form component that validates user credentials with React Hook Form and Zod,
-// submits the login request through TanStack Query, displays loading and API error states,
-// stores the returned access token on successful authentication and redirects to the home page.
-// If the backend reports that the user's email is not verified, it stores the login email in
-// sessionStorage and redirects the user to the OTP verification page. The form also provides
-// Google and 42 Intra sign-in buttons, a forgot-password link, and navigation
-// to the registration page.
+// Handles login using React Hook Form, Zod and TanStack Query.
+// After successful cookie-based authentication, fetches the current user,
+// updates the authentication cache and redirects to Home.
+// Handles login errors, session verification failures and unverified emails.
 export function LoginForm({
   className,
   ...props
@@ -48,11 +45,20 @@ export function LoginForm({
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   });
+  const [sessionError, setSessionError] = React.useState<string | null>(null);
   const loginMutation = useMutation({
     mutationFn: login,
-    onSuccess: () => {
-      queryClient.clear();
-      navigate("/");
+    onSuccess: async () => {
+      try {
+        const user = await getMe();
+
+        queryClient.setQueryData(["me"], user);
+        navigate("/");
+      } catch {
+        setSessionError(
+          "You signed in, but we couldn't verify your session. Please try refreshing the page.",
+        );
+      }
     },
     onError: (error) => {
       if (axios.isAxiosError(error)) {
@@ -67,6 +73,7 @@ export function LoginForm({
     },
   });
   const onSubmit = (data: LoginFormData) => {
+    setSessionError(null);
     loginMutation.mutate(data);
   };
   return (
@@ -127,10 +134,12 @@ export function LoginForm({
                 {loginMutation.isError && (
                   <FieldError>
                     {axios.isAxiosError(loginMutation.error)
-                      ? loginMutation.error.response?.data?.message
+                      ? (loginMutation.error.response?.data?.message ??
+                        "Something went wrong")
                       : "Something went wrong"}
                   </FieldError>
                 )}
+                {sessionError && <FieldError>{sessionError}</FieldError>}
                 <FieldDescription className="text-center">
                   Don&apos;t have an account?{" "}
                   <Link

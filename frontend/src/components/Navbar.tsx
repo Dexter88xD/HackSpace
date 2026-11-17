@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { getMe } from "../api/auth";
 
 const getNavLinkClass = ({ isActive }: { isActive: boolean }) =>
   `block rounded-md px-3 py-2 transition-colors
@@ -14,6 +16,13 @@ const getNavLinkClass = ({ isActive }: { isActive: boolean }) =>
 
 function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { data: user, isLoading } = useQuery({
+    queryKey: ["me"],
+    queryFn: getMe,
+    retry: false,
+  });
+
+  const isAuthenticated = !!user;
   return (
     <nav className="px-8 py-4">
       <div className="flex items-center justify-between">
@@ -25,12 +34,29 @@ function Navbar() {
         </NavLink>
 
         <div className="hidden md:flex md:items-center md:gap-6">
-          <NavLink to="/hackathon-explorer" className={getNavLinkClass}>
-            Explorer
-          </NavLink>
-          <NavLink to="/hackathons" className={getNavLinkClass}>
-            Hackathons
-          </NavLink>
+          {!isLoading &&
+            (isAuthenticated ? (
+              <>
+                <NavLink to="/hackathon-explorer" className={getNavLinkClass}>
+                  Explorer
+                </NavLink>
+                <NavLink to="/hackathons" className={getNavLinkClass}>
+                  Hackathons
+                </NavLink>
+                <NavLink to="/profile" className={getNavLinkClass}>
+                  Profile
+                </NavLink>
+              </>
+            ) : (
+              <>
+                <NavLink to="/login" className={getNavLinkClass}>
+                  Log in
+                </NavLink>
+                <NavLink to="/register" className={getNavLinkClass}>
+                  Register
+                </NavLink>
+              </>
+            ))}
         </div>
 
         <button
@@ -46,22 +72,50 @@ function Navbar() {
       </div>
 
       <div id="mobile-navigation" className="md:hidden">
-        {menuOpen && (
+        {menuOpen && !isLoading && (
           <div className="flex flex-col items-end gap-1 pt-3">
-            <NavLink
-              onClick={() => setMenuOpen(false)}
-              to="/hackathon-explorer"
-              className={getNavLinkClass}
-            >
-              Explorer
-            </NavLink>
-            <NavLink
-              onClick={() => setMenuOpen(false)}
-              to="/hackathons"
-              className={getNavLinkClass}
-            >
-              Hackathons
-            </NavLink>
+            {isAuthenticated ? (
+              <>
+                <NavLink
+                  onClick={() => setMenuOpen(false)}
+                  to="/hackathon-explorer"
+                  className={getNavLinkClass}
+                >
+                  Explorer
+                </NavLink>
+                <NavLink
+                  onClick={() => setMenuOpen(false)}
+                  to="/hackathons"
+                  className={getNavLinkClass}
+                >
+                  Hackathons
+                </NavLink>
+                <NavLink
+                  onClick={() => setMenuOpen(false)}
+                  to="/profile"
+                  className={getNavLinkClass}
+                >
+                  Profile
+                </NavLink>
+              </>
+            ) : (
+              <>
+                <NavLink
+                  onClick={() => setMenuOpen(false)}
+                  to="/login"
+                  className={getNavLinkClass}
+                >
+                  Log in
+                </NavLink>
+                <NavLink
+                  onClick={() => setMenuOpen(false)}
+                  to="/register"
+                  className={getNavLinkClass}
+                >
+                  Register
+                </NavLink>
+              </>
+            )}
           </div>
         )}
       </div>
