@@ -52,7 +52,7 @@ export class TeamsService {
     @InjectRepository(ChatRoom)
     private readonly chatRoomRepository: Repository<ChatRoom>,
     private readonly dataSource: DataSource,
-  ) { }
+  ) {}
 
   async create(hackathonId: number, dto: CreateTeamDto, userId: number) {
     const hackathon = await this.findHackathon(hackathonId);
@@ -298,13 +298,15 @@ export class TeamsService {
         await this.checkLeader(manager, team.id, userId);
         this.checkRegistrationOpen(team.hackathon);
 
-        if (!lockedTeam) {
-          throw new NotFoundException('Team not found');
-        }
-
+        // If nothing was deleted, the request was already answered or
+        // cancelled.
         const deleted = await manager.delete(TeamJoinRequest, requestId);
         if (!deleted.affected) {
           throw new BadRequestException('This request was already answered');
+        }
+
+        if (!lockedTeam) {
+          throw new NotFoundException('Team not found');
         }
 
         const memberCount = await manager.count(TeamMember, {
