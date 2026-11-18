@@ -5,7 +5,7 @@ export type Message = {
   sender: {
     id: number;
     username: string;
-  };
+  } | null;
 };
 
 export type SendMessageAck = {

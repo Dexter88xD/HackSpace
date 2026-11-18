@@ -24,13 +24,13 @@ import { TeamJoinRequest } from './entities/team-join-request.entity';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
 import { ChatMember } from '../chat/entities/chat-member.entity';
-import { ChatGateWay } from '../chat/chat.gateway';
+import { ChatGateway } from '../chat/chat.gateway';
 import { ChatRoom, ChatRoomType } from '../chat/entities/chat-room.entity';
 
 @Injectable()
 export class TeamsService {
   constructor(
-    private readonly chatGateway: ChatGateWay,
+    private readonly chatGateway: ChatGateway,
     @InjectRepository(Team)
     private readonly teamRepository: Repository<Team>,
 
@@ -95,7 +95,7 @@ export class TeamsService {
         );
 
         const chatRoom = manager.create(ChatRoom, {
-          title: `${savedTeam.name} Chat`,
+          title: `${savedTeam.name}`,
           chatRoomType: ChatRoomType.TEAM,
           team: savedTeam,
         });

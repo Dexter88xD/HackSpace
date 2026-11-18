@@ -34,7 +34,7 @@ import { Message } from './entities/message.entity';
     credentials: true,
   },
 })
-export class ChatGateWay
+export class ChatGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
   constructor(
@@ -74,10 +74,10 @@ export class ChatGateWay
     });
   }
   handleConnection(client: AuthenticatedSocket) {
-    console.log(`Cliend connected ${client.id}`);
+    console.log(`Client connected ${client.id}`);
   }
   handleDisconnect(client: AuthenticatedSocket) {
-    console.log(`Client Disconnected ${client.id}`);
+    console.log(`Client disconnected ${client.id}`);
   }
 
   @SubscribeMessage('join-chat')
@@ -109,13 +109,6 @@ export class ChatGateWay
       ack({
         success: true,
       });
-
-      return {
-        event: 'joined-room',
-        data: {
-          chatRoomId: data.chatRoomId,
-        },
-      };
     } catch (error) {
       ack({
         success: false,
