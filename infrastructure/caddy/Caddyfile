@@ -1,3 +1,8 @@
+# Plain HTTP (host port 8080) redirects to HTTPS on host port 8443
+http://{$CADDY_HOST} {
+	redir https://{host}:8443{uri} permanent
+}
+
 {$CADDY_HOST} {
 	tls internal
 

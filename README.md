@@ -55,7 +55,7 @@ make ps
 make migration
 ```
 
-Open the application at `https://localhost:8443` through Caddy. The browser may show a certificate warning because the local Caddy configuration uses an internally generated certificate. The frontend and backend are also exposed directly at `http://localhost:5173` and `http://localhost:3000` for development diagnostics; Adminer is available at `http://localhost:8081`.
+Open the application at `https://localhost:8443` through Caddy (`http://localhost:8080` redirects there). The browser may show a certificate warning because the local Caddy configuration uses an internally generated certificate. The frontend and backend are also exposed directly at `http://localhost:5173` and `http://localhost:3000` for development diagnostics; Adminer is available at `http://localhost:8081`.
 
 Caddy exposes the MinIO S3 API at `https://minio.localhost:8443` and its console at `https://console.minio.localhost:8443`. Direct diagnostic access remains available at `http://localhost:9000` (API) and `http://localhost:9001` (console); sign in using the MinIO credentials from `.env`. Containers reach the S3 API at `http://minio:9000`. Objects persist in the `minio_data` volume. `make storage` starts PostgreSQL and MinIO, and the backend waits for MinIO to become healthy.
 

@@ -2,7 +2,7 @@
 
 This document maps the **current frontend pages** and **backend HTTP endpoints** used during local development. React Router controls frontend navigation; NestJS controllers define backend API routes. They are not interchangeable.
 
-- Application (Caddy): `https://localhost:8443`
+- Application (Caddy): `https://localhost:8443` (`http://localhost:8080` redirects to it)
 - Frontend (direct Vite): `http://localhost:5173`
 - Backend (direct NestJS): `http://localhost:3000`
 

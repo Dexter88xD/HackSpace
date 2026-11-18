@@ -50,6 +50,7 @@ make ps
 | Service    | Local address           |
 | ---------- | ----------------------- |
 | Application (Caddy) | `https://localhost:8443` |
+| HTTP redirect (Caddy) | `http://localhost:8080` |
 | Frontend (direct)   | `http://localhost:5173` |
 | Backend (direct)    | `http://localhost:3000` |
 | PostgreSQL | `localhost:5432`        |
