@@ -280,10 +280,6 @@ export default function HackathonTeam() {
           />
         )}
       </div>
-      <h1 className="text-3xl font-bold">
-        {team ? "Your team" : "Join or create a team"}
-      </h1>
-
       {failedAction && (
         <p role="alert" className="text-sm text-destructive">
           {errorMessage(failedAction.error, "Something went wrong.")}
