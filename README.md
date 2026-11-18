@@ -12,6 +12,7 @@ This repository is a Docker Compose monorepo containing a React/TypeScript front
 - **Profiles and skills:** profile creation/editing, skills catalogue, profile-skill assignments and catalogue management permissions.
 - **Hackathons:** creation, exploration with filters, details, current phase, management listing, editing, registration, unregistration and membership lookup.
 - **Teams:** create teams for a hackathon, browse teams, view your own team, join and leave teams.
+- **Team chat:** authenticated team members can load chat history over HTTP and exchange live messages through a Socket.IO WebSocket namespace.
 - **Authorisation:** platform-level `ROLE_USER` and `ROLE_ADMIN` roles, plus hackathon-specific membership roles. An authenticated user can create a hackathon; its organiser or a platform administrator can edit it.
 
 MinIO runs as local object storage using a Chainguard image pinned by immutable digest. The backend uploads files through an S3 file manager strategy. Caddy is enabled in the development stack as the local HTTPS reverse proxy; it routes `/api/*` to the backend and other requests to the frontend.
@@ -121,6 +122,33 @@ Hackathon permissions distinguish **global platform roles** from **membership ro
 - The backend must enforce authorisation independently of frontend route protection or the `canEdit` UI flag.
 
 See [Routes](docs/ROUTES.md) for existing frontend and HTTP endpoints. Existing API request and response naming is not yet uniform; the [Development Guidelines](docs/DEVELOPMENT_GUIDELINES.md) describe the agreed conventions for new and standardised code.
+
+## Team chat and WebSockets
+
+Team chat uses two transports:
+
+- `GET /api/chat-rooms/:chatRoomId/messages` loads persisted message history.
+- Socket.IO namespace `/chat` handles room membership and live messages.
+
+The local Caddy entry point proxies Socket.IO traffic at `/socket.io/*` to the backend. The browser-facing development connection is therefore created from the HTTPS application origin, for example:
+
+```ts
+io("https://localhost/chat", {
+  withCredentials: true,
+  transports: ["websocket"],
+});
+```
+
+The `accessToken` HTTP-only cookie is used during the Socket.IO handshake. The gateway verifies it before accepting the connection. Connecting to the `/chat` namespace does not grant access to every team room: the client must emit `join-chat`, and the backend verifies chat membership before joining `chat:<chatRoomId>`.
+
+The live event flow is:
+
+1. Client emits `join-chat` with `{ chatRoomId }`; the server acknowledges success or failure.
+2. Client emits `send-message` with `{ chatRoomId, content }`; the server validates membership, persists the message and acknowledges the result.
+3. The server broadcasts `new-message` to the room `chat:<chatRoomId>`.
+4. Room members update their cached message list.
+
+Socket acknowledgements use a five-second client timeout. The client must handle both a server response (`success: true` or `success: false`) and a timeout error.
 
 ## Development workflow and quality
 
