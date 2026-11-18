@@ -39,6 +39,7 @@ import { shouldRetryQuery } from "@/lib/query-retry";
 import type { TeamFormValues } from "@/schemas/team.schema";
 import type { Team } from "@/types/team";
 import Chat from "@/components/Chat/Chat";
+import { MessageCircle } from "lucide-react";
 
 function errorMessage(error: unknown, fallback: string) {
   return isAxiosError(error)
@@ -58,6 +59,7 @@ export default function HackathonTeam() {
   const hackathonId = parseHackathonId(id);
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   const { data: currentUser } = useQuery({
     queryKey: ["me"],
@@ -244,6 +246,21 @@ export default function HackathonTeam() {
     leaveMutation,
   ].find((action) => action.isError);
 
+  if (isChatOpen && team && currentUser) {
+    return (
+      <section className="w-full max-w-4xl px-4 py-8 flex flex-col items-center">
+        <Button
+          variant="outline"
+          onClick={() => setIsChatOpen(false)}
+          className="mb-4"
+        >
+          ← Back to team
+        </Button>
+
+        <Chat chatRoomId={team.chatRoom.id} currentUserId={currentUser.id} />
+      </section>
+    );
+  }
   return (
     <section className="mx-auto w-full max-w-4xl space-y-6 px-4 py-8">
       <Link
@@ -252,7 +269,17 @@ export default function HackathonTeam() {
       >
         ← Back to hackathon
       </Link>
-
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">
+          {team ? "Your team" : "Join or create a team"}
+        </h1>
+        {team && (
+          <MessageCircle
+            className="cursor-pointer"
+            onClick={() => setIsChatOpen(true)}
+          />
+        )}
+      </div>
       <h1 className="text-3xl font-bold">
         {team ? "Your team" : "Join or create a team"}
       </h1>
@@ -404,9 +431,6 @@ export default function HackathonTeam() {
             </CardContent>
           </Card>
         </div>
-      )}
-      {team && currentUser && (
-        <Chat chatRoomId={team.chatRoom.id} currentUserId={currentUser.id} />
       )}
     </section>
   );
