@@ -18,7 +18,7 @@ HackSpace uses **one local environment file**, `.env` at the repository root, an
 cp .env.example .env
 ```
 
-Configure `POSTGRES_PASSWORD` and `JWT_SECRET` in the root `.env`. Add `MAIL_USER` and `MAIL_PASS` there when testing email verification, and fill in the relevant OAuth credentials if needed. The frontend sends requests through the same-origin `/api` path. Set `FRONTEND_URL` to the browser-facing application origin for backend OAuth redirects; the example uses `https://localhost`.
+Configure `POSTGRES_PASSWORD` and `JWT_SECRET` in the root `.env`. Add `MAIL_USER` and `MAIL_PASS` there when testing email verification, and fill in the relevant OAuth credentials if needed. The frontend sends requests through the same-origin `/api` path. Set `FRONTEND_URL` to the browser-facing application origin for backend OAuth redirects; the example uses `https://localhost:8443`.
 
 **Do not create** `backend/.env` or `frontend/.env` for the Compose workflow. If you already have those files, first copy any still-needed values into the root `.env`, then delete the redundant local files. Remove the tracked `backend/.env.example` and `frontend/.env.example` templates as part of this consolidation PR after transferring all required example variables into the root `.env.example`.
 
@@ -49,7 +49,7 @@ make ps
 
 | Service    | Local address           |
 | ---------- | ----------------------- |
-| Application (Caddy) | `https://localhost` |
+| Application (Caddy) | `https://localhost:8443` |
 | Frontend (direct)   | `http://localhost:5173` |
 | Backend (direct)    | `http://localhost:3000` |
 | PostgreSQL | `localhost:5432`        |
