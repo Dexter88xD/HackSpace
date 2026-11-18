@@ -4,13 +4,16 @@ import {
   IsArray,
   IsDateString,
   IsNotEmpty,
+  IsObject,
   IsOptional,
   IsString,
   Matches,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { HackathonPhaseDto } from './hackathon-phase.dto';
+import { HackathonSettingsDto } from './hackathon-settings.dto';
 
 export class CreateHackathonDto {
   @IsString()
@@ -41,4 +44,10 @@ export class CreateHackathonDto {
 
   @IsDateString({ strict: true })
   endAt!: string;
+
+  @ValidateIf((_, value: unknown) => value !== undefined)
+  @IsObject()
+  @ValidateNested()
+  @Type(() => HackathonSettingsDto)
+  settings?: HackathonSettingsDto;
 }
