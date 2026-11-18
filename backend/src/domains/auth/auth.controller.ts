@@ -74,6 +74,19 @@ export class AuthController {
     };
   }
 
+  @Post('logout')
+  logout(@Res({ passthrough: true }) res: Response) {
+    res.clearCookie('accessToken', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+    });
+
+    return {
+      message: 'Logged out successfully',
+    };
+  }
+
   @Post('resend-code')
   resendOtp(@Body() resendVerificationDto: ResendVerificationDto) {
     return this.authService.resendOtp(resendVerificationDto.email);

@@ -26,6 +26,11 @@ export const login = async (data: LoginFormData) => {
     return response.data;
 }
 
+export const logout = async () => {
+  const response = await api.post("/auth/logout");
+  return response.data;
+};
+
 export const resend = async (email: string) => {
     const response = await api.post('/auth/resend-code', { email });
     return response.data;
