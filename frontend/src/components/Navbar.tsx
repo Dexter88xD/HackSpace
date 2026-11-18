@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getMe, logout } from "../api/auth";
+import { getMe, logout } from "@/api/auth";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -64,6 +64,22 @@ function Navbar() {
     queryFn: getMe,
     retry: false,
   });
+
+  const logoutButton = (
+    <Button
+      type="button"
+      variant="ghost"
+      className={cn(
+        navItemClass,
+        "h-auto text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+      )}
+      disabled={logoutMutation.isPending}
+      onClick={handleLogout}
+    >
+      Log out
+    </Button>
+  );
+
   const isAuthenticated = !!user;
   const navLinks = isAuthenticated ? authenticatedLinks : guestLinks;
 
@@ -72,6 +88,7 @@ function Navbar() {
       <div className="flex items-center justify-between">
         <NavLink
           to="/"
+          onClick={() => setMenuOpen(false)}
           className="text-xl font-bold tracking-tight focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-ring"
         >
           HackSpace
@@ -86,20 +103,7 @@ function Navbar() {
                 </NavLink>
               ))}
 
-              {isAuthenticated && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className={cn(
-                    navItemClass,
-                    "h-auto text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-                  )}
-                  disabled={logoutMutation.isPending}
-                  onClick={handleLogout}
-                >
-                  Log out
-                </Button>
-              )}
+              {isAuthenticated && logoutButton}
             </>
           )}
         </div>
@@ -132,20 +136,7 @@ function Navbar() {
               </NavLink>
             ))}
 
-            {isAuthenticated && (
-              <Button
-                type="button"
-                variant="ghost"
-                className={cn(
-                  navItemClass,
-                  "h-auto text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-                )}
-                disabled={logoutMutation.isPending}
-                onClick={handleLogout}
-              >
-                Log out
-              </Button>
-            )}
+            {isAuthenticated && logoutButton}
           </div>
         )}
       </div>
