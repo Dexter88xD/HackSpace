@@ -2,7 +2,7 @@
 
 This document maps the **current frontend pages** and **backend HTTP endpoints** used during local development. React Router controls frontend navigation; NestJS controllers define backend API routes. They are not interchangeable.
 
-- Application (Caddy): `https://localhost`
+- Application (Caddy): `https://localhost:8443` (`http://localhost:8080` redirects to it)
 - Frontend (direct Vite): `http://localhost:5173`
 - Backend (direct NestJS): `http://localhost:3000`
 
@@ -28,7 +28,7 @@ Frontend `ProtectedRoute` verifies authentication using `GET /api/auth/me`; acce
 
 ## Backend HTTP endpoints
 
-Paths below are listed relative to the backend `/api` prefix. Through the normal local entry point, prepend `/api` to serve them from `https://localhost/api`. **Authenticated** means the endpoint requires a valid authenticated session via `JwtAuthGuard`. Additional permissions can be checked in services.
+Paths below are listed relative to the backend `/api` prefix. Through the normal local entry point, prepend `/api` to serve them from `https://localhost:8443/api`. **Authenticated** means the endpoint requires a valid authenticated session via `JwtAuthGuard`. Additional permissions can be checked in services.
 
 ### Authentication
 
@@ -179,7 +179,7 @@ These skill-specific permissions are enforced in `SkillsService`, including the 
 
 | URL                         | Purpose                          |
 | --------------------------- | -------------------------------- |
-| `https://localhost/api/docs` | Swagger UI                       |
+| `https://localhost:8443/api/docs` | Swagger UI                       |
 | `http://localhost:5173`     | Frontend application             |
 | `http://localhost:8081`     | Adminer, when enabled in Compose |
 
