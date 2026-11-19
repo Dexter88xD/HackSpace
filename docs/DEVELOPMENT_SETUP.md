@@ -18,7 +18,7 @@ HackSpace uses **one local environment file**, `.env` at the repository root, an
 cp .env.example .env
 ```
 
-Configure `POSTGRES_PASSWORD` and `JWT_SECRET` in the root `.env`. Add `MAIL_USER` and `MAIL_PASS` there when testing email verification, and fill in the relevant OAuth credentials if needed. The frontend sends requests through the same-origin `/api` path. Set `FRONTEND_URL` to the browser-facing application origin for backend OAuth redirects; the example uses `https://localhost`.
+Configure `POSTGRES_PASSWORD` and `JWT_SECRET` in the root `.env`. Add `MAIL_USER` and `MAIL_PASS` there when testing email verification, and fill in the relevant OAuth credentials if needed. The frontend sends requests through the same-origin `/api` path. Set `FRONTEND_URL` to the browser-facing application origin for backend OAuth redirects; the example uses `https://localhost:8443`.
 
 **Do not create** `backend/.env` or `frontend/.env` for the Compose workflow. If you already have those files, first copy any still-needed values into the root `.env`, then delete the redundant local files. Remove the tracked `backend/.env.example` and `frontend/.env.example` templates as part of this consolidation PR after transferring all required example variables into the root `.env.example`.
 
@@ -49,13 +49,29 @@ make ps
 
 | Service    | Local address           |
 | ---------- | ----------------------- |
-| Application (Caddy) | `https://localhost` |
+| Application (Caddy) | `https://localhost:8443` |
+| HTTP redirect (Caddy) | `http://localhost:8080` |
 | Frontend (direct)   | `http://localhost:5173` |
 | Backend (direct)    | `http://localhost:3000` |
 | PostgreSQL | `localhost:5432`        |
 | Adminer    | `http://localhost:8081` |
 
 The Caddy endpoint is the normal browser entry point. Its locally generated certificate may require accepting a browser warning. The direct frontend and backend addresses are for development diagnostics. Other enabled services and ports are defined in `docker-compose.yml`.
+
+### Chat/WebSocket diagnostics
+
+Team chat uses the Caddy HTTPS origin for Socket.IO. The frontend connects to the `/chat` namespace and the Caddy configuration proxies the underlying Socket.IO transport path `/socket.io/*` to the backend.
+
+When diagnosing chat connectivity:
+
+1. Open the application through `https://localhost`, not only the direct Vite URL, when testing the normal development setup.
+2. Accept/trust the local Caddy certificate in the browser if prompted.
+3. Confirm that the browser Network panel shows a Socket.IO/WebSocket connection under `/socket.io/`.
+4. Check the browser console for `connect_error` messages.
+5. Check backend logs for connection, authentication or gateway errors.
+6. Confirm that the authenticated browser has an `accessToken` cookie; the Socket.IO client uses `withCredentials: true`.
+
+A successful namespace connection does not by itself authorize a team chat. The client must successfully emit `join-chat` for the room, after which `send-message` and `new-message` operate on `chat:<chatRoomId>`.
 
 For container status and logs:
 

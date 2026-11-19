@@ -5,12 +5,14 @@ import {
   JoinColumn,
   ManyToOne,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   Unique,
 } from 'typeorm';
 import { Hackathon } from '../../hackathons/entities/hackathon.entity';
 import { TeamMember } from './team-member.entity';
 import { StoredFile } from '../../../shared/files/entities/stored-file.entity';
+import { ChatRoom } from '../../chat/entities/chat-room.entity';
 
 // Two teams in the same hackathon cannot share a name.
 @Unique('UQ_teams_hackathon_name', ['hackathon', 'name'])
@@ -40,4 +42,7 @@ export class Team {
 
   @OneToMany(() => StoredFile, (file) => file.team)
   files!: StoredFile[];
+
+  @OneToOne(() => ChatRoom, (chatRoom) => chatRoom.team)
+  chatRoom!: ChatRoom;
 }

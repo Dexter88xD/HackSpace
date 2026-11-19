@@ -12,6 +12,7 @@ This repository is a Docker Compose monorepo containing a React/TypeScript front
 - **Profiles and skills:** profile creation/editing, skills catalogue, profile-skill assignments and catalogue management permissions.
 - **Hackathons:** creation, exploration with filters, details, current phase, management listing, editing, registration, unregistration and membership lookup.
 - **Teams:** create teams for a hackathon, browse teams, view your own team, join and leave teams.
+- **Team chat:** authenticated team members can load chat history over HTTP and exchange live messages through a Socket.IO WebSocket namespace.
 - **Authorisation:** platform-level `ROLE_USER` and `ROLE_ADMIN` roles, plus hackathon-specific membership roles. An authenticated user can create a hackathon; its organiser or a platform administrator can edit it.
 
 MinIO runs as local object storage using a Chainguard image pinned by immutable digest. The backend uploads files through an S3 file manager strategy. Caddy is enabled in the development stack as the local HTTPS reverse proxy; it routes `/api/*` to the backend and other requests to the frontend.
@@ -55,19 +56,19 @@ make ps
 make migration
 ```
 
-Open the application at `https://localhost` through Caddy. The browser may show a certificate warning because the local Caddy configuration uses an internally generated certificate. The frontend and backend are also exposed directly at `http://localhost:5173` and `http://localhost:3000` for development diagnostics; Adminer is available at `http://localhost:8081`.
+Open the application at `https://localhost:8443` through Caddy (`http://localhost:8080` redirects there). The browser may show a certificate warning because the local Caddy configuration uses an internally generated certificate. The frontend and backend are also exposed directly at `http://localhost:5173` and `http://localhost:3000` for development diagnostics; Adminer is available at `http://localhost:8081`.
 
-Caddy exposes the MinIO S3 API at `https://minio.localhost` and its console at `https://console.minio.localhost`. Direct diagnostic access remains available at `http://localhost:9000` (API) and `http://localhost:9001` (console); sign in using the MinIO credentials from `.env`. Containers reach the S3 API at `http://minio:9000`. Objects persist in the `minio_data` volume. `make storage` starts PostgreSQL and MinIO, and the backend waits for MinIO to become healthy.
+Caddy exposes the MinIO S3 API at `https://minio.localhost:8443` and its console at `https://console.minio.localhost:8443`. Direct diagnostic access remains available at `http://localhost:9000` (API) and `http://localhost:9001` (console); sign in using the MinIO credentials from `.env`. Containers reach the S3 API at `http://minio:9000`. Objects persist in the `minio_data` volume. `make storage` starts PostgreSQL and MinIO, and the backend waits for MinIO to become healthy.
 
 The backend uses `MINIO_ENDPOINT` (default `http://minio:9000`) and the existing `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` credentials. When running the backend outside Docker, set `MINIO_ENDPOINT=http://localhost:9000` in its environment.
 
-Upload with `curl -F 'file=@./example.txt' -F 'bucket=default' https://localhost/api/files/upload`. The optional `bucket` field defaults to `default`; only the `FileBucket` enum values are accepted (currently `default`). All enum buckets are checked and created during module initialization; uploads do not create buckets, and storage provisioning failures stop startup. Each upload uses a fresh UUID as its database ID and `<uuid><original extension>` as its object key, while the original filename is preserved in metadata. Repeated uploads of the same filename are stored separately. A successful request returns `{ "url": "<signed download URL>" }`, valid for one hour and usable in an image's `src`. This demonstration endpoint is unauthenticated; bucket contents remain private.
+Upload with `curl -F 'file=@./example.txt' -F 'bucket=default' https://localhost:8443/api/files/upload`. The optional `bucket` field defaults to `default`; only the `FileBucket` enum values are accepted (currently `default`). All enum buckets are checked and created during module initialization; uploads do not create buckets, and storage provisioning failures stop startup. Each upload uses a fresh UUID as its database ID and `<uuid><original extension>` as its object key, while the original filename is preserved in metadata. Repeated uploads of the same filename are stored separately. A successful request returns `{ "url": "<signed download URL>" }`, valid for one hour and usable in an image's `src`. This demonstration endpoint is unauthenticated; bucket contents remain private.
 
-Set `MINIO_PUBLIC_ENDPOINT=https://minio.localhost` to sign browser-facing HTTPS URLs. `MINIO_API_DOMAIN=minio.localhost` and `MINIO_CONSOLE_DOMAIN=console.minio.localhost` configure Caddy's site names; Compose sets MinIO's console redirect URL from `MINIO_CONSOLE_DOMAIN`. This is used when signing download URLs; `MINIO_ENDPOINT` continues to handle uploads inside Docker. For deployment, use an HTTPS endpoint reachable by your users. Do not replace the hostname in a signed URL after generating it.
+Set `MINIO_PUBLIC_ENDPOINT=https://minio.localhost:8443` to sign browser-facing HTTPS URLs. `MINIO_API_DOMAIN=minio.localhost` and `MINIO_CONSOLE_DOMAIN=console.minio.localhost` configure Caddy's site names; Compose sets MinIO's console redirect URL from `MINIO_CONSOLE_DOMAIN`. This is used when signing download URLs; `MINIO_ENDPOINT` continues to handle uploads inside Docker. For deployment, use an HTTPS endpoint reachable by your users. Do not replace the hostname in a signed URL after generating it.
 
 MinIO's S3 API is proxied at its hostname's root so request paths, query strings, and Host headers remain valid for signatures. The console uses its own hostname and retains MinIO authentication. After changing these settings, run `docker compose up -d --force-recreate backend minio caddy`.
 
-Trust Caddy's existing local CA certificate in your operating system/browser for all three HTTPS sites. You can extract it with `docker compose cp caddy:/data/caddy/pki/authorities/local/root.crt /tmp/hackspace-caddy-root.crt` and use `curl --cacert /tmp/hackspace-caddy-root.crt https://minio.localhost/minio/health/live`. If your machine does not resolve the MinIO hostnames to loopback automatically, add `127.0.0.1 minio.localhost console.minio.localhost` to your hosts file. For a one-off curl check, use `--resolve minio.localhost:443:127.0.0.1`.
+Trust Caddy's existing local CA certificate in your operating system/browser for all three HTTPS sites. You can extract it with `docker compose cp caddy:/data/caddy/pki/authorities/local/root.crt /tmp/hackspace-caddy-root.crt` and use `curl --cacert /tmp/hackspace-caddy-root.crt https://minio.localhost:8443/minio/health/live`. If your machine does not resolve the MinIO hostnames to loopback automatically, add `127.0.0.1 minio.localhost console.minio.localhost` to your hosts file. For a one-off curl check, use `--resolve minio.localhost:8443:127.0.0.1`.
 
 The development database can be populated with sample accounts, skills and hackathons. First enable development-only seeding and set the required seed credentials in `.env`, then run:
 
@@ -121,6 +122,33 @@ Hackathon permissions distinguish **global platform roles** from **membership ro
 - The backend must enforce authorisation independently of frontend route protection or the `canEdit` UI flag.
 
 See [Routes](docs/ROUTES.md) for existing frontend and HTTP endpoints. Existing API request and response naming is not yet uniform; the [Development Guidelines](docs/DEVELOPMENT_GUIDELINES.md) describe the agreed conventions for new and standardised code.
+
+## Team chat and WebSockets
+
+Team chat uses two transports:
+
+- `GET /api/chat-rooms/:chatRoomId/messages` loads persisted message history.
+- Socket.IO namespace `/chat` handles room membership and live messages.
+
+The local Caddy entry point proxies Socket.IO traffic at `/socket.io/*` to the backend. The browser-facing development connection is therefore created from the HTTPS application origin, for example:
+
+```ts
+io("https://localhost/chat", {
+  withCredentials: true,
+  transports: ["websocket"],
+});
+```
+
+The `accessToken` HTTP-only cookie is used during the Socket.IO handshake. The gateway verifies it before accepting the connection. Connecting to the `/chat` namespace does not grant access to every team room: the client must emit `join-chat`, and the backend verifies chat membership before joining `chat:<chatRoomId>`.
+
+The live event flow is:
+
+1. Client emits `join-chat` with `{ chatRoomId }`; the server acknowledges success or failure.
+2. Client emits `send-message` with `{ chatRoomId, content }`; the server validates membership, persists the message and acknowledges the result.
+3. The server broadcasts `new-message` to the room `chat:<chatRoomId>`.
+4. Room members update their cached message list.
+
+Socket acknowledgements use a five-second client timeout. The client must handle both a server response (`success: true` or `success: false`) and a timeout error.
 
 ## Development workflow and quality
 

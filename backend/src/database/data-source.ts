@@ -13,6 +13,9 @@ import { Team } from '../domains/teams/entities/team.entity';
 import { TeamMember } from '../domains/teams/entities/team-member.entity';
 import { TeamJoinRequest } from '../domains/teams/entities/team-join-request.entity';
 import { StoredFile } from '../shared/files/entities/stored-file.entity';
+import { ChatMember } from '../domains/chat/entities/chat-member.entity';
+import { Message } from '../domains/chat/entities/message.entity';
+import { ChatRoom } from '../domains/chat/entities/chat-room.entity';
 
 loadEnv({ path: '../.env', quiet: true });
 
@@ -38,6 +41,9 @@ export default new DataSource({
     TeamMember,
     TeamJoinRequest,
     StoredFile,
+    ChatRoom,
+    ChatMember,
+    Message,
   ],
 
   migrations: [__dirname + '/migrations/*{.ts,.js}'],

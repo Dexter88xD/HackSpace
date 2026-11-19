@@ -14,6 +14,8 @@ import { UserProfile } from './user-profile.entity';
 import { UserRole } from './user-role.entity';
 import { OAuthIdentity } from '../../auth/entities/oauth-identity.entity';
 import { HackathonUser } from '../../hackathons/entities/hackathon-user.entity';
+import { ChatMember } from '../../chat/entities/chat-member.entity';
+import { Message } from '../../chat/entities/message.entity';
 
 @Entity('users')
 export class User {
@@ -59,4 +61,10 @@ export class User {
 
   @OneToMany(() => HackathonUser, (hackathonUser) => hackathonUser.user)
   hackathonUsers!: HackathonUser[];
+
+  @OneToMany(() => ChatMember, (chatMember) => chatMember.user)
+  chatMemberships!: ChatMember[];
+
+  @OneToMany(() => Message, (message) => message.sender)
+  messages!: Message[];
 }

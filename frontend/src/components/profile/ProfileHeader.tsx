@@ -92,13 +92,13 @@ export function ProfileHeader({
             {user.fullName}
           </h2>
 
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             @{user.username}
           </p>
 
           <p className="text-sm">{user.email}</p>
 
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted-foreground">
             {user.emailVerified
               ? "Verified account"
               : "Email not verified"}
