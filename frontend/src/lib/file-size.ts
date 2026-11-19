@@ -1,0 +1,1 @@
+export const BYTES_PER_MIB = 1024 * 1024;

@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getHackathonById, updateHackathon } from "@/api/hackathon-management";
 import type {
   HackathonPhasePayload,
+  HackathonSettingsPayload,
   UpdateHackathonPayload,
 } from "@/types/hackathon-management";
 import { HackathonPhaseName } from "@/types/hackathon";
@@ -15,6 +16,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { getReturnTo } from "@/lib/navigation";
 import { shouldRetryQuery } from "@/lib/query-retry";
 import { parseHackathonId } from "@/lib/hackathon-id";
+import { BYTES_PER_MIB } from "@/lib/file-size";
 
 function EditHackathon() {
   const location = useLocation();
@@ -153,6 +155,30 @@ function EditHackathon() {
       }
     }
 
+    const changedSettings: HackathonSettingsPayload = {};
+
+    const currentSettings = hackathon.settings;
+
+    if (data.settings.minTeamMembers !== currentSettings.minTeamMembers) {
+      changedSettings.minTeamMembers = data.settings.minTeamMembers;
+    }
+
+    if (data.settings.maxTeamMembers !== currentSettings.maxTeamMembers) {
+      changedSettings.maxTeamMembers = data.settings.maxTeamMembers;
+    }
+
+    if (data.settings.filesLimit !== currentSettings.filesLimit) {
+      changedSettings.filesLimit = data.settings.filesLimit;
+    }
+
+    const fileMaxSizeBytes = Math.round(
+      data.settings.fileMaxSize * BYTES_PER_MIB,
+    );
+
+    if (fileMaxSizeBytes !== currentSettings.fileMaxSize) {
+      changedSettings.fileMaxSize = fileMaxSizeBytes;
+    }
+
     const payload: UpdateHackathonPayload = {
       title: data.title,
       description: data.description.trim() || null,
@@ -160,6 +186,10 @@ function EditHackathon() {
       startAt: new Date(data.startAt).toISOString(),
       endAt: new Date(data.endAt).toISOString(),
     };
+
+    if (Object.keys(changedSettings).length > 0) {
+      payload.settings = changedSettings;
+    }
 
     if (changedPhases.length > 0) {
       payload.phases = changedPhases;

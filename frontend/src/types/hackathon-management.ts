@@ -1,8 +1,9 @@
-import { HackathonFormValues } from "@/schemas/hackathon.schema";
-import {
+import type { HackathonFormValues } from "@/schemas/hackathon.schema";
+import type {
   Hackathon,
   HackathonPhaseName,
   HackathonPhaseResponse,
+  HackathonSettings,
 } from "./hackathon";
 
 export type HackathonPayload = {
@@ -12,6 +13,7 @@ export type HackathonPayload = {
   startAt: string;
   endAt: string;
   phases: HackathonPhasePayload[];
+  settings?: HackathonSettingsPayload;
 };
 
 export type HackathonFormProps = {
@@ -29,6 +31,7 @@ export type HackathonTableProps = {
 export type HackathonDetails = Hackathon & {
   canEdit: boolean;
   phases: HackathonPhaseResponse[];
+  settings: HackathonSettings;
 };
 
 export type HackathonDetailsStateProps = {
@@ -42,6 +45,8 @@ export type HackathonPhasePayload = {
   startAt: string;
   endAt: string;
 };
+
+export type HackathonSettingsPayload = Partial<Omit<HackathonSettings, "id">>;
 
 export type UpdateHackathonPayload = Partial<
   Omit<HackathonPayload, "phases">
