@@ -29,14 +29,14 @@ export const hackathonSettingsSchema = z
   .object({
     minTeamMembers: z.int().min(1),
     maxTeamMembers: z.int().min(1),
-    filesLimit: z.int().min(0),
+    filesLimit: z.int().min(1),
     fileMaxSize: z
       .number()
-      .min(0)
-      .refine(
-        (value) => Number.isSafeInteger(value * BYTES_PER_MIB),
-        "File size must resolve to a whole number of bytes",
-      ),
+      .positive()
+      .refine((value) => {
+        const bytes = value * BYTES_PER_MIB;
+        return Number.isSafeInteger(bytes) && bytes <= 2147483647;
+      }, "File size must resolve to a whole number of bytes within the supported limit"),
   })
   .superRefine((data, ctx) => {
     if (data.minTeamMembers > data.maxTeamMembers) {

@@ -127,12 +127,19 @@ erDiagram
 | `oauth_identities` | Unique (`provider`, `provider_user_id`) | One external identity per provider and provider user |
 | `hackathons` | `start_at < end_at` | Enforce valid overall dates |
 | `hackathon_phases` | `start_at < end_at` | Enforce valid phase dates |
-| `hackathon_settings` | Unique `hackathon_id`; non-negative file limits; valid min/max team size | One settings row per hackathon, with valid limits |
+| `hackathon_settings` | Unique `hackathon_id`; file limits >= 1; valid min/max team size | One settings row per hackathon, with valid limits |
 | `hackathon_users` | Unique (`user_id`, `hackathon_id`) | One registration per user per hackathon |
 | `teams` | Unique (`hackathon_id`, `name`) | No duplicate team names within a hackathon |
 | `team_members` | Unique `hackathon_user_id` | A registration may belong to at most one team |
 | `user_skills` | Unique `normalized_name` | Case/whitespace-normalised catalogue uniqueness |
 | `user_profile_skills` | Composite primary key (`profile_id`, `skill_id`) | No duplicate profile-skill association |
+
+Hackathon settings defaults are `min_team_members = 1`, `max_team_members = 5`,
+`files_limit = 1`, and `file_max_size = 10485760` (10 MiB, stored in **bytes**).
+Both file limits must be positive; existing files are retained when settings
+limits are reduced, while subsequent uploads and replacements use the new limits.
+The minimum team size is enforced when submitting a project, not when creating a team.
+A maximum reduction is rejected when an existing team already exceeds it.
 
 Some constraints above are enforced by the database; additional domain rules
 (such as only participants joining teams, team capacity, administrator overrides

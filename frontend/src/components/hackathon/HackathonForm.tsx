@@ -64,10 +64,10 @@ function HackathonForm({
       settings: {
         minTeamMembers: hackathon?.settings.minTeamMembers ?? 1,
         maxTeamMembers: hackathon?.settings.maxTeamMembers ?? 5,
-        filesLimit: hackathon?.settings.filesLimit ?? 0,
+        filesLimit: hackathon?.settings.filesLimit ?? 1,
         fileMaxSize: hackathon
           ? hackathon.settings.fileMaxSize / BYTES_PER_MIB
-          : 0,
+          : 10,
       },
       phases: PHASE_ORDER.map((phaseName) => {
         const existingPhase = hackathon?.phases.find(
@@ -301,7 +301,7 @@ function HackathonForm({
                 <Input
                   id="filesLimit"
                   type="number"
-                  min={0}
+                  min={1}
                   step={1}
                   {...register("settings.filesLimit", {
                     valueAsNumber: true,
@@ -310,8 +310,7 @@ function HackathonForm({
                 />
 
                 <p className="text-xs text-muted-foreground">
-                  Maximum files allowed per submission. Enter 0 to disable
-                  uploads.
+                  Maximum files allowed per submission (at least 1).
                 </p>
 
                 {errors.settings?.filesLimit && (
@@ -327,7 +326,7 @@ function HackathonForm({
                 <Input
                   id="fileMaxSize"
                   type="number"
-                  min={0}
+                  min={1 / BYTES_PER_MIB}
                   step="any"
                   {...register("settings.fileMaxSize", {
                     valueAsNumber: true,
@@ -336,7 +335,7 @@ function HackathonForm({
                 />
 
                 <p className="text-xs text-muted-foreground">
-                  Maximum size per file in MiB. Enter 0 to disable uploads.
+                  Maximum size of each uploaded file in MiB.
                 </p>
 
                 {errors.settings?.fileMaxSize && (

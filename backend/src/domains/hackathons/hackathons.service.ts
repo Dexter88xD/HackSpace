@@ -263,7 +263,7 @@ export class HackathonsService {
 
       return manager.findOneOrFail(Hackathon, {
         where: { id: savedHackathon.id },
-        relations: { phases: true },
+        relations: { phases: true, settings: true },
       });
     });
   }
