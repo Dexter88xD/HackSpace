@@ -10,7 +10,8 @@ import { User } from './entities/user.entity';
 import { UserProfile } from './entities/user-profile.entity';
 import { UserService } from './user.service';
 import { StoredFile } from '../../shared/files/entities/stored-file.entity';
-import { FileManager } from '../../shared/files/file-manager';
+import { FileManager, UploadFile } from '../../shared/files/file-manager';
+import { FileBucket } from '../../shared/files/file-bucket';
 import { FileType } from '../../shared/files/file-type';
 import { CreateProfileDto } from './dto/create-profile.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -20,7 +21,7 @@ describe('UserService', () => {
   let users: { findOne: jest.Mock };
   let profiles: { findOne: jest.Mock; create: jest.Mock; save: jest.Mock };
   let files: { findOneBy: jest.Mock };
-  let manager: { getFile: jest.Mock };
+  let manager: { getFile: jest.Mock; upload: jest.Mock };
   let profile: UserProfile;
   let avatar: StoredFile;
 
@@ -46,6 +47,7 @@ describe('UserService', () => {
     };
     files = { findOneBy: jest.fn().mockResolvedValue(avatar) };
     manager = {
+      upload: jest.fn().mockResolvedValue(avatar),
       getFile: jest
         .fn()
         .mockResolvedValue('https://storage.example/signed-avatar'),
@@ -204,6 +206,97 @@ describe('UserService', () => {
     await expect(service.createProfile(1, {})).rejects.toBeInstanceOf(
       ConflictException,
     );
+  });
+
+  it('creates an empty profile during avatar upload, then fills the same profile without losing its avatar', async () => {
+    let storedProfile: UserProfile | null = null;
+    profiles.findOne.mockImplementation(() => Promise.resolve(storedProfile));
+    profiles.save.mockImplementation((entity: UserProfile) => {
+      storedProfile = entity;
+      return Promise.resolve(entity);
+    });
+    const file: UploadFile = {
+      originalname: 'avatar.jpg',
+      mimetype: 'image/jpeg',
+      buffer: Buffer.from('image'),
+    };
+
+    await expect(service.uploadAvatar(1, file)).resolves.toBe(
+      'https://storage.example/signed-avatar',
+    );
+    expect(profiles.create).toHaveBeenCalledWith({
+      bio: null,
+      avatar: null,
+      organizationName: null,
+      major: null,
+      user: { id: 1 },
+    });
+    expect(manager.upload).toHaveBeenCalledWith({
+      ...file,
+      bucket: FileBucket.AVATAR,
+    });
+
+    await expect(
+      service.createProfile(1, { bio: 'My bio', organizationName: '1337' }),
+    ).resolves.toMatchObject({
+      id: 1,
+      bio: 'My bio',
+      organizationName: '1337',
+      avatarFileId: avatar.id,
+      avatarUrl: 'https://storage.example/signed-avatar',
+    });
+    expect(profiles.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not create an empty profile when uploading to an existing one', async () => {
+    await service.uploadAvatar(1, {
+      originalname: 'avatar.jpg',
+      mimetype: 'image/jpeg',
+      buffer: Buffer.from('image'),
+    });
+    expect(profiles.create).not.toHaveBeenCalled();
+    expect(profile.bio).toBe('Bio');
+    expect(profile.avatar).toBe(avatar);
+  });
+
+  it('does not treat a database failure as a missing profile', async () => {
+    const error = new Error('Database unavailable');
+    profiles.findOne.mockRejectedValue(error);
+    await expect(
+      service.uploadAvatar(1, {
+        originalname: 'avatar.jpg',
+        mimetype: 'image/jpeg',
+        buffer: Buffer.from('image'),
+      }),
+    ).rejects.toBe(error);
+    expect(profiles.create).not.toHaveBeenCalled();
+    expect(manager.upload).not.toHaveBeenCalled();
+  });
+
+  it('uses a concurrently created profile when empty-profile creation conflicts', async () => {
+    profiles.save
+      .mockRejectedValueOnce(
+        new QueryFailedError(
+          'INSERT',
+          [],
+          Object.assign(new Error('duplicate'), { code: '23505' }),
+        ),
+      )
+      .mockResolvedValue(profile);
+    // Simulate the other request committing after createProfile checks for it.
+    profiles.findOne
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValue(profile);
+
+    await expect(
+      service.uploadAvatar(1, {
+        originalname: 'avatar.jpg',
+        mimetype: 'image/jpeg',
+        buffer: Buffer.from('image'),
+      }),
+    ).resolves.toBe('https://storage.example/signed-avatar');
+    expect(profile.avatar).toBe(avatar);
   });
 
   it.each([CreateProfileDto, UpdateProfileDto])(

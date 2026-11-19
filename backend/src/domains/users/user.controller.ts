@@ -6,6 +6,8 @@ import {
   Body,
   Req,
   UseGuards,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 
 import { UserService } from './user.service';
@@ -14,6 +16,8 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { AuthenticatedRequest } from '../auth/interfaces/authenticated-request.interface';
+import { UploadFile } from '../../shared/files/file-manager';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)
@@ -39,5 +43,15 @@ export class UserController {
     @Body() dto: UpdateProfileDto,
   ) {
     return this.userService.updateProfile(req.user.userId, dto);
+  }
+
+  @Post('me/profile/avatar')
+  @UseInterceptors(FileInterceptor('file'))
+  uploadAvatar(
+    @Req() req: AuthenticatedRequest,
+    @UploadedFile() file: UploadFile | undefined,
+  ) {
+    // Return the avatar signed link
+    return this.userService.uploadAvatar(req.user.userId, file);
   }
 }

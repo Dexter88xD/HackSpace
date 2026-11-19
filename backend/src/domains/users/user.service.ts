@@ -14,8 +14,9 @@ import { CreateProfileDto } from './dto/create-profile.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ProfileResponseDto } from './dto/profile-response-dto';
 import { StoredFile } from '../../shared/files/entities/stored-file.entity';
-import { FileManager } from '../../shared/files/file-manager';
+import { FileManager, UploadFile } from '../../shared/files/file-manager';
 import { FileType } from '../../shared/files/file-type';
+import { FileBucket } from '../../shared/files/file-bucket';
 
 @Injectable()
 export class UserService {
@@ -51,6 +52,13 @@ export class UserService {
     });
 
     if (existingProfile) {
+      if (
+        existingProfile.bio === null &&
+        existingProfile.organizationName === null &&
+        existingProfile.major === null
+      ) {
+        return this.updateProfile(userId, dto);
+      }
       throw new ConflictException('Profile already exists');
     }
 
@@ -152,5 +160,44 @@ export class UserService {
     if (!profile) throw new NotFoundException('Profile not found');
 
     return profile;
+  }
+
+  async uploadAvatar(
+    userId: number,
+    file: UploadFile | undefined,
+  ): Promise<string> {
+    if (!file) {
+      throw new BadRequestException('File is required');
+    }
+
+    // check allowed file types
+    if (file.mimetype !== 'image/jpeg' && file.mimetype !== 'image/png') {
+      throw new BadRequestException('Avatar must be a JPG or PNG file');
+    }
+
+    // get profile
+    let profile: UserProfile;
+    try {
+      profile = await this.findProfile(userId);
+    } catch (error) {
+      if (!(error instanceof NotFoundException)) throw error;
+      try {
+        await this.createProfile(userId, {});
+      } catch (creationError) {
+        // Another request may have created the profile in the meantime.
+        if (!(creationError instanceof ConflictException)) throw creationError;
+      }
+      profile = await this.findProfile(userId);
+    }
+
+    // upload avatar
+    file.bucket = FileBucket.AVATAR; // set bucket to avatars
+    const storedAvatar = await this.fileManager.upload(file);
+
+    // assign new avatar to profile and save it
+    profile.avatar = storedAvatar;
+    await this.userProfileRepository.save(profile);
+
+    return this.fileManager.getFile(storedAvatar);
   }
 }
