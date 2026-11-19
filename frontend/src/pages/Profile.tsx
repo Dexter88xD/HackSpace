@@ -1,16 +1,14 @@
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { LoaderCircle } from "lucide-react";
 import axios from "axios";
 
-import { getMe, logout } from "@/api/auth";
+import { getMe } from "@/api/auth";
 import { getProfile } from "@/api/profile";
 
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { ProfileInfo } from "@/components/profile/ProfileInfo";
 import { ProfileForm } from "@/components/profile/ProfileForm";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 
 function Profile() {
   const [isEditing, setIsEditing] = useState(false);
@@ -28,17 +26,6 @@ function Profile() {
     enabled: userQuery.isSuccess,
   });
 
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-
-  const logoutMutation = useMutation({
-    mutationFn: logout,
-    onSuccess: () => {
-      queryClient.clear();
-      navigate("/login", { replace: true });
-    },
-  });
-
   const profileNotFound =
     profileQuery.isError &&
     axios.isAxiosError(profileQuery.error) &&
@@ -54,11 +41,11 @@ function Profile() {
   }
 
   if (userQuery.isError) {
-    return <p className="p-6 text-red-500">Failed to load account.</p>;
+    return <p className="p-6 text-destructive">Failed to load account.</p>;
   }
 
   if (profileQuery.isError && !profileNotFound) {
-    return <p className="p-6 text-red-500">Failed to load profile.</p>;
+    return <p className="p-6 text-destructive">Failed to load profile.</p>;
   }
 
   const profile = profileQuery.data ?? null;
@@ -70,20 +57,6 @@ function Profile() {
       </h1>
 
       <ProfileHeader user={userQuery.data} avatarUrl={profile?.avatarUrl} />
-      <Button
-        type="button"
-        variant="outline"
-        disabled={logoutMutation.isPending}
-        onClick={() => logoutMutation.mutate()}
-      >
-        {logoutMutation.isPending ? "Logging out..." : "Log out"}
-      </Button>
-
-      {logoutMutation.isError && (
-        <p role="alert" className="text-sm text-red-600">
-          Logout failed. Please try again.
-        </p>
-      )}
 
       {!profile ? (
         <ProfileForm />

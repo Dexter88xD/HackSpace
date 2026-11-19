@@ -15,6 +15,9 @@ export type Team = {
   maxMembers: number;
   leaderId: number | null;
   members: TeamMember[];
+  chatRoom: {
+    id: number;
+  }
 };
 
 export type TeamSummary = {

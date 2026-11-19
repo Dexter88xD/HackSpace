@@ -126,13 +126,94 @@ useForm({
 
 Put reusable validation schemas in `frontend/src/schemas/`; keep forms, API types and backend DTOs aligned. Protecting a React route improves UX but cannot replace backend authorisation.
 
-## 6. Git and PR workflow reference
+## 6. WebSockets and Socket.IO chat
+
+HackSpace team chat combines HTTP for history with Socket.IO for live updates:
+
+```text
+GET /chat-rooms/:chatRoomId/messages  -> existing messages
+Socket.IO /chat                       -> live connection
+chat:<chatRoomId>                     -> one team chat room
+```
+
+### Namespace, connection and room
+
+- A **namespace** is a logical Socket.IO endpoint. The chat gateway uses `/chat`.
+- A **socket connection** is the authenticated, long-lived client connection to that namespace.
+- A **room** is a server-side group of sockets. Team messages are broadcast to `chat:<chatRoomId>`.
+
+Being connected to the namespace does not automatically grant access to every room. The gateway verifies the `accessToken` cookie during the handshake, then verifies database membership when it receives `join-chat`.
+
+### Events and acknowledgements
+
+Socket.IO events are named messages. The client emits:
+
+```ts
+socket.emit("join-chat", { chatRoomId }, callback);
+socket.emit("send-message", { chatRoomId, content }, callback);
+```
+
+The callback is an **acknowledgement** for that specific request. It is not the same as a broadcast. The server calls it with a result such as:
+
+```ts
+{ success: true }
+{ success: false, error: "You are not a member of this chat room" }
+```
+
+The server broadcasts a saved message separately:
+
+```ts
+server.to(`chat:${chatRoomId}`).emit("new-message", message);
+```
+
+When an acknowledgement is used with a client timeout, the callback must handle both arguments:
+
+```ts
+(err, response) => {
+  if (err) {
+    // No acknowledgement arrived before the timeout.
+    return;
+  }
+
+  if (!response.success) {
+    // The server rejected the request.
+    return;
+  }
+
+  // The server confirmed success.
+}
+```
+
+The timeout branch must return before reading `response`, because a timeout may not provide a response object.
+
+### Chat message flow
+
+1. The frontend connects to `/chat` with credentials.
+2. The gateway verifies the `accessToken` cookie and stores the trusted user identity on the socket.
+3. The frontend emits `join-chat`.
+4. The gateway checks `ChatMember` membership and joins the socket to `chat:<chatRoomId>`.
+5. The frontend loads older messages through the authenticated HTTP endpoint.
+6. The frontend listens for `new-message` and updates its TanStack Query cache.
+7. On `send-message`, the backend validates the payload and checks membership again.
+8. The service persists the message and reloads the sender fields needed by the client.
+9. The gateway broadcasts the saved message to the room and acknowledges the sender.
+
+Membership must be checked both when joining and sending. A previous successful join must not be treated as permanent authorization after a user leaves a team.
+
+### Debugging checklist
+
+- `connect_error`: inspect the URL, local TLS certificate, CORS origin and `accessToken` cookie.
+- Connected but no live messages: verify `join-chat` succeeded and that both clients use the same `chatRoomId`.
+- Sender name missing on live messages: verify the backend loads `sender.id` and `sender.username` before broadcasting.
+- Timeout: verify the backend calls the acknowledgement on every success and failure path.
+
+## 7. Git and PR workflow reference
 
 Know how to create focused branches, write conventional commits, review a diff, resolve conflicts and rebase only when appropriate for the team's workflow.
 
 The team requires at least one other developer's approval and passing CI before merging to `main`. Start dependent work from the updated `main` branch after its prerequisites have merged.
 
-## 7. Suggested learning checklist
+## 8. Suggested learning checklist
 
 - **NestJS:** modules, providers, dependency injection, controllers, pipes, guards, interceptors, exceptions.
 - **Authentication:** password hashing, JWT, Passport, OAuth, cookies, CORS, CSRF.

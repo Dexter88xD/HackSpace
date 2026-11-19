@@ -58,6 +58,21 @@ make ps
 
 The Caddy endpoint is the normal browser entry point. Its locally generated certificate may require accepting a browser warning. The direct frontend and backend addresses are for development diagnostics. Other enabled services and ports are defined in `docker-compose.yml`.
 
+### Chat/WebSocket diagnostics
+
+Team chat uses the Caddy HTTPS origin for Socket.IO. The frontend connects to the `/chat` namespace and the Caddy configuration proxies the underlying Socket.IO transport path `/socket.io/*` to the backend.
+
+When diagnosing chat connectivity:
+
+1. Open the application through `https://localhost`, not only the direct Vite URL, when testing the normal development setup.
+2. Accept/trust the local Caddy certificate in the browser if prompted.
+3. Confirm that the browser Network panel shows a Socket.IO/WebSocket connection under `/socket.io/`.
+4. Check the browser console for `connect_error` messages.
+5. Check backend logs for connection, authentication or gateway errors.
+6. Confirm that the authenticated browser has an `accessToken` cookie; the Socket.IO client uses `withCredentials: true`.
+
+A successful namespace connection does not by itself authorize a team chat. The client must successfully emit `join-chat` for the room, after which `send-message` and `new-message` operate on `chat:<chatRoomId>`.
+
 For container status and logs:
 
 ```bash

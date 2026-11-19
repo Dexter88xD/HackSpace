@@ -14,7 +14,7 @@ export function ProfileHeader({
   return (
     <Card>
       <CardContent className="flex items-center gap-4 pt-6">
-        <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-200">
+        <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted">
           {avatarUrl ? (
             <img
               src={avatarUrl}
@@ -22,7 +22,7 @@ export function ProfileHeader({
               className="h-full w-full object-cover"
             />
           ) : (
-            <span className="text-2xl font-bold text-gray-600">
+            <span className="text-2xl font-bold text-muted-foreground">
               {user.fullName?.charAt(0).toUpperCase() || "U"}
             </span>
           )}
@@ -33,13 +33,13 @@ export function ProfileHeader({
             {user.fullName}
           </h2>
 
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             @{user.username}
           </p>
 
           <p className="text-sm">{user.email}</p>
 
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted-foreground">
             {user.emailVerified
               ? "Verified account"
               : "Email not verified"}

@@ -39,6 +39,7 @@ Paths below are listed relative to the backend `/api` prefix. Through the normal
 | `POST` | `/auth/verify`                | Public         | Verify an email using an OTP                      |
 | `POST` | `/auth/resend-code`           | Public         | Request another verification code                 |
 | `POST` | `/auth/signin`                | Public         | Sign in and set the HttpOnly `accessToken` cookie |
+| `POST` | `/auth/logout`                | Public         | Clear the HttpOnly `accessToken` cookie           |
 | `GET`  | `/auth/me`                    | Authenticated  | Return current authenticated user details         |
 | `GET`  | `/auth/oauth/google`          | Public         | Begin Google OAuth                                |
 | `GET`  | `/auth/oauth/google/callback` | OAuth callback | Finish Google OAuth and redirect                  |
@@ -73,6 +74,67 @@ Paths below are listed relative to the backend `/api` prefix. Through the normal
 | `DELETE` | `/teams/:id/leave`                  | Authenticated team member            | Leave a team                                 |
 
 Team operations also enforce applicable constraints on membership, team capacity and hackathon state within `TeamsService`.
+
+### Chat history
+
+| Method | Path                              | Access              | Purpose                         |
+| ------ | --------------------------------- | ------------------- | ------------------------------- |
+| `GET`  | `/chat-rooms/:chatRoomId/messages` | Authenticated member | Load persisted team chat history |
+
+The chat history endpoint returns messages in ascending `sentAt` order. Each message contains only the fields needed by the frontend:
+
+```json
+{
+  "id": 1,
+  "content": "Hello team",
+  "sentAt": "2026-11-16T12:00:00.000Z",
+  "sender": {
+    "id": 7,
+    "username": "example"
+  }
+}
+```
+
+Authentication alone is not sufficient: the authenticated user must be a member of the requested chat room. A non-member receives `403`.
+
+## Socket.IO chat protocol
+
+Socket.IO uses the `/chat` namespace. Through the normal local Caddy entry point, the Socket.IO transport is proxied at `/socket.io/*`; the browser connects to the HTTPS application origin with credentials so the `accessToken` cookie is available during the handshake.
+
+### Connection authentication
+
+The gateway verifies the `accessToken` cookie during the Socket.IO handshake. If the cookie is missing or invalid, the connection is rejected. A connected socket still must join an individual room before it can receive team messages.
+
+### Client-to-server events
+
+| Event        | Payload                         | Acknowledgement                                      | Purpose                                      |
+| ------------ | ------------------------------- | ---------------------------------------------------- | -------------------------------------------- |
+| `join-chat`  | `{ chatRoomId: number }`         | `{ success: boolean, error?: string }`               | Verify membership and join `chat:<chatRoomId>` |
+| `send-message` | `{ chatRoomId: number, content: string }` | `{ success: boolean, message?: Message, error?: string }` | Validate, persist and broadcast a message |
+
+The frontend applies a five-second timeout to acknowledgement-based events. Timeout errors are separate from a server response with `success: false` and must be handled separately.
+
+### Server-to-client events
+
+| Event         | Payload   | Recipients                              | Purpose                         |
+| ------------- | --------- | --------------------------------------- | ------------------------------- |
+| `new-message` | `Message` | Members of `chat:<chatRoomId>`          | Deliver a persisted live message |
+
+`Message` has the same shape as the HTTP history response:
+
+```ts
+type Message = {
+  id: number;
+  content: string;
+  sentAt: string;
+  sender: {
+    id: number;
+    username: string;
+  };
+};
+```
+
+The backend obtains the sender identity from the verified JWT rather than trusting a user ID supplied by the browser. The sender relation is loaded with `id` and `username` before the live message is emitted.
 
 ### Profiles and skills
 
