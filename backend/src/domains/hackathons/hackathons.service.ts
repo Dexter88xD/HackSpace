@@ -156,7 +156,7 @@ export class HackathonsService {
   async findOne(hackathonId: number) {
     const hackathon = await this.hackathonRepository.findOne({
       where: { id: hackathonId },
-      relations: { phases: true },
+      relations: { phases: true, settings: true },
     });
     if (!hackathon) {
       throw new NotFoundException('Hackathon not found');
@@ -202,6 +202,17 @@ export class HackathonsService {
     };
   }
 
+  private validateTeamSizeLimits(
+    minTeamMembers: number,
+    maxTeamMembers: number,
+  ): void {
+    if (minTeamMembers < 1 || minTeamMembers > maxTeamMembers) {
+      throw new BadRequestException(
+        'Minimum team size must be at least 1 and cannot exceed the maximum team size',
+      );
+    }
+  }
+
   async create(dto: CreateHackathonDto, userId: number) {
     const startAt = new Date(dto.startAt);
     const endAt = new Date(dto.endAt);
@@ -225,8 +236,13 @@ export class HackathonsService {
       });
       const savedHackathon = await manager.save(hackathon);
       const hackathonSettings = manager.create(HackathonSettings, {
+        ...dto.settings,
         hackathon: savedHackathon,
       });
+      this.validateTeamSizeLimits(
+        hackathonSettings.minTeamMembers,
+        hackathonSettings.maxTeamMembers,
+      );
       await manager.save(hackathonSettings);
       const hackathonUser = manager.create(HackathonUser, {
         user: { id: userId },
@@ -272,6 +288,7 @@ export class HackathonsService {
         .getRepository(Hackathon)
         .createQueryBuilder('hackathon')
         .leftJoinAndSelect('hackathon.phases', 'phase')
+        .leftJoinAndSelect('hackathon.settings', 'settings')
         .where('hackathon.id = :hackathonId', { hackathonId })
         .orderBy('phase.startAt', 'ASC')
         .setLock('pessimistic_write', undefined, ['hackathon'])
@@ -285,6 +302,50 @@ export class HackathonsService {
 
       if (!canEdit) {
         throw new ForbiddenException('Forbidden');
+      }
+
+      if (dto.settings !== undefined) {
+        const settings = hackathon.settings;
+
+        if (!settings) {
+          throw new NotFoundException('Hackathon settings not found');
+        }
+
+        const minTeamMembers =
+          dto.settings.minTeamMembers ?? settings.minTeamMembers;
+
+        const maxTeamMembers =
+          dto.settings.maxTeamMembers ?? settings.maxTeamMembers;
+
+        this.validateTeamSizeLimits(minTeamMembers, maxTeamMembers);
+
+        if (maxTeamMembers < settings.maxTeamMembers) {
+          const teams = await manager.getRepository(Team).find({
+            where: {
+              hackathon: { id: hackathonId },
+            },
+            relations: {
+              members: true,
+            },
+          });
+
+          const oversizedTeam = teams.find(
+            (team) => team.members.length > maxTeamMembers,
+          );
+
+          if (oversizedTeam) {
+            throw new ConflictException(
+              `Cannot reduce the maximum team size to ${maxTeamMembers}: team "${oversizedTeam.name}" already has ${oversizedTeam.members.length} members`,
+            );
+          }
+        }
+
+        settings.minTeamMembers = minTeamMembers;
+        settings.maxTeamMembers = maxTeamMembers;
+        settings.filesLimit = dto.settings.filesLimit ?? settings.filesLimit;
+        settings.fileMaxSize = dto.settings.fileMaxSize ?? settings.fileMaxSize;
+
+        await manager.save(HackathonSettings, settings);
       }
 
       const startAt =
@@ -382,7 +443,6 @@ export class HackathonsService {
     return currentPhase ?? null;
   }
 
-  // Hackathon Registration
   async hackathonRegister(userId: number, hackathonId: number) {
     const hackathon = await this.hackathonRepository.findOne({
       where: { id: hackathonId },
