@@ -18,11 +18,11 @@ HackSpace uses **one local environment file**, `.env` at the repository root, an
 cp .env.example .env
 ```
 
-Configure `POSTGRES_PASSWORD` and `JWT_SECRET` in the root `.env`. Add `MAIL_USER` and `MAIL_PASS` there when testing email verification, and fill in the relevant OAuth credentials if needed. The frontend sends requests through the same-origin `/api` path. Set `FRONTEND_URL` to the browser-facing application origin for backend OAuth redirects; the example uses `https://localhost:8443`.
+Configure `POSTGRES_PASSWORD`, `JWT_SECRET`, `MINIO_ROOT_PASSWORD`, and a separate `MINIO_SECRET_KEY` in the root `.env`. Generate the application storage secret with `openssl rand -hex 32`; `MINIO_ACCESS_KEY` defaults to `hackspace-backend` in the template and must differ from `MINIO_ROOT_USER`. Add `MAIL_USER` and `MAIL_PASS` there when testing email verification, and fill in the relevant OAuth credentials if needed. The frontend sends requests through the same-origin `/api` path. Set `FRONTEND_URL` to the browser-facing application origin for backend OAuth redirects; the example uses `https://localhost:8443`.
 
 **Do not create** `backend/.env` or `frontend/.env` for the Compose workflow. If you already have those files, first copy any still-needed values into the root `.env`, then delete the redundant local files. Remove the tracked `backend/.env.example` and `frontend/.env.example` templates as part of this consolidation PR after transferring all required example variables into the root `.env.example`.
 
-The Makefile provides `--env-file .env` to Docker Compose. Compose uses it to resolve `${...}` expressions in `docker-compose.yml`. The backend receives the root file through its `env_file` setting. The frontend does not receive the root `.env`; its API client uses the same-origin `/api` path. Never put a secret in a `VITE_` variable: Vite can expose these values in client-side code.
+The Makefile provides `--env-file .env` to Docker Compose. Compose uses it to resolve `${...}` expressions in `docker-compose.yml`. The backend receives only the explicitly listed application settings; MinIO root credentials are supplied only to the storage server and provisioning service. The frontend does not receive the root `.env`; its API client uses the same-origin `/api` path. Never put a secret in a `VITE_` variable: Vite can expose these values in client-side code.
 
 These instructions cover the **Docker Compose workflow**. Starting NestJS or Vite directly outside Docker may require loading the root `.env` into that process separately.
 
@@ -57,6 +57,26 @@ make ps
 | Adminer    | `http://localhost:8081` |
 
 The Caddy endpoint is the normal browser entry point. Its locally generated certificate may require accepting a browser warning. The direct frontend and backend addresses are for development diagnostics. Other enabled services and ports are defined in `docker-compose.yml`.
+
+### Private MinIO storage
+
+`make storage` starts PostgreSQL, MinIO, and `minio-init`. Provisioning uses the pinned MinIO image and administrator credentials to create private application buckets and attach the restricted backend policy. The backend starts only after provisioning exits successfully. Repeating provisioning preserves existing objects.
+
+Use `https://minio.localhost:8443` for the S3 API and `https://console.minio.localhost:8443` for administrative console access. Ports 9000/9001 are not exposed directly. The backend uses `http://minio:9000` on the Docker network with `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY`. Do not reuse root credentials for the application. Avatar images load through the app's own authenticated endpoint; direct signed URL downloads require trusting Caddy's CA for the MinIO hostname.
+
+To rotate the application secret, update `MINIO_SECRET_KEY` in the ignored root `.env`, then run:
+
+```bash
+docker compose up -d minio
+docker compose run --rm minio-init
+docker compose up -d --force-recreate backend
+```
+
+Provisioning updates the existing account secret and policy; existing signed URLs using the old secret will stop working. To change the access-key identity, provision the new one, restart the backend, then remove the old identity through the administrator console. Never print or commit credentials. Root credentials are separate: rotate them by updating `.env`, recreating `minio`, rerunning provisioning, and recreating the backend.
+
+If provisioning fails, inspect `docker compose logs minio-init`, correct the credentials, and rerun `docker compose run --rm minio-init` before starting the backend. If a bucket is missing or the application is denied access, the backend intentionally fails startup instead of using root credentials. Do not remove volumes to recover from a credential or provisioning error. Bucket definitions in the provisioning script/policy must be updated together with `FileBucket` when adding buckets.
+
+Dollar signs in dotenv secrets must be quoted with single quotes to prevent Compose interpolation. Do not use `docker compose config` without `--quiet` when sharing diagnostics: expanded configuration can contain credentials.
 
 ### Chat/WebSocket diagnostics
 
@@ -119,7 +139,7 @@ Run Makefile targets from the **repository root**.
 | `make re`                  | Bring the stack down, then rebuild and restart it                                                                                         |
 | `make ps`                  | Show container status                                                                                                                     |
 | `make logs`                | Follow Compose logs                                                                                                                       |
-| `make storage`             | Start PostgreSQL                                                                                                                          |
+| `make storage`             | Start PostgreSQL and provision private MinIO storage                                                                                      |
 | `make backend`             | Start the backend and its configured Compose dependencies                                                                                 |
 | `make frontend`            | Start the frontend and PostgreSQL                                                                                                         |
 | `make db`                  | Open a PostgreSQL command-line session                                                                                                    |

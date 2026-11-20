@@ -31,7 +31,7 @@ help:
 	@echo "  make logs       Follow container logs"
 	@echo ""
 	@echo "Services:"
-	@echo "  make storage    Start PostgreSQL and MinIO"
+	@echo "  make storage    Start PostgreSQL and provision MinIO"
 	@echo "  make backend    Start backend and dependencies"
 	@echo "  make frontend   Start frontend and PostgreSQL"
 	@echo ""
@@ -76,7 +76,7 @@ logs:
 # ==============================
 
 storage:
-	$(COMPOSE) up -d --build db minio
+	$(COMPOSE) up -d --build db minio minio-init
 
 backend:
 	$(COMPOSE) up -d --build db backend

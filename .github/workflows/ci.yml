@@ -22,6 +22,9 @@ jobs:
         run: cp .env.example .env
 
       - name: Validate Docker Compose configuration
+        env:
+          MINIO_ACCESS_KEY: ci-backend
+          MINIO_SECRET_KEY: ci-only-not-for-deployment
         run: docker compose -f docker-compose.yml --env-file .env config -q
 
   backend:

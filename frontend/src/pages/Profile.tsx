@@ -24,6 +24,7 @@ function Profile() {
     queryFn: getProfile,
     retry: false,
     enabled: userQuery.isSuccess,
+    refetchInterval: 50 * 60 * 1000,
   });
 
   const profileNotFound =
@@ -56,7 +57,11 @@ function Profile() {
         {profile ? "My Profile" : "Create Your Profile"}
       </h1>
 
-      <ProfileHeader user={userQuery.data} avatarUrl={profile?.avatarUrl} />
+      <ProfileHeader
+        user={userQuery.data}
+        avatarUrl={profile?.avatarUrl}
+        avatarFileId={profile?.avatarFileId}
+      />
 
       {!profile ? (
         <ProfileForm />

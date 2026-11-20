@@ -27,8 +27,8 @@ export class StoredFile {
   })
   bucket!: FileBucket;
 
-  @Column({ type: 'text' })
-  url!: string;
+  @Column({ name: 'stored_name', type: 'text' })
+  storedName!: string;
 
   @Column({
     name: 'file_type',

@@ -1,5 +1,8 @@
 import {
   Controller,
+  Delete,
+  HttpCode,
+  Header,
   Get,
   Post,
   Patch,
@@ -43,6 +46,19 @@ export class UserController {
     @Body() dto: UpdateProfileDto,
   ) {
     return this.userService.updateProfile(req.user.userId, dto);
+  }
+
+  @Get('me/profile/avatar')
+  @Header('Cache-Control', 'private, no-store')
+  @Header('X-Content-Type-Options', 'nosniff')
+  getAvatar(@Req() req: AuthenticatedRequest) {
+    return this.userService.getAvatar(req.user.userId);
+  }
+
+  @Delete('me/profile/avatar')
+  @HttpCode(204)
+  deleteAvatar(@Req() req: AuthenticatedRequest): Promise<void> {
+    return this.userService.deleteAvatar(req.user.userId);
   }
 
   @Post('me/profile/avatar')
