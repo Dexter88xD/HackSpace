@@ -16,7 +16,7 @@ The following paths are defined in `frontend/src/App.tsx`.
 | `/hackathon-explorer`  | Hackathon Explorer   | Authenticated | Discover, search and filter hackathons                                          |
 | `/hackathons`          | Hackathon Management | Authenticated | Administrators see all hackathons; regular users see hackathons they organise   |
 | `/hackathons/new`      | Create Hackathon     | Authenticated | Create a hackathon with team and file settings; not restricted to `ROLE_ADMIN`                              |
-| `/hackathons/:id`      | Hackathon Details    | Authenticated | Show details and settings; edit controls use the backend's `canEdit` flag        |
+| `/hackathons/:id` | Hackathon Details | Authenticated | Show hackathon details and phases; edit controls use the backend's `canEdit` flag |
 | `/hackathons/:id/edit` | Edit Hackathon       | Authenticated | Edit hackathon details and settings; organiser or platform administrator only |
 | `/hackathons/:id/team` | Hackathon Team       | Authenticated | View, create, join or leave teams according to membership rules                 |
 | `/profile`             | User Profile         | Authenticated | View and manage the user's profile and skills                                   |
