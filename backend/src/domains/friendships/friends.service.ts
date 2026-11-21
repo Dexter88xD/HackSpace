@@ -179,7 +179,7 @@ export class FriendsService {
             .from(Friendship)
             .where('id = :friendshipId', { friendshipId })
             .andWhere('status = :status', { status: FriendshipStatus.ACCEPTED })
-            .andWhere('requesterId = :currentUserId OR addresseeId = :currentUserId', { currentUserId })
+            .andWhere('(requesterId = :currentUserId OR addresseeId = :currentUserId)', { currentUserId })
             .execute();
 
         if (result.affected !== 1)
@@ -208,7 +208,7 @@ export class FriendsService {
         });
 
         return friendships.map((friendship) => {
-            const friend = friendship.requesterId ? friendship.addressee : friendship.requester;
+            const friend = friendship.requesterId === userID ? friendship.addressee : friendship.requester;
             return {
                 friendshipId: friendship.id,
                 user: {
@@ -258,4 +258,31 @@ export class FriendsService {
         }));
     }
 
+    async getRelationshipStatus(currentUserId: number, targetUserId: number) {
+        if (currentUserId === targetUserId)
+            throw new BadRequestException('You cannot check friendship with yourself');
+
+        const targetExists = await this.userRepository.exists({ 
+            where: {id: targetUserId} 
+        });
+
+        if (!targetExists)
+            throw new NotFoundException('User not found');
+
+        const friendship = await this.friendshipRepository.findOne({
+            where: [{ requesterId: currentUserId, addresseeId: targetUserId },
+                { requesterId: targetUserId, addresseeId: currentUserId }],
+        });
+
+        if (!friendship)
+            return {status: 'none', friendshipId: null};
+
+        if (friendship.status === FriendshipStatus.ACCEPTED)
+            return {status: 'accepted', friendshipId: friendship.id};
+
+        return {
+            status: friendship.requesterId === currentUserId ? 'outgoing' : 'incoming',
+            friendshipId: friendship.id
+        };
+    }
 }
