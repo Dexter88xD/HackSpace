@@ -31,6 +31,7 @@ import { ScoringCriteriaManagement } from "@/components/jury/ScoringCriteriaMana
 import { JuryEvaluation } from "@/components/jury/JuryEvaluation";
 import { HackathonRankings } from "@/components/jury/HackathonRankings";
 import { useEffect, useState } from "react";
+import HackathonPhaseSchedule from "@/components/hackathon/HackathonPhaseSchedule";
 
 export default function HackathonDetails() {
   const { id } = useParams<{ id: string }>();
@@ -104,11 +105,18 @@ export default function HackathonDetails() {
     retry: shouldRetryQuery,
   });
 
-  const { data: currentPhase } = useQuery({
+  const {
+    data: currentPhase,
+    isPending: isPhasePending,
+    isError: isPhaseError,
+    refetch: refetchPhase,
+  } = useQuery({
     queryKey: ["phase", hackathonId],
     refetchInterval: 10000,
     queryFn: () => {
-      if (hackathonId === null) throw new Error("Invalid hackathon ID");
+      if (hackathonId === null) {
+        throw new Error("Invalid hackathon ID");
+      }
 
       return getHackathonCurrentPhase(hackathonId);
     },
@@ -380,6 +388,29 @@ export default function HackathonDetails() {
           </div>
         )}
       </header>
+
+      <section aria-label="Hackathon phase schedule">
+        {isPhasePending ? (
+          <p role="status" className="text-sm text-muted-foreground">
+            Loading current phase...
+          </p>
+        ) : isPhaseError ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <p role="alert" className="text-sm text-destructive">
+              Unable to load the current phase.
+            </p>
+
+            <Button variant="outline" onClick={() => void refetchPhase()}>
+              Retry
+            </Button>
+          </div>
+        ) : (
+          <HackathonPhaseSchedule
+            phases={hackathon.phases}
+            currentPhaseName={currentPhase?.phaseName ?? null}
+          />
+        )}
+      </section>
 
       {canManageJury ? (
         <div className="space-y-5">
