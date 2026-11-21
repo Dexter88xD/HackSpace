@@ -20,7 +20,7 @@ function HackathonTable({ hackathons, total }: HackathonTableProps) {
           </p>
 
           <p className="text-sm text-muted-foreground">
-            Hackathons you organise will appear here.
+            Hackathons you organize will appear here.
           </p>
         </div>
       ) : (
@@ -38,7 +38,7 @@ function HackathonTable({ hackathons, total }: HackathonTableProps) {
 
                 <dl className="space-y-2 text-sm">
                   <div className="flex flex-wrap justify-between gap-x-3 gap-y-1">
-                    <dt className="text-muted-foreground">Organisation</dt>
+                    <dt className="text-muted-foreground">organization</dt>
                     <dd className="min-w-0 break-words text-right">
                       {hackathon.organizationName}
                     </dd>
