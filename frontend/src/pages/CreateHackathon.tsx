@@ -7,6 +7,7 @@ import type { HackathonFormValues } from "@/schemas/hackathon.schema";
 import type { HackathonPayload } from "@/types/hackathon-management";
 import { HackathonPhaseName } from "@/types/hackathon";
 import { getReturnTo } from "@/lib/navigation";
+import { BYTES_PER_MIB } from "@/lib/file-size";
 
 function CreateHackathon() {
   const location = useLocation();
@@ -37,7 +38,10 @@ function CreateHackathon() {
       organizationName: data.organizationName,
       startAt: new Date(data.startAt).toISOString(),
       endAt: new Date(data.endAt).toISOString(),
-
+      settings: {
+        ...data.settings,
+        fileMaxSize: Math.round(data.settings.fileMaxSize * BYTES_PER_MIB),
+      },
       phases: data.phases.map((phase) => ({
         phaseName: HackathonPhaseName[phase.phaseName],
         description: phase.description.trim() || null,

@@ -13,7 +13,10 @@ import {
   Repository,
 } from 'typeorm';
 import { Hackathon } from '../hackathons/entities/hackathon.entity';
-import { HackathonPhaseName } from '../hackathons/entities/hackathon-phase.entity';
+import {
+  HackathonPhase,
+  HackathonPhaseName,
+} from '../hackathons/entities/hackathon-phase.entity';
 import {
   HackathonUser,
   HackRoleName,
@@ -26,6 +29,7 @@ import { UpdateTeamDto } from './dto/update-team.dto';
 import { ChatMember } from '../chat/entities/chat-member.entity';
 import { ChatGateway } from '../chat/chat.gateway';
 import { ChatRoom, ChatRoomType } from '../chat/entities/chat-room.entity';
+import { HackathonSettings } from '../hackathons/entities/hackathon-settings.entity';
 
 @Injectable()
 export class TeamsService {
@@ -279,7 +283,7 @@ export class TeamsService {
     const request = await this.joinRequestRepository.findOne({
       where: { id: requestId },
       relations: {
-        team: { hackathon: { settings: true, phases: true } },
+        team: { hackathon: true },
         hackathonUser: { user: true },
       },
     });
@@ -287,16 +291,38 @@ export class TeamsService {
       throw new NotFoundException('Join request not found');
     }
     const team = request.team;
+    const hackathon = request.team.hackathon;
 
     try {
       await this.dataSource.transaction(async (manager) => {
+        const lockedHackathon = await manager.findOne(Hackathon, {
+          where: { id: hackathon.id },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (!lockedHackathon) {
+          throw new NotFoundException('Hackathon not found');
+        }
+        const hackathonSettings = await manager.findOne(HackathonSettings, {
+          where: { hackathon: { id: lockedHackathon.id } },
+        });
+        if (!hackathonSettings) {
+          throw new NotFoundException('Hackathon settings not found');
+        }
         const lockedTeam = await manager.findOne(Team, {
           where: { id: team.id },
           lock: { mode: 'pessimistic_write' },
         });
+        if (!lockedTeam) {
+          throw new NotFoundException('Team not found');
+        }
 
-        await this.checkLeader(manager, team.id, userId);
-        this.checkRegistrationOpen(team.hackathon);
+        const hackathonPhases = await manager.find(HackathonPhase, {
+          where: { hackathon: { id: lockedHackathon.id } },
+        });
+
+        await this.checkLeader(manager, lockedTeam.id, userId);
+        lockedHackathon.phases = hackathonPhases;
+        this.checkRegistrationOpen(lockedHackathon);
 
         // If nothing was deleted, the request was already answered or
         // cancelled.
@@ -305,14 +331,10 @@ export class TeamsService {
           throw new BadRequestException('This request was already answered');
         }
 
-        if (!lockedTeam) {
-          throw new NotFoundException('Team not found');
-        }
-
         const memberCount = await manager.count(TeamMember, {
           where: { team: { id: team.id } },
         });
-        if (memberCount >= team.hackathon.settings.maxTeamMembers) {
+        if (memberCount >= hackathonSettings.maxTeamMembers) {
           throw new ConflictException('This team is full');
         }
 

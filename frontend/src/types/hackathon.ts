@@ -86,3 +86,11 @@ export type HackathonPhaseResponse = {
   startAt: string;
   endAt: string;
 };
+
+export type HackathonSettings = {
+  id: number;
+  minTeamMembers: number;
+  maxTeamMembers: number;
+  filesLimit: number;
+  fileMaxSize: number;
+};
