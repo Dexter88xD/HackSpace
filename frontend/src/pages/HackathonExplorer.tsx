@@ -47,7 +47,7 @@ function HackathonExplorer() {
           </div>
         ) : (
           <div className="flex flex-1 flex-col justify-between gap-10">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
+            <div className="grid grid-cols-1 gap-4 min-[560px]:grid-cols-2 lg:grid-cols-3">
               {data?.data.map((hackathon) => (
                 <HackathonCard key={hackathon.id} hackathon={hackathon} />
               ))}
