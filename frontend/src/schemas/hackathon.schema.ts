@@ -1,3 +1,4 @@
+import { BYTES_PER_MIB } from "@/lib/file-size";
 import { z } from "zod";
 
 export const PHASE_ORDER = [
@@ -24,6 +25,30 @@ export const hackathonPhaseSchema = z.object({
   endAt: dateField("Phase end date"),
 });
 
+export const hackathonSettingsSchema = z
+  .object({
+    minTeamMembers: z.int().min(1),
+    maxTeamMembers: z.int().min(1),
+    filesLimit: z.int().min(1),
+    fileMaxSize: z
+      .number()
+      .positive("Maximum file size must be greater than 0")
+      .refine((value) => {
+        const bytes = Math.round(value * BYTES_PER_MIB);
+
+        return bytes >= 1 && bytes <= 2_147_483_647;
+      }, "File size must be between 1 byte and the supported maximum"),
+  })
+  .superRefine((data, ctx) => {
+    if (data.minTeamMembers > data.maxTeamMembers) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Minimum team size cannot exceed maximum team size",
+        path: ["minTeamMembers"],
+      });
+    }
+  });
+
 export const hackathonSchema = z
   .object({
     title: z.string().trim().min(1, "Title is required"),
@@ -38,6 +63,8 @@ export const hackathonSchema = z
     phases: z
       .array(hackathonPhaseSchema)
       .length(5, "A hackathon must contain exactly five phases"),
+
+    settings: hackathonSettingsSchema,
   })
   .superRefine((data, ctx) => {
     const hackathonStart = new Date(data.startAt).getTime();

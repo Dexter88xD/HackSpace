@@ -12,6 +12,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { BYTES_PER_MIB } from "@/lib/file-size";
 
 function toDateTimeLocal(iso: string): string {
   const date = new Date(iso);
@@ -60,6 +61,14 @@ function HackathonForm({
       organizationName: hackathon?.organizationName ?? "",
       startAt: hackathon ? toDateTimeLocal(hackathon.startAt) : "",
       endAt: hackathon ? toDateTimeLocal(hackathon.endAt) : "",
+      settings: {
+        minTeamMembers: hackathon?.settings.minTeamMembers ?? 1,
+        maxTeamMembers: hackathon?.settings.maxTeamMembers ?? 5,
+        filesLimit: hackathon?.settings.filesLimit ?? 1,
+        fileMaxSize: hackathon
+          ? hackathon.settings.fileMaxSize / BYTES_PER_MIB
+          : 10,
+      },
       phases: PHASE_ORDER.map((phaseName) => {
         const existingPhase = hackathon?.phases.find(
           (phase) => phase.phaseName === phaseName,
@@ -84,6 +93,7 @@ function HackathonForm({
       "organizationName",
       "startAt",
       "endAt",
+      "settings",
     ]);
 
     if (!valid) return;
@@ -113,7 +123,8 @@ function HackathonForm({
         validationErrors.description ||
         validationErrors.organizationName ||
         validationErrors.startAt ||
-        validationErrors.endAt
+        validationErrors.endAt ||
+        validationErrors.settings
       ) {
         setStep(1);
       }
@@ -239,6 +250,102 @@ function HackathonForm({
               </p>
             )}
           </div>
+
+          <fieldset className="space-y-4 border-t border-border pt-6">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="minTeamMembers">Minimum team members</Label>
+
+                <Input
+                  id="minTeamMembers"
+                  type="number"
+                  min={1}
+                  step={1}
+                  {...register("settings.minTeamMembers", {
+                    valueAsNumber: true,
+                  })}
+                  aria-invalid={!!errors.settings?.minTeamMembers}
+                />
+
+                {errors.settings?.minTeamMembers && (
+                  <p role="alert" className="text-sm text-destructive">
+                    {errors.settings.minTeamMembers.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="maxTeamMembers">Maximum team members</Label>
+
+                <Input
+                  id="maxTeamMembers"
+                  type="number"
+                  min={1}
+                  step={1}
+                  {...register("settings.maxTeamMembers", {
+                    valueAsNumber: true,
+                  })}
+                  aria-invalid={!!errors.settings?.maxTeamMembers}
+                />
+
+                {errors.settings?.maxTeamMembers && (
+                  <p role="alert" className="text-sm text-destructive">
+                    {errors.settings.maxTeamMembers.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="filesLimit">Maximum submission files</Label>
+
+                <Input
+                  id="filesLimit"
+                  type="number"
+                  min={1}
+                  step={1}
+                  {...register("settings.filesLimit", {
+                    valueAsNumber: true,
+                  })}
+                  aria-invalid={!!errors.settings?.filesLimit}
+                />
+
+                <p className="text-xs text-muted-foreground">
+                  Maximum files allowed per submission (at least 1).
+                </p>
+
+                {errors.settings?.filesLimit && (
+                  <p role="alert" className="text-sm text-destructive">
+                    {errors.settings.filesLimit.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="fileMaxSize">Maximum file size (MiB)</Label>
+
+                <Input
+                  id="fileMaxSize"
+                  type="number"
+                  min={1 / BYTES_PER_MIB}
+                  step="any"
+                  {...register("settings.fileMaxSize", {
+                    valueAsNumber: true,
+                  })}
+                  aria-invalid={!!errors.settings?.fileMaxSize}
+                />
+
+                <p className="text-xs text-muted-foreground">
+                  Maximum size of each uploaded file in MiB.
+                </p>
+
+                {errors.settings?.fileMaxSize && (
+                  <p role="alert" className="text-sm text-destructive">
+                    {errors.settings.fileMaxSize.message}
+                  </p>
+                )}
+              </div>
+            </div>
+          </fieldset>
         </div>
       )}
 

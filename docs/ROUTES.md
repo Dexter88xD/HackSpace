@@ -15,9 +15,9 @@ The following paths are defined in `frontend/src/App.tsx`.
 | `/`                    | Home                 | Authenticated | Landing page                                                                    |
 | `/hackathon-explorer`  | Hackathon Explorer   | Authenticated | Discover, search and filter hackathons                                          |
 | `/hackathons`          | Hackathon Management | Authenticated | Administrators see all hackathons; regular users see hackathons they organise   |
-| `/hackathons/new`      | Create Hackathon     | Authenticated | Create a hackathon; not restricted to `ROLE_ADMIN`                              |
-| `/hackathons/:id`      | Hackathon Details    | Authenticated | Show details and actions; edit controls use the backend's `canEdit` flag        |
-| `/hackathons/:id/edit` | Edit Hackathon       | Authenticated | Edit permission is enforced by the backend: organiser or platform administrator |
+| `/hackathons/new`      | Create Hackathon     | Authenticated | Create a hackathon with team and file settings; not restricted to `ROLE_ADMIN`                              |
+| `/hackathons/:id` | Hackathon Details | Authenticated | Show hackathon details and phases; edit controls use the backend's `canEdit` flag |
+| `/hackathons/:id/edit` | Edit Hackathon       | Authenticated | Edit hackathon details and settings; organiser or platform administrator only |
 | `/hackathons/:id/team` | Hackathon Team       | Authenticated | View, create, join or leave teams according to membership rules                 |
 | `/profile`             | User Profile         | Authenticated | View and manage the user's profile and skills                                   |
 | `/login`               | Login                | Public        | Password sign-in and OAuth initiation                                           |
@@ -52,13 +52,20 @@ Paths below are listed relative to the backend `/api` prefix. Through the normal
 | -------- | ------------------------------- | ------------------------------------------ | ---------------------------------------------------------------- |
 | `GET`    | `/hackathons`                   | Authenticated                              | List and filter hackathons                                       |
 | `GET`    | `/hackathons/mine`              | Authenticated                              | List hackathons where the user is an `ORGANIZER`                 |
-| `GET`    | `/hackathons/:id`               | Authenticated                              | Retrieve details including the `canEdit` flag                    |
+| `GET`    | `/hackathons/:id`               | Authenticated                              | Retrieve details, settings, and the `canEdit` flag                    |
 | `GET`    | `/hackathons/:id/current-phase` | Authenticated                              | Get the current hackathon phase                                  |
-| `POST`   | `/hackathons`                   | Authenticated                              | Create a hackathon and assign the creator `ORGANIZER` membership |
-| `PATCH`  | `/hackathons/:id`               | `ORGANIZER` or `ROLE_ADMIN`                | Edit a hackathon; service verifies permissions                   |
+| `POST`   | `/hackathons`                   | Authenticated                              | Create a hackathon with default/custom settings; creator becomes `ORGANIZER` |
+| `PATCH`  | `/hackathons/:id`               | `ORGANIZER` or `ROLE_ADMIN`                | Edit details/settings; `409` if proposed maximum is below an existing team size                   |
 | `POST`   | `/hackathons/:id/register`      | Authenticated; phase and membership checks | Register to participate                                          |
 | `DELETE` | `/hackathons/:id/unregister`    | Authenticated; membership checks           | Unregister from a hackathon                                      |
 | `GET`    | `/hackathons/:id/membership`    | Authenticated                              | Get the current user's hackathon membership                      |
+
+Hackathon settings use camelCase in JSON: `minTeamMembers`, `maxTeamMembers`,
+`filesLimit`, and `fileMaxSize` (bytes). Defaults are 1, 5, 1, and 10485760
+respectively; the frontend presents file sizes in MiB. File limits must be at
+least 1, and `minTeamMembers` cannot exceed `maxTeamMembers`. Settings updates
+can be partial. New maximum team sizes cannot be below an existing team's
+membership count; the minimum team size is checked at submission time.
 
 **Platform and hackathon roles are distinct.** Any authenticated `ROLE_USER` or `ROLE_ADMIN` may create a hackathon. A user may edit a hackathon if they are an `ORGANIZER` for it, or if their platform role is `ROLE_ADMIN`. The edit rule is enforced by `HackathonsService.canEditHackathon()`. Lack of valid authentication normally produces `401`; a denied update produces `403`.
 
