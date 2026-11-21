@@ -9,10 +9,10 @@ import { getProfile } from "@/api/profile";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { ProfileInfo } from "@/components/profile/ProfileInfo";
 import { ProfileForm } from "@/components/profile/ProfileForm";
+import type { Profile as ProfileData } from "@/types/profile";
+import type { User } from "@/types/user";
 
 function Profile() {
-  const [isEditing, setIsEditing] = useState(false);
-
   const userQuery = useQuery({
     queryKey: ["me"],
     queryFn: getMe,
@@ -21,16 +21,26 @@ function Profile() {
 
   const profileQuery = useQuery({
     queryKey: ["profile", "me"],
-    queryFn: getProfile,
+    queryFn: async () => {
+      try {
+        return await getProfile();
+      } catch (error) {
+        if (
+          axios.isAxiosError(error) &&
+          error.response?.status === 404 &&
+          error.response?.data?.message === "Profile not found"
+        ) {
+          // Cache absence as data so avatar-triggered refetches keep the editor
+          // mounted instead of returning to the initial loading screen.
+          return null;
+        }
+        throw error;
+      }
+    },
     retry: false,
     enabled: userQuery.isSuccess,
+    refetchInterval: 50 * 60 * 1000,
   });
-
-  const profileNotFound =
-    profileQuery.isError &&
-    axios.isAxiosError(profileQuery.error) &&
-    profileQuery.error.response?.status === 404 &&
-    profileQuery.error.response?.data?.message === "Profile not found";
 
   if (userQuery.isPending || profileQuery.isPending) {
     return (
@@ -44,11 +54,25 @@ function Profile() {
     return <p className="p-6 text-destructive">Failed to load account.</p>;
   }
 
-  if (profileQuery.isError && !profileNotFound) {
+  if (profileQuery.isError && profileQuery.data === undefined) {
     return <p className="p-6 text-destructive">Failed to load profile.</p>;
   }
 
-  const profile = profileQuery.data ?? null;
+  return (
+    <ProfileDetails user={userQuery.data} profile={profileQuery.data ?? null} />
+  );
+}
+
+function ProfileDetails({
+  user,
+  profile,
+}: {
+  user: User;
+  profile: ProfileData | null;
+}) {
+  // Once creation begins, keep the same form until the user saves or cancels,
+  // even if an avatar upload creates the profile in the background.
+  const [isEditing, setIsEditing] = useState(!profile);
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6 p-6">
@@ -56,14 +80,16 @@ function Profile() {
         {profile ? "My Profile" : "Create Your Profile"}
       </h1>
 
-      <ProfileHeader user={userQuery.data} avatarUrl={profile?.avatarUrl} />
+      <ProfileHeader
+        user={user}
+        avatarUrl={profile?.avatarUrl}
+        avatarFileId={profile?.avatarFileId}
+      />
 
-      {!profile ? (
-        <ProfileForm />
-      ) : isEditing ? (
+      {!profile || isEditing ? (
         <ProfileForm
           profile={profile}
-          onCancel={() => setIsEditing(false)}
+          onCancel={profile ? () => setIsEditing(false) : undefined}
           onSuccess={() => setIsEditing(false)}
         />
       ) : (
