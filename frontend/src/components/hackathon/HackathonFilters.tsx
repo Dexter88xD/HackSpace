@@ -87,7 +87,7 @@ export default function HackathonFilters({
 
   return (
     <form
-      className="flex items-center gap-4 bg-white border p-5 rounded-xl flex-wrap"
+      className="grid min-w-0 grid-cols-1 gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2 lg:grid-cols-[10rem_11rem_minmax(0,1fr)_15rem_auto] lg:items-center"
       onSubmit={(e) => {
         e.preventDefault();
         setFilters((prev) => ({
@@ -105,7 +105,7 @@ export default function HackathonFilters({
           setPhase(value === "All" ? undefined : (value as HackathonPhaseName));
         }}
       >
-        <SelectTrigger className="w-full sm:w-40">
+        <SelectTrigger className="w-full min-w-0">
           <SelectValue placeholder="Phase" />
         </SelectTrigger>
         <SelectContent>
@@ -140,7 +140,7 @@ export default function HackathonFilters({
           }));
         }}
       >
-        <SelectTrigger className="w-full sm:w-44">
+        <SelectTrigger className="w-full min-w-0">
           <SelectValue placeholder="Sort by">
             {selectedSortKey ? sortOptions[selectedSortKey]?.label : undefined}
           </SelectValue>
@@ -155,8 +155,8 @@ export default function HackathonFilters({
         </SelectContent>
       </Select>
 
-      <div className="flex-1 min-w-[250px]">
-        <InputGroup className="flex-1">
+      <div className="min-w-0 w-full">
+        <InputGroup className="min-w-0 w-full">
           <InputGroupInput
             type="search"
             placeholder="Search hackathons..."
@@ -174,7 +174,10 @@ export default function HackathonFilters({
         <DatePickerWithRange onDateChange={setDate} />
       </div>
 
-      <Button type="submit" className="shrink-0">
+      <Button
+        type="submit"
+        className="w-full sm:col-span-2 lg:col-span-1 lg:w-auto"
+      >
         Search
       </Button>
     </form>
