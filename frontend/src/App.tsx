@@ -12,6 +12,8 @@ import CreateHackathon from "./pages/CreateHackathon";
 import EditHackathon from "./pages/EditHackathon";
 import HackathonDetails from "./pages/HackathonDetails";
 import HackathonTeam from "./pages/HackathonTeam";
+import Friends from "./pages/Friends"
+
 function App() {
   return (
     <BrowserRouter>
@@ -82,10 +84,18 @@ function App() {
             path="/profile"
             element={
               <ProtectedRoute>
-                <Profile />
+                <Profile/>
+              </ProtectedRoute>
+            } 
+          />
+          <Route
+            path="/friends"
+            element={
+              <ProtectedRoute>
+                <Friends />
               </ProtectedRoute>
             }
-          />
+          />  
         </Routes>
       </main>
     </BrowserRouter>
