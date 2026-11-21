@@ -1,5 +1,5 @@
 import { Link, useParams } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { getMe } from "@/api/auth";
 import { getHackathonById } from "@/api/hackathon-management";
 import { isAxiosError } from "axios";
@@ -11,19 +11,7 @@ import { parseHackathonId } from "@/lib/hackathon-id";
 import {
   getHackathonCurrentPhase,
   getHackathonMembership,
-  hackathonRegister,
-  hackathonUnregister,
 } from "@/api/hackathon";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { HackathonPhaseName, HackathonRoleName } from "@/types/hackathon";
 import { JuryManagement } from "@/components/jury/JuryManagement";
 import { JudgeManagement } from "@/components/jury/JudgeManagement";
@@ -31,9 +19,9 @@ import { ScoringCriteriaManagement } from "@/components/jury/ScoringCriteriaMana
 import { JuryEvaluation } from "@/components/jury/JuryEvaluation";
 import { HackathonRankings } from "@/components/jury/HackathonRankings";
 import { useEffect, useState } from "react";
-import HackathonPhaseSchedule from "@/components/hackathon/HackathonPhaseSchedule";
-import LaunchPhaseView from "@/components/hackathon/phases/LaunchPhaseView";
-import RegistrationPhaseView from "@/components/hackathon/phases/RegistrationPhaseView";
+import HackathonPhaseSchedule from "@/components/hackathon/hackathon-phase-schedule";
+import LaunchPhaseView from "@/components/hackathon/phases/launch-phase-view";
+import RegistrationPhaseView from "@/components/hackathon/phases/registration-phase-view";
 
 export default function HackathonDetails() {
   const { id } = useParams<{ id: string }>();
@@ -52,39 +40,6 @@ export default function HackathonDetails() {
     queryKey: ["me"],
     queryFn: getMe,
     retry: false,
-  });
-
-  const queryClient = useQueryClient();
-
-  const registerMutation = useMutation({
-    mutationFn: async () => {
-      if (hackathonId === null) {
-        throw new Error("Invalid hackathon ID");
-      }
-      return hackathonRegister(hackathonId);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["registration", hackathonId],
-      });
-    },
-  });
-
-  const unregisterMutation = useMutation({
-    mutationFn: async () => {
-      if (hackathonId === null) {
-        throw new Error("Invalid hackathon ID");
-      }
-      return hackathonUnregister(hackathonId);
-    },
-
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["registration", hackathonId],
-      });
-      // Unregistering also removes the user from their team.
-      queryClient.invalidateQueries({ queryKey: ["my-team", hackathonId] });
-    },
   });
 
   const currentUserId = currentUser?.id;
@@ -332,113 +287,17 @@ export default function HackathonDetails() {
         !hackathon.canEdit &&
         phaseName === HackathonPhaseName.REGISTRATION &&
         registrationPhase && (
-          <RegistrationPhaseView registrationEndAt={registrationPhase.endAt}>
-            <div className="flex flex-wrap items-center gap-3">
-              {isMembershipPending ? (
-                <div className="flex items-center gap-2">
-                  <Spinner />
-
-                  <p className="text-sm text-muted-foreground">
-                    Checking membership...
-                  </p>
-                </div>
-              ) : isMembershipError ? (
-                <div className="flex flex-wrap items-center gap-3">
-                  <p className="text-sm text-destructive">
-                    Unable to check your membership.
-                  </p>
-
-                  <Button
-                    variant="outline"
-                    onClick={() => void refetchMembership()}
-                  >
-                    Retry
-                  </Button>
-                </div>
-              ) : isMembershipSuccess ? (
-                !membership?.isRegistered ? (
-                  <Button
-                    disabled={
-                      registerMutation.isPending || unregisterMutation.isPending
-                    }
-                    onClick={() => {
-                      unregisterMutation.reset();
-                      registerMutation.mutate();
-                    }}
-                  >
-                    {registerMutation.isPending ? "Registering..." : "Register"}
-                  </Button>
-                ) : membership?.role === HackathonRoleName.PARTICIPANT ? (
-                  <AlertDialog>
-                    <AlertDialogTrigger
-                      render={
-                        <Button
-                          disabled={
-                            registerMutation.isPending ||
-                            unregisterMutation.isPending
-                          }
-                        />
-                      }
-                    >
-                      Unregister
-                    </AlertDialogTrigger>
-
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-
-                        <AlertDialogDescription>
-                          You will lose your membership in this hackathon and
-                          leave your team.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-
-                      <AlertDialogAction
-                        render={
-                          <Button
-                            disabled={
-                              unregisterMutation.isPending ||
-                              registerMutation.isPending
-                            }
-                            onClick={() => {
-                              registerMutation.reset();
-                              unregisterMutation.mutate();
-                            }}
-                          />
-                        }
-                      >
-                        {unregisterMutation.isPending
-                          ? "Unregistering..."
-                          : "Unregister"}
-                      </AlertDialogAction>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                ) : null
-              ) : null}
-            </div>
-
-            {(registerMutation.isError || unregisterMutation.isError) && (
-              <div role="alert" className="rounded-md border p-3">
-                {registerMutation.isError && (
-                  <p className="text-sm text-destructive">
-                    {isAxiosError(registerMutation.error)
-                      ? registerMutation.error.response?.data?.message
-                      : registerMutation.error.message}
-                  </p>
-                )}
-
-                {unregisterMutation.isError && (
-                  <p className="text-sm text-destructive">
-                    {isAxiosError(unregisterMutation.error)
-                      ? unregisterMutation.error.response?.data?.message
-                      : unregisterMutation.error.message}
-                  </p>
-                )}
-              </div>
-            )}
-          </RegistrationPhaseView>
+          <RegistrationPhaseView
+            key={hackathon.id}
+            hackathonId={hackathon.id}
+            registrationEndAt={registrationPhase.endAt}
+            isRegistered={membership?.isRegistered ?? false}
+            membershipRole={membership?.role ?? null}
+            isMembershipPending={isMembershipPending}
+            isMembershipError={isMembershipError}
+            isMembershipSuccess={isMembershipSuccess}
+            onRetryMembership={() => void refetchMembership()}
+          />
         )}
 
       {canManageJury ? (
