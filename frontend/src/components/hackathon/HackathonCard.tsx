@@ -18,7 +18,7 @@ export function HackathonCard({ hackathon }: HackathonCardProps) {
   const dateRange = `${dateFormatter.format(startDate)} – ${dateFormatter.format(endDate)}`;
 
   return (
-    <Card className="flex w-full max-w-sm flex-col transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+    <Card className="flex w-full min-w-0 flex-col transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
       <CardHeader>
         <CardTitle className="line-clamp-2 break-words">
           {hackathon.title}
