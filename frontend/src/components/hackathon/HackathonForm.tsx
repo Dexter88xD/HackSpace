@@ -25,7 +25,7 @@ function displayDateTime(value?: string): string {
   if (!value) return "Not set";
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return "Invalid date";
-  return date.toLocaleString("en-GB", {
+  return date.toLocaleString("en-US", {
     day: "2-digit",
     month: "short",
     year: "numeric",

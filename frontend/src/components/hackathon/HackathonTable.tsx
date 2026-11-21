@@ -47,7 +47,7 @@ function HackathonTable({ hackathons, total }: HackathonTableProps) {
                   <div className="flex justify-between gap-3">
                     <dt className="text-muted-foreground">Starts</dt>
                     <dd>
-                      {new Date(hackathon.startAt).toLocaleDateString("en-GB", {
+                      {new Date(hackathon.startAt).toLocaleDateString("en-US", {
                         day: "numeric",
                         month: "short",
                         year: "numeric",
@@ -58,7 +58,7 @@ function HackathonTable({ hackathons, total }: HackathonTableProps) {
                   <div className="flex justify-between gap-3">
                     <dt className="text-muted-foreground">Ends</dt>
                     <dd>
-                      {new Date(hackathon.endAt).toLocaleDateString("en-GB", {
+                      {new Date(hackathon.endAt).toLocaleDateString("en-US", {
                         day: "numeric",
                         month: "short",
                         year: "numeric",
