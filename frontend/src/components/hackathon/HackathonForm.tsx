@@ -135,10 +135,10 @@ function HackathonForm({
     <form
       noValidate
       onSubmit={submitForm}
-      className="space-y-6 rounded-xl border border-border bg-card p-6 shadow-sm"
+      className="min-w-0 space-y-6 rounded-xl border border-border bg-card p-3 shadow-sm sm:p-6"
     >
       <div className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-lg font-semibold">
             {step === 1 ? "Hackathon Details" : "Phase Schedule"}
           </h2>
@@ -223,7 +223,7 @@ function HackathonForm({
               id="startAt"
               {...register("startAt")}
               aria-invalid={!!errors.startAt}
-              className="h-10"
+              className="h-10 min-w-0 w-full"
             />
 
             {errors.startAt && (
@@ -241,7 +241,7 @@ function HackathonForm({
               id="endAt"
               {...register("endAt")}
               aria-invalid={!!errors.endAt}
-              className="h-10"
+              className="h-10 min-w-0 w-full"
             />
 
             {errors.endAt && (
@@ -361,7 +361,7 @@ function HackathonForm({
             {PHASE_ORDER.map((phaseName, index) => (
               <div
                 key={phaseName}
-                className="grid gap-3 rounded-lg border border-border p-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1.3fr)] md:items-start"
+                className="grid min-w-0 gap-3 rounded-lg border border-border p-2 sm:p-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1.3fr)] md:items-start"
               >
                 <input
                   type="hidden"
@@ -398,7 +398,7 @@ function HackathonForm({
                       <Input
                         id={`phase-${index}-end`}
                         type="datetime-local"
-                        className="h-9"
+                        className="h-9 min-w-0 w-full"
                         {...register(`phases.${index}.endAt`, {
                           onChange: (event) => {
                             setValue(
@@ -451,7 +451,7 @@ function HackathonForm({
         </fieldset>
       )}
 
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
         {step === 1 ? (
           <Fragment key="details-navigation">
             <Link
@@ -459,12 +459,18 @@ function HackathonForm({
               className={buttonVariants({
                 variant: "outline",
                 size: "lg",
+                className: "w-full sm:w-auto",
               })}
             >
               Cancel
             </Link>
 
-            <Button type="button" size="lg" onClick={goToPhases}>
+            <Button
+              type="button"
+              size="lg"
+              className="w-full sm:w-auto"
+              onClick={goToPhases}
+            >
               Next: Configure Phases
             </Button>
           </Fragment>
@@ -474,13 +480,19 @@ function HackathonForm({
               type="button"
               variant="outline"
               size="lg"
+              className="w-full sm:w-auto"
               disabled={isSubmitting}
               onClick={() => setStep(1)}
             >
               Back
             </Button>
 
-            <Button type="submit" size="lg" disabled={isSubmitting}>
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full sm:w-auto"
+              disabled={isSubmitting}
+            >
               {isSubmitting
                 ? "Saving..."
                 : isEditing
