@@ -32,6 +32,8 @@ import { JuryEvaluation } from "@/components/jury/JuryEvaluation";
 import { HackathonRankings } from "@/components/jury/HackathonRankings";
 import { useEffect, useState } from "react";
 import HackathonPhaseSchedule from "@/components/hackathon/HackathonPhaseSchedule";
+import LaunchPhaseView from "@/components/hackathon/phases/LaunchPhaseView";
+import RegistrationPhaseView from "@/components/hackathon/phases/RegistrationPhaseView";
 
 export default function HackathonDetails() {
   const { id } = useParams<{ id: string }>();
@@ -172,6 +174,9 @@ export default function HackathonDetails() {
   }
 
   const phaseName = currentPhase?.phaseName;
+  const registrationPhase = hackathon.phases.find(
+    (phase) => phase.phaseName === HackathonPhaseName.REGISTRATION,
+  );
 
   const evaluationPhase = hackathon.phases.find(
     (phase) => phase.phaseName === HackathonPhaseName.EVALUATION,
@@ -266,87 +271,6 @@ export default function HackathonDetails() {
                 Edit Hackathon
               </Link>
             )}
-
-            {!hackathon.canEdit &&
-              currentPhase?.phaseName === HackathonPhaseName.REGISTRATION &&
-              (isMembershipPending ? (
-                <div className="flex items-center gap-2">
-                  <Spinner />
-                  <p className="text-sm text-muted-foreground">
-                    Checking membership...
-                  </p>
-                </div>
-              ) : isMembershipError ? (
-                <div className="flex items-center gap-3">
-                  <p className="text-sm text-destructive">
-                    Unable to check your membership.
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="default"
-                    onClick={() => void refetchMembership()}
-                  >
-                    Retry
-                  </Button>
-                </div>
-              ) : isMembershipSuccess ? (
-                !membership?.isRegistered ? (
-                  <Button
-                    variant="default"
-                    size="default"
-                    disabled={
-                      registerMutation.isPending || unregisterMutation.isPending
-                    }
-                    onClick={() => {
-                      unregisterMutation.reset();
-                      registerMutation.mutate();
-                    }}
-                  >
-                    {registerMutation.isPending ? "Registering..." : "Register"}
-                  </Button>
-                ) : membership?.role === HackathonRoleName.PARTICIPANT ? (
-                  <AlertDialog>
-                    <AlertDialogTrigger
-                      render={<Button variant="default" size="default" />}
-                    >
-                      Unregister
-                    </AlertDialogTrigger>
-
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          You will lose your membership in this hackathon and
-                          leave your team.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-
-                      <AlertDialogAction
-                        render={
-                          <Button
-                            variant="default"
-                            size="default"
-                            disabled={
-                              unregisterMutation.isPending ||
-                              registerMutation.isPending
-                            }
-                            onClick={() => {
-                              registerMutation.reset();
-                              unregisterMutation.mutate();
-                            }}
-                          />
-                        }
-                      >
-                        {unregisterMutation.isPending
-                          ? "Unregistering..."
-                          : "Unregister"}
-                      </AlertDialogAction>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                ) : null
-              ) : null)}
           </div>
         </div>
         <dl className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
@@ -369,24 +293,6 @@ export default function HackathonDetails() {
             </dd>
           </div>
         </dl>
-        {(registerMutation.isError || unregisterMutation.isError) && (
-          <div role="alert" className="rounded-md border p-3">
-            {registerMutation.isError && (
-              <p className="text-sm text-destructive">
-                {isAxiosError(registerMutation.error)
-                  ? registerMutation.error.response?.data?.message
-                  : registerMutation.error.message}
-              </p>
-            )}
-            {unregisterMutation.isError && (
-              <p className="text-sm text-destructive text-left sm:text-center">
-                {isAxiosError(unregisterMutation.error)
-                  ? unregisterMutation.error.response?.data?.message
-                  : unregisterMutation.error.message}
-              </p>
-            )}
-          </div>
-        )}
       </header>
 
       <section aria-label="Hackathon phase schedule">
@@ -411,6 +317,129 @@ export default function HackathonDetails() {
           />
         )}
       </section>
+
+      {/* LAUNCH phase view */}
+      {!isPhasePending &&
+        !isPhaseError &&
+        phaseName === HackathonPhaseName.LAUNCH &&
+        registrationPhase && (
+          <LaunchPhaseView registrationStartAt={registrationPhase.startAt} />
+        )}
+
+      {/* REGISTRATION phase view */}
+      {!isPhasePending &&
+        !isPhaseError &&
+        !hackathon.canEdit &&
+        phaseName === HackathonPhaseName.REGISTRATION &&
+        registrationPhase && (
+          <RegistrationPhaseView registrationEndAt={registrationPhase.endAt}>
+            <div className="flex flex-wrap items-center gap-3">
+              {isMembershipPending ? (
+                <div className="flex items-center gap-2">
+                  <Spinner />
+
+                  <p className="text-sm text-muted-foreground">
+                    Checking membership...
+                  </p>
+                </div>
+              ) : isMembershipError ? (
+                <div className="flex flex-wrap items-center gap-3">
+                  <p className="text-sm text-destructive">
+                    Unable to check your membership.
+                  </p>
+
+                  <Button
+                    variant="outline"
+                    onClick={() => void refetchMembership()}
+                  >
+                    Retry
+                  </Button>
+                </div>
+              ) : isMembershipSuccess ? (
+                !membership?.isRegistered ? (
+                  <Button
+                    disabled={
+                      registerMutation.isPending || unregisterMutation.isPending
+                    }
+                    onClick={() => {
+                      unregisterMutation.reset();
+                      registerMutation.mutate();
+                    }}
+                  >
+                    {registerMutation.isPending ? "Registering..." : "Register"}
+                  </Button>
+                ) : membership?.role === HackathonRoleName.PARTICIPANT ? (
+                  <AlertDialog>
+                    <AlertDialogTrigger
+                      render={
+                        <Button
+                          disabled={
+                            registerMutation.isPending ||
+                            unregisterMutation.isPending
+                          }
+                        />
+                      }
+                    >
+                      Unregister
+                    </AlertDialogTrigger>
+
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+
+                        <AlertDialogDescription>
+                          You will lose your membership in this hackathon and
+                          leave your team.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+
+                      <AlertDialogAction
+                        render={
+                          <Button
+                            disabled={
+                              unregisterMutation.isPending ||
+                              registerMutation.isPending
+                            }
+                            onClick={() => {
+                              registerMutation.reset();
+                              unregisterMutation.mutate();
+                            }}
+                          />
+                        }
+                      >
+                        {unregisterMutation.isPending
+                          ? "Unregistering..."
+                          : "Unregister"}
+                      </AlertDialogAction>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                ) : null
+              ) : null}
+            </div>
+
+            {(registerMutation.isError || unregisterMutation.isError) && (
+              <div role="alert" className="rounded-md border p-3">
+                {registerMutation.isError && (
+                  <p className="text-sm text-destructive">
+                    {isAxiosError(registerMutation.error)
+                      ? registerMutation.error.response?.data?.message
+                      : registerMutation.error.message}
+                  </p>
+                )}
+
+                {unregisterMutation.isError && (
+                  <p className="text-sm text-destructive">
+                    {isAxiosError(unregisterMutation.error)
+                      ? unregisterMutation.error.response?.data?.message
+                      : unregisterMutation.error.message}
+                  </p>
+                )}
+              </div>
+            )}
+          </RegistrationPhaseView>
+        )}
 
       {canManageJury ? (
         <div className="space-y-5">
