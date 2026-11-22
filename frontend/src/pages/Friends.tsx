@@ -2,11 +2,13 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import UserSearch from "@/components/friends/UserSearch";
 
 import {
   getFriends,
   getIncomingRequests,
   getOutgoingRequests,
+  sendFriendRequest,
   acceptFriendRequest,
   rejectFriendRequest,
   cancelFriendRequest,
@@ -16,16 +18,12 @@ import {
 type Tab = "friends" | "incoming" | "outgoing";
 type Action = "accept" | "reject" | "cancel" | "remove";
 
-type MutationInput = {
-  action: Action;
-  friendshipId: number;
-};
-
 export default function Friends() {
   const [activeTab, setActiveTab] = useState<Tab>("friends");
+  const [targetUserId, setTargetUserId] = useState("");
+
   const queryClient = useQueryClient();
 
-  // Fetch data from the backend
   const friendsQuery = useQuery({
     queryKey: ["friends", "list"],
     queryFn: getFriends,
@@ -41,28 +39,35 @@ export default function Friends() {
     queryFn: getOutgoingRequests,
   });
 
-  // Perform friendship actions
-  const mutation = useMutation({
-    mutationFn: async ({ action, friendshipId }: MutationInput) => {
+  const sendMutation = useMutation({
+    mutationFn: sendFriendRequest,
+    onSuccess: async () => {
+      setTargetUserId("");
+      await queryClient.invalidateQueries({
+        queryKey: ["friends"],
+      });
+    },
+  });
+
+  const actionMutation = useMutation({
+    mutationFn: async ({
+      action,
+      friendshipId,
+    }: {
+      action: Action;
+      friendshipId: number;
+    }) => {
       switch (action) {
         case "accept":
-          await acceptFriendRequest(friendshipId);
-          break;
-
+          return acceptFriendRequest(friendshipId);
         case "reject":
-          await rejectFriendRequest(friendshipId);
-          break;
-
+          return rejectFriendRequest(friendshipId);
         case "cancel":
-          await cancelFriendRequest(friendshipId);
-          break;
-
+          return cancelFriendRequest(friendshipId);
         case "remove":
-          await removeFriend(friendshipId);
-          break;
+          return removeFriend(friendshipId);
       }
     },
-
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: ["friends"],
@@ -70,7 +75,6 @@ export default function Friends() {
     },
   });
 
-  // Select the active query
   const activeQuery =
     activeTab === "friends"
       ? friendsQuery
@@ -80,18 +84,59 @@ export default function Friends() {
 
   const users = activeQuery.data ?? [];
 
+  function handleSend(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const id = Number(targetUserId);
+
+    if (!Number.isSafeInteger(id) || id <= 0) return;
+
+    sendMutation.mutate(id);
+  }
+
   function handleAction(action: Action, friendshipId: number) {
-    mutation.reset();
-    mutation.mutate({ action, friendshipId });
+    actionMutation.reset();
+    actionMutation.mutate({ action, friendshipId });
   }
 
   return (
     <main className="mx-auto max-w-3xl p-6">
-      <h1 className="mb-6 text-3xl font-bold">
-        My Friends
-      </h1>
+      <h1 className="mb-6 text-3xl font-bold">My Friends</h1>
+      <UserSearch />
+      <form
+        onSubmit={handleSend}
+        className="mb-6 space-y-3 rounded-lg border p-4"
+      >
+        <h2 className="text-lg font-semibold">Add a friend</h2>
 
-      {/* Navigation tabs */}
+        <div className="flex gap-2">
+          <input
+            type="number"
+            min="1"
+            step="1"
+            required
+            value={targetUserId}
+            onChange={(event) => {
+              setTargetUserId(event.target.value);
+              sendMutation.reset();
+            }}
+            placeholder="Enter user ID"
+            aria-label="User ID"
+            className="min-w-0 flex-1 rounded-md border bg-background px-3 py-2"
+          />
+
+          <Button type="submit" disabled={sendMutation.isPending}>
+            {sendMutation.isPending ? "Sending..." : "Send Request"}
+          </Button>
+        </div>
+
+        {sendMutation.isError && (
+          <p role="alert" className="text-sm text-destructive">
+            Request failed. Check the user ID or existing friendship.
+          </p>
+        )}
+      </form>
+
       <div className="mb-6 flex flex-wrap gap-2">
         <Button
           variant={activeTab === "friends" ? "default" : "outline"}
@@ -115,20 +160,15 @@ export default function Friends() {
         </Button>
       </div>
 
-      {/* Loading state */}
       {activeQuery.isPending && (
-        <p className="text-muted-foreground">
-          Loading...
-        </p>
+        <p className="text-muted-foreground">Loading...</p>
       )}
 
-      {/* Fetch error */}
       {activeQuery.isError && (
-        <div className="space-y-3">
+        <div className="space-y-2">
           <p role="alert" className="text-destructive">
-            Failed to load friendship data.
+            Could not load friendship data.
           </p>
-
           <Button
             variant="outline"
             onClick={() => void activeQuery.refetch()}
@@ -138,23 +178,18 @@ export default function Friends() {
         </div>
       )}
 
-      {/* Mutation error */}
-      {mutation.isError && (
+      {actionMutation.isError && (
         <p role="alert" className="mb-4 text-sm text-destructive">
-          {mutation.error instanceof Error
-            ? mutation.error.message
-            : "Friendship action failed."}
+          Action failed. Please try again.
         </p>
       )}
 
-      {/* Empty state */}
       {activeQuery.isSuccess && users.length === 0 && (
-        <p className="py-10 text-center text-muted-foreground">
+        <p className="py-8 text-center text-muted-foreground">
           Nothing to display.
         </p>
       )}
 
-      {/* Friendship list */}
       {activeQuery.isSuccess && (
         <div className="space-y-3">
           {users.map((item) => {
@@ -172,57 +207,44 @@ export default function Friends() {
                   <p className="font-medium">
                     {item.user.username}
                   </p>
-
                   <p className="text-sm text-muted-foreground">
                     User #{item.user.id}
                   </p>
                 </div>
 
-                {/* Accepted friends */}
                 {activeTab === "friends" && (
                   <Button
                     variant="destructive"
-                    disabled={mutation.isPending}
-                    onClick={() =>
-                      handleAction("remove", friendshipId)
-                    }
+                    disabled={actionMutation.isPending}
+                    onClick={() => handleAction("remove", friendshipId)}
                   >
                     Remove
                   </Button>
                 )}
 
-                {/* Incoming requests */}
                 {activeTab === "incoming" && (
                   <div className="flex gap-2">
                     <Button
-                      disabled={mutation.isPending}
-                      onClick={() =>
-                        handleAction("accept", friendshipId)
-                      }
+                      disabled={actionMutation.isPending}
+                      onClick={() => handleAction("accept", friendshipId)}
                     >
                       Accept
                     </Button>
-
                     <Button
                       variant="outline"
-                      disabled={mutation.isPending}
-                      onClick={() =>
-                        handleAction("reject", friendshipId)
-                      }
+                      disabled={actionMutation.isPending}
+                      onClick={() => handleAction("reject", friendshipId)}
                     >
                       Reject
                     </Button>
                   </div>
                 )}
 
-                {/* Outgoing requests */}
                 {activeTab === "outgoing" && (
                   <Button
                     variant="outline"
-                    disabled={mutation.isPending}
-                    onClick={() =>
-                      handleAction("cancel", friendshipId)
-                    }
+                    disabled={actionMutation.isPending}
+                    onClick={() => handleAction("cancel", friendshipId)}
                   >
                     Cancel
                   </Button>

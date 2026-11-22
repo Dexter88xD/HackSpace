@@ -37,6 +37,7 @@ const authenticatedLinks = [
   { label: "Explorer", to: "/hackathon-explorer" },
   { label: "Hackathons", to: "/hackathons" },
   { label: "Profile", to: "/profile" },
+  { label: "Friends", to: "/friends" },
 ];
 
 function Navbar() {

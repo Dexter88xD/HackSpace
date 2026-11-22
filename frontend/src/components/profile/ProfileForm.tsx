@@ -58,7 +58,6 @@ export function ProfileForm({
       bio: profile?.bio ?? "",
       organizationName: profile?.organizationName ?? "",
       major: profile?.major ?? "",
-      avatarUrl: profile?.avatarUrl ?? "",
     },
   });
 
@@ -155,21 +154,6 @@ export function ProfileForm({
                 />
                 {form.formState.errors.major && (
                   <FieldError>{form.formState.errors.major.message}</FieldError>
-                )}
-              </Field>
-
-              <Field>
-                <FieldLabel htmlFor="avatar">Avatar URL</FieldLabel>
-                <Input
-                  id="avatar"
-                  type="url"
-                  placeholder="https://example.com/avatar.jpg"
-                  {...form.register("avatarUrl")}
-                />
-                {form.formState.errors.avatarUrl && (
-                  <FieldError>
-                    {form.formState.errors.avatarUrl.message}
-                  </FieldError>
                 )}
               </Field>
 

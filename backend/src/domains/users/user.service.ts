@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { QueryFailedError, Repository } from 'typeorm';
+import { QueryFailedError, Repository, ILike, Not } from 'typeorm';
 
 import { User } from './entities/user.entity';
 import { UserProfile } from './entities/user-profile.entity';
@@ -152,5 +152,68 @@ export class UserService {
     if (!profile) throw new NotFoundException('Profile not found');
 
     return profile;
+  }
+
+  async getPublicProfile(userId: number) {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
+
+    const profile = await this.userProfileRepository.findOne({
+      where: { user: { id: userId } },
+      relations: {
+        avatar: true,
+      },
+    });
+
+    return {
+      id: user.id,
+      username: user.username,
+      fullName: user.fullName,
+      bio: profile?.bio ?? null,
+      major: profile?.major ?? null,
+      organizationName: profile?.organizationName ?? null,
+      avatarUrl: profile?.avatar
+        ? await this.fileManager.getFile(profile.avatar)
+        : null,
+    };
+  }
+
+  async searchUsers(query: string, currentUserId: number) {
+    const q = query?.trim() ?? "";
+
+    if (q.length < 2 || q.length > 50) {
+      throw new BadRequestException(
+        "Search must contain between 2 and 50 characters",
+      );
+    }
+
+    const escaped = q.replace(/[\\%_]/g, "\\$&");
+
+    const users = await this.userRepository.find({
+      where: {
+        id: Not(currentUserId),
+        username: ILike(`%${escaped}%`),
+      },
+      select: {
+        id: true,
+        username: true,
+        fullName: true,
+      },
+      order: {
+        username: "ASC",
+      },
+      take: 10,
+    });
+
+    return users.map((user) => ({
+      id: user.id,
+      username: user.username,
+      fullName: user.fullName,
+    }));
   }
 }
