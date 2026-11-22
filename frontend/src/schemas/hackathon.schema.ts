@@ -37,7 +37,7 @@ export const hackathonSettingsSchema = z
         const bytes = Math.round(value * BYTES_PER_MIB);
 
         return bytes >= 1 && bytes <= 2_147_483_647;
-      }, "File size must be between 1 byte and the supported maximum"),
+      }, "File size must be positive and within the supported range"),
   })
   .superRefine((data, ctx) => {
     if (data.minTeamMembers > data.maxTeamMembers) {

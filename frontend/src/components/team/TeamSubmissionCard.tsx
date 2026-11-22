@@ -17,6 +17,7 @@ import {
   FileUploadTrigger,
 } from "@/components/ui/file-upload";
 import { shouldRetryQuery } from "@/lib/query-retry";
+import { formatFileSize } from "@/lib/file-size";
 
 type Action =
   | { type: "upload"; files: File[] }
@@ -74,7 +75,9 @@ export function TeamSubmissionCard({ teamId }: { teamId: number }) {
   const submission = query.data;
   const error = mutation.error;
   const serverMessage = isAxiosError<{ message?: string }>(error)
-    ? error.response?.data?.message
+    ? error.response?.status === 413
+      ? "This file is too large. Choose a smaller file."
+      : error.response?.data?.message
     : undefined;
   const busy = mutation.isPending;
 
@@ -161,8 +164,7 @@ export function TeamSubmissionCard({ teamId }: { teamId: number }) {
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {submission.files.length} of {submission.filesLimit} files.
-                    Maximum {submission.fileMaxSize.toLocaleString()} bytes per
-                    file.
+                    Maximum {formatFileSize(submission.fileMaxSize)} per file.
                   </p>
                   <FileUploadTrigger
                     render={<Button type="button" variant="outline" />}

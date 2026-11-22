@@ -35,7 +35,7 @@ import { ChatModule } from '../chat/chat.module';
       imports: [FilesModule],
       inject: [MAX_FILE_UPLOAD_BYTES],
       useFactory: (fileSize: number) => ({
-        // Busboy reports a limit error when it reaches the limit exactly.
+        defParamCharset: 'utf8',
         limits: { fileSize: fileSize + 1, files: 1, fields: 0 },
       }),
     }),

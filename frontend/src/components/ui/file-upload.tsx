@@ -8,6 +8,7 @@ import { cn } from "cn";
 import * as React from "react";
 
 import { useDirection } from "@/components/ui/direction";
+import { formatFileSize } from "@/lib/file-size";
 import { FileVideoIcon, FileAudioIcon, FileTextIcon, FileCodeIcon, FileArchiveIcon, FileCogIcon, FileIcon } from "lucide-react";
 
 const ROOT_NAME = "FileUpload";
@@ -20,13 +21,6 @@ const ITEM_METADATA_NAME = "FileUploadItemMetadata";
 const ITEM_PROGRESS_NAME = "FileUploadItemProgress";
 const ITEM_DELETE_NAME = "FileUploadItemDelete";
 const CLEAR_NAME = "FileUploadClear";
-
-function formatBytes(bytes: number) {
-  if (bytes === 0) return "0 B";
-  const sizes = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return `${(bytes / 1024 ** i).toFixed(i ? 1 : 0)} ${sizes[i]}`;
-}
 
 function getFileIcon(file: File) {
   const type = file.type;
@@ -1209,7 +1203,7 @@ function FileUploadItemMetadata(props: FileUploadItemMetadataProps) {
               )}
             >
               {itemContext.fileState
-                ? formatBytes(itemContext.fileState.file.size)
+                ? formatFileSize(itemContext.fileState.file.size)
                 : ""}
             </span>
             {itemContext.fileState?.error && (
