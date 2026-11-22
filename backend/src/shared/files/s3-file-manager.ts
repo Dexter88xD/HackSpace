@@ -9,7 +9,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, type EntityManager } from 'typeorm';
 import { InjectS3 } from 'nestjs-s3';
 import type { S3 } from 'nestjs-s3';
 import { GetObjectCommand, S3ServiceException } from '@aws-sdk/client-s3';
@@ -56,12 +56,12 @@ export class S3FileManager extends FileManager implements OnModuleInit {
     }
   }
 
-  async delete(file: StoredFile): Promise<void> {
+  async delete(file: StoredFile, manager?: EntityManager): Promise<void> {
     await this.s3.deleteObject({
       Bucket: file.bucket,
       Key: file.storedName,
     });
-    await this.files.delete(file.id);
+    await (manager?.getRepository(StoredFile) ?? this.files).delete(file.id);
   }
 
   async getStream(file: StoredFile): Promise<Readable> {
@@ -96,7 +96,10 @@ export class S3FileManager extends FileManager implements OnModuleInit {
     );
   }
 
-  async upload(file: UploadFile): Promise<StoredFile> {
+  async upload(file: UploadFile, manager?: EntityManager): Promise<StoredFile> {
+    const files = manager?.getRepository(StoredFile) ?? this.files;
+    const hackathons = manager?.getRepository(Hackathon) ?? this.hackathons;
+    const teams = manager?.getRepository(Team) ?? this.teams;
     if (file.buffer.length > this.maxUploadBytes) {
       throw new PayloadTooLargeException(
         `File exceeds the maximum upload size of ${this.maxUploadBytes} bytes`,
@@ -115,11 +118,11 @@ export class S3FileManager extends FileManager implements OnModuleInit {
     let hackathon: Hackathon | null = null;
     let team: Team | null = null;
     if (file.hackathonId !== undefined) {
-      hackathon = await this.hackathons.findOneBy({ id: file.hackathonId });
+      hackathon = await hackathons.findOneBy({ id: file.hackathonId });
       if (!hackathon) throw new NotFoundException('Hackathon not found');
     }
     if (file.teamId !== undefined) {
-      team = await this.teams.findOne({
+      team = await teams.findOne({
         where: { id: file.teamId },
         relations: { hackathon: true },
       });
@@ -134,7 +137,7 @@ export class S3FileManager extends FileManager implements OnModuleInit {
 
     const id = randomUUID();
     const key = `${id}${extname(file.originalname)}`;
-    const storedFile = this.files.create({
+    const storedFile = files.create({
       id,
       name: file.originalname,
       bucket,
@@ -152,7 +155,7 @@ export class S3FileManager extends FileManager implements OnModuleInit {
     });
 
     try {
-      return await this.files.save(storedFile);
+      return await files.save(storedFile);
     } catch (error) {
       try {
         await this.s3.deleteObject({ Bucket: bucket, Key: key });

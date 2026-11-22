@@ -21,6 +21,7 @@ import { getMe } from "@/api/auth";
 import CreateTeamForm from "@/components/team/CreateTeamForm";
 import ConfirmButton from "@/components/team/ConfirmButton";
 import JoinRequestList from "@/components/team/JoinRequestList";
+import { TeamSubmissionCard } from "@/components/team/TeamSubmissionCard";
 import TeamDetails from "@/components/team/TeamDetails";
 import TeamList from "@/components/team/TeamList";
 import HackathonDetailsState from "@/components/hackathon/HackathonDetailsState";
@@ -360,6 +361,8 @@ export default function HackathonTeam() {
               }
             />
           )}
+
+          <TeamSubmissionCard key={team.id} teamId={team.id} />
 
           {isLeader && (
             <Card>

@@ -54,7 +54,7 @@ function storageConnection(connection?: string) {
     storageConnection(),
     storageConnection('public'),
   ],
-  exports: [FileManager],
+  exports: [FileManager, MAX_FILE_UPLOAD_BYTES],
   providers: [
     { provide: FileManager, useClass: S3FileManager },
     {

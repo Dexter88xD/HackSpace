@@ -554,7 +554,7 @@ function FileUpload(props: FileUploadProps) {
 
         if (acceptTypes) {
           const fileType = file.type;
-          const fileExtension = `.${file.name.split(".").pop()}`;
+          const fileExtension = `.${file.name.split(".").pop()?.toLowerCase()}`;
 
           if (
             !acceptTypes.some(
