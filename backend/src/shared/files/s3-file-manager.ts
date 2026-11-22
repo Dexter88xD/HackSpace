@@ -56,12 +56,16 @@ export class S3FileManager extends FileManager implements OnModuleInit {
     }
   }
 
-  async delete(file: StoredFile, manager?: EntityManager): Promise<void> {
+  async delete(file: StoredFile): Promise<void> {
+    await this.deleteObject(file);
+    await this.files.delete(file.id);
+  }
+
+  async deleteObject(file: StoredFile): Promise<void> {
     await this.s3.deleteObject({
       Bucket: file.bucket,
       Key: file.storedName,
     });
-    await (manager?.getRepository(StoredFile) ?? this.files).delete(file.id);
   }
 
   async getStream(file: StoredFile): Promise<Readable> {

@@ -1,4 +1,4 @@
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, Logger } from '@nestjs/common';
 import type { DataSource, EntityManager } from 'typeorm';
 import { HackathonPhase } from '../hackathons/entities/hackathon-phase.entity';
 import { HackathonSettings } from '../hackathons/entities/hackathon-settings.entity';
@@ -25,8 +25,14 @@ describe('Team submission storage failures', () => {
     find: jest.Mock;
     create: jest.Mock;
     save: jest.Mock;
+    delete: jest.Mock;
   };
-  let storage: { upload: jest.Mock; delete: jest.Mock };
+  let storage: {
+    upload: jest.Mock;
+    delete: jest.Mock;
+    deleteObject: jest.Mock;
+  };
+  let commit: jest.Mock;
   let existsAfterTransaction: jest.Mock;
   let service: TeamSubmissionsService;
 
@@ -60,16 +66,24 @@ describe('Team submission storage failures', () => {
       find: jest.fn().mockResolvedValue([]),
       create: jest.fn(),
       save: jest.fn(),
+      delete: jest.fn().mockResolvedValue({ affected: 1 }),
     };
+    commit = jest.fn().mockResolvedValue(undefined);
     existsAfterTransaction = jest.fn().mockResolvedValue(false);
     const source = {
       manager: { existsBy: existsAfterTransaction },
-      transaction: (operation: (manager: EntityManager) => Promise<unknown>) =>
-        operation(manager as unknown as EntityManager),
+      transaction: async (
+        operation: (manager: EntityManager) => Promise<unknown>,
+      ) => {
+        const result = await operation(manager as unknown as EntityManager);
+        await commit();
+        return result;
+      },
     };
     storage = {
       upload: jest.fn().mockResolvedValue(file),
       delete: jest.fn().mockResolvedValue(undefined),
+      deleteObject: jest.fn().mockResolvedValue(undefined),
     };
     service = new TeamSubmissionsService(
       source as unknown as DataSource,
@@ -103,12 +117,37 @@ describe('Team submission storage failures', () => {
     expect(storage.delete).not.toHaveBeenCalled();
   });
 
-  it('propagates a storage deletion failure so the file can be retried', async () => {
-    const failure = new Error('MinIO unavailable');
+  it('leaves the MinIO object intact if the metadata deletion fails to commit', async () => {
+    const failure = new Error('Database unavailable');
     manager.find.mockResolvedValue([file]);
-    storage.delete.mockRejectedValue(failure);
+    commit.mockRejectedValue(failure);
 
     await expect(service.remove(1, 5, file.id)).rejects.toBe(failure);
-    expect(storage.delete).toHaveBeenCalledWith(file, manager);
+    expect(manager.delete).toHaveBeenCalledWith(StoredFile, file.id);
+    expect(storage.deleteObject).not.toHaveBeenCalled();
+  });
+
+  it('returns the updated state if MinIO cleanup fails after commit', async () => {
+    const failure = new Error('MinIO unavailable');
+    const log = jest
+      .spyOn(Logger.prototype, 'error')
+      .mockImplementation(() => undefined);
+    manager.find.mockResolvedValue([file]);
+    storage.deleteObject.mockRejectedValue(failure);
+
+    try {
+      await expect(service.remove(1, 5, file.id)).resolves.toMatchObject({
+        files: [],
+      });
+      expect(commit.mock.invocationCallOrder[0]).toBeLessThan(
+        storage.deleteObject.mock.invocationCallOrder[0],
+      );
+      expect(log).toHaveBeenCalledWith(
+        expect.stringContaining(file.id),
+        failure,
+      );
+    } finally {
+      log.mockRestore();
+    }
   });
 });

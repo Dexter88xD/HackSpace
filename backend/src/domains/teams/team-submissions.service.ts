@@ -223,14 +223,22 @@ export class TeamSubmissionsService {
   }
 
   async remove(teamId: number, userId: number, id: string) {
-    return this.dataSource.transaction(async (manager) => {
-      const context = await this.load(manager, teamId, userId, true);
-      this.requireAllowed(this.state(context).blocked.delete);
-      const file = this.findFile(context.files, id);
-      await this.storage.delete(file, manager);
-      context.files = context.files.filter((entry) => entry.id !== id);
-      return this.state(context);
-    });
+    const { file, state } = await this.dataSource.transaction(
+      async (manager) => {
+        const context = await this.load(manager, teamId, userId, true);
+        this.requireAllowed(this.state(context).blocked.delete);
+        const file = this.findFile(context.files, id);
+        await manager.delete(StoredFile, file.id);
+        context.files = context.files.filter((entry) => entry.id !== id);
+        return { file, state: this.state(context) };
+      },
+    );
+    try {
+      await this.storage.deleteObject(file);
+    } catch (error) {
+      this.logger.error(`Failed to clean up submission file ${file.id}`, error);
+    }
+    return state;
   }
 
   async setSubmitted(teamId: number, userId: number, submitted: boolean) {

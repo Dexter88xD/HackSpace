@@ -21,5 +21,6 @@ export abstract class FileManager {
   ): Promise<StoredFile>;
   abstract getFile(file: StoredFile): Promise<string>;
   abstract getStream(file: StoredFile): Promise<Readable>;
-  abstract delete(file: StoredFile, manager?: EntityManager): Promise<void>;
+  abstract delete(file: StoredFile): Promise<void>;
+  abstract deleteObject(file: StoredFile): Promise<void>;
 }
