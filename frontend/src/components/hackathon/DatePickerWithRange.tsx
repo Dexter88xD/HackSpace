@@ -26,14 +26,14 @@ export function DatePickerWithRange({
   );
 
   return (
-    <Field className="mx-auto w-60">
+    <Field className="min-w-0 w-full">
       <Popover>
         <PopoverTrigger
           render={
             <Button
               variant="outline"
               id="date-picker-range"
-              className="justify-start px-2.5 font-normal"
+              className="w-full min-w-0 justify-start overflow-hidden px-2.5 font-normal"
             >
               <CalendarIcon data-icon="inline-start" />
               {date?.from ? (
@@ -60,7 +60,7 @@ export function DatePickerWithRange({
               setDate(range);
               onDateChange(range);
             }}
-            numberOfMonths={2}
+            numberOfMonths={1}
           />
         </PopoverContent>
       </Popover>
