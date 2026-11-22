@@ -17,6 +17,10 @@ import { User } from '../users/entities/user.entity';
 import { CreateScoringCriterionDto } from './dto/create-scoring-criterion.dto';
 import { HackathonPhaseName } from '../hackathons/entities/hackathon-phase.entity';
 import { ScoringCriterion } from './entities/scoring-criterion.entity';
+import { Team } from '../teams/entities/team.entity';
+import { Score } from './entities/score.entity';
+import { DataSource, In } from 'typeorm';
+import { UpsertTeamScoresDto } from './dto/upsert-team-scores.dto';
 
 @Injectable()
 export class JuryService {
@@ -34,6 +38,14 @@ export class JuryService {
 
     @InjectRepository(ScoringCriterion)
     private readonly criterionRepository: Repository<ScoringCriterion>,
+
+    @InjectRepository(Team)
+    private readonly teamRepository: Repository<Team>,
+
+    @InjectRepository(Score)
+    private readonly scoreRepository: Repository<Score>,
+
+    private readonly dataSource: DataSource,
   ) {}
 
   async assignJudge(
@@ -254,5 +266,186 @@ export class JuryService {
       title: criterion.title,
       description: criterion.description,
     }));
+  }
+
+  async upsertTeamScores(
+    hackathonId: number,
+    teamId: number,
+    requesterId: number,
+    dto: UpsertTeamScoresDto,
+  ) {
+    const hackathon = await this.hackathonRepository.findOne({
+      where: { id: hackathonId },
+      relations: { phases: true },
+    });
+
+    if (!hackathon) {
+      throw new NotFoundException('Hackathon not found');
+    }
+
+    const evaluationPhase = hackathon.phases.find(
+      (phase) => phase.phaseName === HackathonPhaseName.EVALUATION,
+    );
+
+    const now = new Date();
+
+    if (
+      !evaluationPhase ||
+      new Date(evaluationPhase.startAt) > now ||
+      new Date(evaluationPhase.endAt) <= now
+    ) {
+      throw new BadRequestException('Evaluation is not open');
+    }
+
+    const judge = await this.hackathonUserRepository.findOne({
+      where: {
+        user: { id: requesterId },
+        hackathon: { id: hackathonId },
+        hackRoleName: HackRoleName.JURY,
+      },
+    });
+
+    if (!judge) {
+      throw new ForbiddenException(
+        'You are not assigned as a judge for this hackathon',
+      );
+    }
+
+    const team = await this.teamRepository.findOne({
+      where: {
+        id: teamId,
+        hackathon: { id: hackathonId },
+      },
+    });
+
+    if (!team) {
+      throw new NotFoundException('Team not found in this hackathon');
+    }
+
+    const criterionIds = dto.scores.map((item) => item.criterionId);
+    const uniqueIds = new Set(criterionIds);
+
+    if (uniqueIds.size !== criterionIds.length) {
+      throw new BadRequestException('Duplicate criterion IDs are not allowed');
+    }
+
+    const criteria = await this.criterionRepository.find({
+      where: {
+        id: In(criterionIds),
+        hackathon: { id: hackathonId },
+      },
+    });
+
+    if (criteria.length !== criterionIds.length) {
+      throw new BadRequestException(
+        'One or more criteria do not belong to this hackathon',
+      );
+    }
+
+    await this.dataSource.transaction(async (manager) => {
+      const scoreRepository = manager.getRepository(Score);
+
+      for (const item of dto.scores) {
+        const existingScore = await scoreRepository.findOne({
+          where: {
+            judge: { id: judge.id },
+            team: { id: team.id },
+            criterion: { id: item.criterionId },
+          },
+        });
+
+        if (existingScore) {
+          existingScore.score = item.score;
+          await scoreRepository.save(existingScore);
+        } else {
+          const score = scoreRepository.create({
+            judge,
+            team,
+            criterion: { id: item.criterionId },
+            score: item.score,
+          });
+
+          await scoreRepository.save(score);
+        }
+      }
+    });
+
+    return this.getMyTeamScores(hackathonId, teamId, requesterId);
+  }
+
+  async getMyTeamScores(
+    hackathonId: number,
+    teamId: number,
+    requesterId: number,
+  ) {
+    const hackathon = await this.hackathonRepository.findOneBy({
+      id: hackathonId,
+    });
+
+    if (!hackathon) {
+      throw new NotFoundException('Hackathon not found');
+    }
+
+    const judge = await this.hackathonUserRepository.findOne({
+      where: {
+        user: { id: requesterId },
+        hackathon: { id: hackathonId },
+        hackRoleName: HackRoleName.JURY,
+      },
+    });
+
+    if (!judge) {
+      throw new ForbiddenException(
+        'You are not assigned as a judge for this hackathon',
+      );
+    }
+
+    const team = await this.teamRepository.findOne({
+      where: {
+        id: teamId,
+        hackathon: { id: hackathonId },
+      },
+    });
+
+    if (!team) {
+      throw new NotFoundException('Team not found in this hackathon');
+    }
+
+    const criteria = await this.criterionRepository.find({
+      where: { hackathon: { id: hackathonId } },
+      order: { id: 'ASC' },
+    });
+
+    const scores = await this.scoreRepository.find({
+      where: {
+        judge: { id: judge.id },
+        team: { id: teamId },
+      },
+      relations: { criterion: true },
+    });
+
+    const scoreMap = new Map(
+      scores.map((score) => [score.criterion.id, score.score]),
+    );
+
+    const result = criteria.map((criterion) => ({
+      criterionId: criterion.id,
+      title: criterion.title,
+      score: scoreMap.get(criterion.id) ?? null,
+    }));
+
+    const scoredCount = result.filter((item) => item.score !== null).length;
+
+    const isComplete = criteria.length > 0 && scoredCount === criteria.length;
+
+    return {
+      hackathonId,
+      teamId,
+      judgeId: judge.id,
+      isComplete,
+      scoredCount,
+      totalCriteria: criteria.length,
+      scores: result,
+    };
   }
 }

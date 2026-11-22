@@ -8,6 +8,7 @@ import { ScoringCriterion } from './entities/scoring-criterion.entity';
 import { JuryController } from './jury.controller';
 import { JuryService } from './jury.service';
 import { Hackathon } from '../hackathons/entities/hackathon.entity';
+import { Team } from '../teams/entities/team.entity';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { Hackathon } from '../hackathons/entities/hackathon.entity';
       Hackathon,
       HackathonUser,
       User,
+      Team,
     ]),
     HackathonsModule,
   ],

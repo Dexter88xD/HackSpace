@@ -5,6 +5,7 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  Put,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -13,6 +14,7 @@ import type { AuthenticatedRequest } from '../auth/interfaces/authenticated-requ
 import { AssignJudgeDto } from './dto/assign-judge.dto';
 import { JuryService } from './jury.service';
 import { CreateScoringCriterionDto } from './dto/create-scoring-criterion.dto';
+import { UpsertTeamScoresDto } from './dto/upsert-team-scores.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('hackathons/:hackathonId')
@@ -49,5 +51,33 @@ export class JuryController {
   @Get('criteria')
   findCriteria(@Param('hackathonId', ParseIntPipe) hackathonId: number) {
     return this.juryService.findCriteria(hackathonId);
+  }
+
+  @Put('teams/:teamId/scores')
+  upsertTeamScores(
+    @Param('hackathonId', ParseIntPipe) hackathonId: number,
+    @Param('teamId', ParseIntPipe) teamId: number,
+    @Body() dto: UpsertTeamScoresDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.juryService.upsertTeamScores(
+      hackathonId,
+      teamId,
+      req.user.userId,
+      dto,
+    );
+  }
+
+  @Get('teams/:teamId/scores/me')
+  getMyTeamScores(
+    @Param('hackathonId', ParseIntPipe) hackathonId: number,
+    @Param('teamId', ParseIntPipe) teamId: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.juryService.getMyTeamScores(
+      hackathonId,
+      teamId,
+      req.user.userId,
+    );
   }
 }
