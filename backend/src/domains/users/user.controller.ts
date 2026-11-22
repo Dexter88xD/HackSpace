@@ -29,19 +29,13 @@ export class UserController {
   }
 
   @Get(':id/public')
-  getPublicProfile(@Param("id", ParseIntPipe) userId: number) {
+  getPublicProfile(@Param('id', ParseIntPipe) userId: number) {
     return this.userService.getPublicProfile(userId);
   }
 
   @Get('search')
-  searchUsers(
-    @Query('q') query: string,
-    @Req() req: AuthenticatedRequest,
-  ) {
-    return this.userService.searchUsers(
-      query,
-      req.user.userId,
-    );
+  searchUsers(@Query('q') query: string, @Req() req: AuthenticatedRequest) {
+    return this.userService.searchUsers(query, req.user.userId);
   }
 
   @Post('me/profile')

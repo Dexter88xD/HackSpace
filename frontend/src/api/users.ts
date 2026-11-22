@@ -10,12 +10,8 @@ export interface PublicUser {
   avatarUrl: string | null;
 }
 
-export async function getPublicProfile(
-  userId: number
-): Promise<PublicUser> {
-  const response = await api.get<PublicUser>(
-    `/users/${userId}/public`
-  );
+export async function getPublicProfile(userId: number): Promise<PublicUser> {
+  const response = await api.get<PublicUser>(`/users/${userId}/public`);
 
   return response.data;
 }
@@ -27,10 +23,9 @@ export interface SearchUser {
 }
 
 export async function searchUsers(query: string): Promise<SearchUser[]> {
-  const response = await api.get<SearchUser[]>(
-    "/users/search",
-    { params: { q: query } },
-  );
+  const response = await api.get<SearchUser[]>("/users/search", {
+    params: { q: query },
+  });
 
   return response.data;
 }

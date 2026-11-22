@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -21,18 +20,13 @@ export default function UserSearch() {
   const usersQuery = useQuery({
     queryKey: ["users", "search", debouncedSearch],
     queryFn: () => searchUsers(debouncedSearch),
-    enabled:
-      debouncedSearch.length >= 2 &&
-      debouncedSearch.length <= 50,
+    enabled: debouncedSearch.length >= 2 && debouncedSearch.length <= 50,
     retry: false,
   });
 
-  const validSearch =
-    search.trim().length >= 2 &&
-    search.trim().length <= 50;
+  const validSearch = search.trim().length >= 2 && search.trim().length <= 50;
 
-  const searchIsCurrent =
-    debouncedSearch === search.trim();
+  const searchIsCurrent = debouncedSearch === search.trim();
 
   return (
     <section className="mb-6 space-y-4 rounded-lg border p-4">
@@ -60,15 +54,11 @@ export default function UserSearch() {
       )}
 
       {validSearch && !searchIsCurrent && (
-        <p className="text-sm text-muted-foreground">
-          Searching...
-        </p>
+        <p className="text-sm text-muted-foreground">Searching...</p>
       )}
 
       {validSearch && searchIsCurrent && usersQuery.isPending && (
-        <p className="text-sm text-muted-foreground">
-          Searching...
-        </p>
+        <p className="text-sm text-muted-foreground">Searching...</p>
       )}
 
       {validSearch && searchIsCurrent && usersQuery.isError && (
@@ -90,9 +80,7 @@ export default function UserSearch() {
         searchIsCurrent &&
         usersQuery.isSuccess &&
         usersQuery.data.length === 0 && (
-          <p className="text-sm text-muted-foreground">
-            No users found.
-          </p>
+          <p className="text-sm text-muted-foreground">No users found.</p>
         )}
 
       {validSearch && searchIsCurrent && usersQuery.isSuccess && (
@@ -109,9 +97,7 @@ export default function UserSearch() {
                 >
                   @{user.username}
                 </Link>
-                <p className="text-sm text-muted-foreground">
-                  {user.fullName}
-                </p>
+                <p className="text-sm text-muted-foreground">{user.fullName}</p>
               </div>
 
               <FriendshipButton userId={user.id} />

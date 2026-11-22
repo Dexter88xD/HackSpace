@@ -1,4 +1,3 @@
-
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 
@@ -96,10 +95,7 @@ export default function FriendshipButton({
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
         {status === "none" && (
-          <Button
-            disabled={loading}
-            onClick={() => mutation.mutate("send")}
-          >
+          <Button disabled={loading} onClick={() => mutation.mutate("send")}>
             {loading ? "Sending..." : "Add Friend"}
           </Button>
         )}

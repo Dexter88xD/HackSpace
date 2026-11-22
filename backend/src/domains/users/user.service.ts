@@ -160,7 +160,7 @@ export class UserService {
     });
 
     if (!user) {
-      throw new NotFoundException("User not found");
+      throw new NotFoundException('User not found');
     }
 
     const profile = await this.userProfileRepository.findOne({
@@ -184,15 +184,15 @@ export class UserService {
   }
 
   async searchUsers(query: string, currentUserId: number) {
-    const q = query?.trim() ?? "";
+    const q = query?.trim() ?? '';
 
     if (q.length < 2 || q.length > 50) {
       throw new BadRequestException(
-        "Search must contain between 2 and 50 characters",
+        'Search must contain between 2 and 50 characters',
       );
     }
 
-    const escaped = q.replace(/[\\%_]/g, "\\$&");
+    const escaped = q.replace(/[\\%_]/g, '\\$&');
 
     const users = await this.userRepository.find({
       where: {
@@ -205,7 +205,7 @@ export class UserService {
         fullName: true,
       },
       order: {
-        username: "ASC",
+        username: 'ASC',
       },
       take: 10,
     });
