@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { S3 as SigningClient, S3ServiceException } from '@aws-sdk/client-s3';
 import type { S3 } from 'nestjs-s3';
+import { Readable } from 'node:stream';
 import type { Repository } from 'typeorm';
 import { S3FileManager } from './s3-file-manager';
 import { StoredFile } from './entities/stored-file.entity';
@@ -27,6 +28,7 @@ describe('S3FileManager', () => {
     headBucket: jest.Mock;
     createBucket: jest.Mock;
     putObject: jest.Mock;
+    getObject: jest.Mock;
     deleteObject: jest.Mock;
   };
   let files: { create: jest.Mock; save: jest.Mock; delete: jest.Mock };
@@ -47,6 +49,7 @@ describe('S3FileManager', () => {
       headBucket: jest.fn().mockResolvedValue({}),
       createBucket: jest.fn().mockResolvedValue({}),
       putObject: jest.fn().mockResolvedValue({}),
+      getObject: jest.fn(),
       deleteObject: jest.fn().mockResolvedValue({}),
     };
     files = {
@@ -71,7 +74,6 @@ describe('S3FileManager', () => {
       files as unknown as Repository<StoredFile>,
       hackathons as unknown as Repository<Hackathon>,
       teams as unknown as Repository<Team>,
-      'http://localhost:9000/',
       publicS3,
       10,
     );
@@ -101,16 +103,49 @@ describe('S3FileManager', () => {
     );
   });
 
+  it('streams the persisted key through the internal storage connection', async () => {
+    const body = Readable.from(Buffer.from('image'));
+    s3.getObject.mockResolvedValue({ Body: body });
+    const stored = Object.assign(new StoredFile(), {
+      bucket: FileBucket.AVATAR,
+      storedName: 'custom-key.png',
+    });
+    await expect(manager.getStream(stored)).resolves.toBe(body);
+    expect(s3.getObject).toHaveBeenCalledWith({
+      Bucket: FileBucket.AVATAR,
+      Key: 'custom-key.png',
+    });
+  });
+
+  it('maps missing storage objects to 404', async () => {
+    s3.getObject.mockRejectedValue(storageError('NoSuchKey', 404));
+    await expect(
+      manager.getStream(
+        Object.assign(new StoredFile(), {
+          bucket: FileBucket.AVATAR,
+          storedName: 'missing.png',
+        }),
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('propagates storage failures while streaming', async () => {
+    const error = new Error('Storage unavailable');
+    s3.getObject.mockRejectedValue(error);
+    await expect(manager.getStream(new StoredFile())).rejects.toBe(error);
+  });
+
   it('deletes the storage object before removing its database row', async () => {
     const stored = Object.assign(new StoredFile(), {
       id: '2813bd63-e537-427a-a129-d23f24ab5148',
       name: 'example.txt',
+      storedName: 'custom-object-key.txt',
       bucket: FileBucket.DEFAULT,
     });
     await manager.delete(stored);
     expect(s3.deleteObject).toHaveBeenCalledWith({
       Bucket: FileBucket.DEFAULT,
-      Key: `${stored.id}.txt`,
+      Key: stored.storedName,
     });
     expect(files.delete).toHaveBeenCalledWith(stored.id);
     expect(s3.deleteObject.mock.invocationCallOrder[0]).toBeLessThan(
@@ -126,6 +161,7 @@ describe('S3FileManager', () => {
         Object.assign(new StoredFile(), {
           id: 'test',
           name: 'example.txt',
+          storedName: 'custom-object-key.txt',
           bucket: FileBucket.DEFAULT,
         }),
       ),
@@ -141,6 +177,7 @@ describe('S3FileManager', () => {
         Object.assign(new StoredFile(), {
           id: 'test',
           name: 'example.txt',
+          storedName: 'custom-object-key.txt',
           bucket: FileBucket.DEFAULT,
         }),
       ),
@@ -152,11 +189,12 @@ describe('S3FileManager', () => {
     const stored = Object.assign(new StoredFile(), {
       id: '2813bd63-e537-427a-a129-d23f24ab5148',
       name: 'original.txt',
+      storedName: 'custom-object-key.txt',
       bucket: FileBucket.DEFAULT,
     });
     const url = new URL(await manager.getFile(stored));
     expect(url.origin).toBe('http://localhost:9000');
-    expect(url.pathname).toBe(`/default/${stored.id}.txt`);
+    expect(url.pathname).toBe('/default/custom-object-key.txt');
     expect(url.searchParams.get('X-Amz-Expires')).toBe('3600');
     expect(url.searchParams.get('X-Amz-Signature')).toBeTruthy();
     expect(files.save).not.toHaveBeenCalled();
@@ -173,13 +211,13 @@ describe('S3FileManager', () => {
       name: file.originalname,
       bucket: FileBucket.DEFAULT,
       fileType: FileType.TXT,
-      url: `http://localhost:9000/default/${stored.id}.txt`,
+      storedName: `${stored.id}.txt`,
       hackathon: null,
       team: null,
     });
     expect(s3.putObject).toHaveBeenCalledWith({
       Bucket: FileBucket.DEFAULT,
-      Key: `${stored.id}.txt`,
+      Key: stored.storedName,
       Body: file.buffer,
       ContentType: file.mimetype,
     });
@@ -188,7 +226,7 @@ describe('S3FileManager', () => {
       files.save.mock.invocationCallOrder[0],
     );
     expect(s3.createBucket).not.toHaveBeenCalled();
-    expect(stored.url).not.toContain('X-Amz-');
+    expect(stored).not.toHaveProperty('url');
   });
 
   it('gives repeated filenames different IDs', async () => {
@@ -249,37 +287,17 @@ describe('S3FileManager', () => {
     expect(s3.createBucket).not.toHaveBeenCalled();
   });
 
-  it('creates missing enum buckets during initialization', async () => {
-    s3.headBucket.mockRejectedValue(storageError('NotFound', 404));
-    await manager.onModuleInit();
-    expect(s3.createBucket).toHaveBeenCalledWith({
-      Bucket: FileBucket.DEFAULT,
-    });
-  });
-
-  it('tolerates concurrent startup creating an owned bucket', async () => {
-    s3.headBucket.mockRejectedValue(storageError('NotFound', 404));
-    s3.createBucket.mockRejectedValue(
-      storageError('BucketAlreadyOwnedByYou', 409),
-    );
-    await expect(manager.onModuleInit()).resolves.toBeUndefined();
-  });
-
   it.each([
+    storageError('NotFound', 404),
     storageError('Forbidden', 403),
     storageError('InternalError', 500),
     new Error('Connection refused'),
-  ])('fails initialization on storage lookup errors', async (error) => {
+  ])('fails startup without trying to provision buckets', async (error) => {
     s3.headBucket.mockRejectedValue(error);
-    await expect(manager.onModuleInit()).rejects.toBe(error);
+    await expect(manager.onModuleInit()).rejects.toThrow(
+      'Cannot access MinIO bucket "default"',
+    );
     expect(s3.createBucket).not.toHaveBeenCalled();
-  });
-
-  it('fails initialization when bucket creation fails', async () => {
-    const error = storageError('BucketAlreadyExists', 409);
-    s3.headBucket.mockRejectedValue(storageError('NotFound', 404));
-    s3.createBucket.mockRejectedValue(error);
-    await expect(manager.onModuleInit()).rejects.toBe(error);
   });
 
   it('uploads without bucket existence checks or creation', async () => {

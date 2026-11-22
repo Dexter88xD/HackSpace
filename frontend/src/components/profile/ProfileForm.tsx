@@ -50,7 +50,7 @@ export function ProfileForm({
   });
   const skillsReady = !profile || skillsQuery.isSuccess;
   const selectedSkills = draftSkills ?? skillsQuery.data ?? [];
-  const isEditing = hasSavedProfile;
+  const isEditing = hasSavedProfile || !!profile;
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -63,8 +63,9 @@ export function ProfileForm({
 
   const profileMutation = useMutation({
     mutationFn: async (data: ProfileFormData) => {
+      const profileId = savedProfileId.current ?? profile?.id;
       const savedProfile =
-        savedProfileId.current !== undefined
+        profileId !== undefined
           ? await updateProfile(data)
           : await createProfile(data);
       savedProfileId.current = savedProfile.id;

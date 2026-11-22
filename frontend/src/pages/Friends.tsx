@@ -1,6 +1,6 @@
-
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
 import { Button } from "@/components/ui/button";
 import UserSearch from "@/components/friends/UserSearch";
 
@@ -13,10 +13,19 @@ import {
   rejectFriendRequest,
   cancelFriendRequest,
   removeFriend,
-} from "@/api/friends";
+} from "@/api/friendships";
 
 type Tab = "friends" | "incoming" | "outgoing";
 type Action = "accept" | "reject" | "cancel" | "remove";
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (axios.isAxiosError<{ message?: string | string[] }>(error)) {
+    const message = error.response?.data?.message;
+    if (Array.isArray(message)) return message.join(". ");
+    if (message) return message;
+  }
+  return fallback;
+}
 
 export default function Friends() {
   const [activeTab, setActiveTab] = useState<Tab>("friends");
@@ -27,16 +36,19 @@ export default function Friends() {
   const friendsQuery = useQuery({
     queryKey: ["friends", "list"],
     queryFn: getFriends,
+    refetchInterval: 4000,
   });
 
   const incomingQuery = useQuery({
     queryKey: ["friends", "incoming"],
     queryFn: getIncomingRequests,
+    refetchInterval: 4000,
   });
 
   const outgoingQuery = useQuery({
     queryKey: ["friends", "outgoing"],
     queryFn: getOutgoingRequests,
+    refetchInterval: 4000,
   });
 
   const sendMutation = useMutation({
@@ -100,7 +112,7 @@ export default function Friends() {
   }
 
   return (
-    <main className="mx-auto max-w-3xl p-6">
+    <div className="mx-auto max-w-3xl p-6">
       <h1 className="mb-6 text-3xl font-bold">My Friends</h1>
       <UserSearch />
       <form
@@ -132,7 +144,10 @@ export default function Friends() {
 
         {sendMutation.isError && (
           <p role="alert" className="text-sm text-destructive">
-            Request failed. Check the user ID or existing friendship.
+            {getErrorMessage(
+              sendMutation.error,
+              "Request failed. Check the user ID or existing friendship.",
+            )}
           </p>
         )}
       </form>
@@ -169,10 +184,7 @@ export default function Friends() {
           <p role="alert" className="text-destructive">
             Could not load friendship data.
           </p>
-          <Button
-            variant="outline"
-            onClick={() => void activeQuery.refetch()}
-          >
+          <Button variant="outline" onClick={() => void activeQuery.refetch()}>
             Retry
           </Button>
         </div>
@@ -180,7 +192,10 @@ export default function Friends() {
 
       {actionMutation.isError && (
         <p role="alert" className="mb-4 text-sm text-destructive">
-          Action failed. Please try again.
+          {getErrorMessage(
+            actionMutation.error,
+            "Action failed. Please try again.",
+          )}
         </p>
       )}
 
@@ -194,9 +209,7 @@ export default function Friends() {
         <div className="space-y-3">
           {users.map((item) => {
             const friendshipId =
-              "friendshipId" in item
-                ? item.friendshipId
-                : item.id;
+              "friendshipId" in item ? item.friendshipId : item.id;
 
             return (
               <div
@@ -204,9 +217,7 @@ export default function Friends() {
                 className="flex items-center justify-between gap-3 rounded-lg border p-4"
               >
                 <div>
-                  <p className="font-medium">
-                    {item.user.username}
-                  </p>
+                  <p className="font-medium">{item.user.username}</p>
                   <p className="text-sm text-muted-foreground">
                     User #{item.user.id}
                   </p>
@@ -254,6 +265,6 @@ export default function Friends() {
           })}
         </div>
       )}
-    </main>
+    </div>
   );
 }

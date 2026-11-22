@@ -11,32 +11,31 @@ import {
   Body,
   HttpCode,
   HttpStatus,
-  ValidationPipe,
 } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
 import type { AuthenticatedRequest } from '../auth/interfaces/authenticated-request.interface';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
-import { FriendsService } from './friends.service';
+import { FriendshipsService } from './friendships.service';
 import { SendFriendRequestDto } from './dto/send-friend-request.dto';
 
 @Controller('friends')
-@UseGuards(AuthGuard('jwt'))
-export class FriendsController {
-  constructor(private readonly friendsService: FriendsService) {}
+@UseGuards(JwtAuthGuard)
+export class FriendshipsController {
+  constructor(private readonly friendshipsService: FriendshipsService) {}
 
   @Get()
   getFriends(@Req() req: AuthenticatedRequest) {
-    return this.friendsService.getFriends(req.user.userId);
+    return this.friendshipsService.getFriends(req.user.userId);
   }
 
   @Get('requests/incoming')
   getIncomingRequests(@Req() req: AuthenticatedRequest) {
-    return this.friendsService.getIncomingRequests(req.user.userId);
+    return this.friendshipsService.getIncomingRequests(req.user.userId);
   }
 
   @Get('requests/outgoing')
   getOutgoingRequests(@Req() req: AuthenticatedRequest) {
-    return this.friendsService.getOutgoingRequests(req.user.userId);
+    return this.friendshipsService.getOutgoingRequests(req.user.userId);
   }
 
   @Get('status/:id')
@@ -44,17 +43,19 @@ export class FriendsController {
     @Req() req: AuthenticatedRequest,
     @Param('id', ParseIntPipe) targetId: number,
   ) {
-    return this.friendsService.getRelationshipStatus(req.user.userId, targetId);
+    return this.friendshipsService.getRelationshipStatus(
+      req.user.userId,
+      targetId,
+    );
   }
 
   @Post('requests')
   @HttpCode(HttpStatus.CREATED)
   async sendFriendRequest(
     @Req() req: AuthenticatedRequest,
-    @Body(new ValidationPipe({ whitelist: true, transform: false }))
-    body: SendFriendRequestDto,
+    @Body() body: SendFriendRequestDto,
   ) {
-    const friendship = await this.friendsService.sendFriendRequest(
+    const friendship = await this.friendshipsService.sendFriendRequest(
       req.user.userId,
       body.addresseeId,
     );
@@ -73,7 +74,7 @@ export class FriendsController {
     @Req() req: AuthenticatedRequest,
     @Param('id', ParseIntPipe) friendshipId: number,
   ) {
-    await this.friendsService.acceptFriendRequest(
+    await this.friendshipsService.acceptFriendRequest(
       friendshipId,
       req.user.userId,
     );
@@ -85,7 +86,7 @@ export class FriendsController {
     @Req() req: AuthenticatedRequest,
     @Param('id', ParseIntPipe) friendshipId: number,
   ) {
-    await this.friendsService.rejectFriendRequest(
+    await this.friendshipsService.rejectFriendRequest(
       friendshipId,
       req.user.userId,
     );
@@ -97,7 +98,7 @@ export class FriendsController {
     @Req() req: AuthenticatedRequest,
     @Param('id', ParseIntPipe) friendshipId: number,
   ) {
-    await this.friendsService.cancelFriendRequest(
+    await this.friendshipsService.cancelFriendRequest(
       friendshipId,
       req.user.userId,
     );
@@ -109,6 +110,6 @@ export class FriendsController {
     @Req() req: AuthenticatedRequest,
     @Param('id', ParseIntPipe) friendshipId: number,
   ) {
-    await this.friendsService.removeFriend(friendshipId, req.user.userId);
+    await this.friendshipsService.removeFriend(friendshipId, req.user.userId);
   }
 }

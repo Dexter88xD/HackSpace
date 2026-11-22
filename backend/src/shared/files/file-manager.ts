@@ -1,7 +1,7 @@
 import type { StoredFile } from './entities/stored-file.entity';
 import type { FileBucket } from './file-bucket';
+import type { Readable } from 'node:stream';
 
-export const FILE_PUBLIC_ENDPOINT = 'FILE_PUBLIC_ENDPOINT';
 export const MAX_FILE_UPLOAD_BYTES = 'MAX_FILE_UPLOAD_BYTES';
 
 export interface UploadFile {
@@ -16,5 +16,6 @@ export interface UploadFile {
 export abstract class FileManager {
   abstract upload(file: UploadFile): Promise<StoredFile>;
   abstract getFile(file: StoredFile): Promise<string>;
+  abstract getStream(file: StoredFile): Promise<Readable>;
   abstract delete(file: StoredFile): Promise<void>;
 }

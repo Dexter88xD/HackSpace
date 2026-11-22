@@ -1,14 +1,10 @@
-import { IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateProfileDto {
   @IsOptional()
   @IsString()
   @MaxLength(500)
   bio?: string;
-
-  @IsOptional()
-  @IsUUID()
-  avatarFileId?: string | null;
 
   @IsOptional()
   @IsString()

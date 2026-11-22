@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
 import { Button } from "@/components/ui/button";
 
 import {
@@ -8,7 +9,7 @@ import {
   rejectFriendRequest,
   cancelFriendRequest,
   removeFriend,
-} from "@/api/friends";
+} from "@/api/friendships";
 
 type FriendshipButtonProps = {
   userId: number;
@@ -16,6 +17,16 @@ type FriendshipButtonProps = {
 };
 
 type Action = "send" | "accept" | "reject" | "cancel" | "remove";
+
+function getErrorMessage(error: unknown): string {
+  if (axios.isAxiosError<{ message?: string | string[] }>(error)) {
+    const message = error.response?.data?.message;
+    if (Array.isArray(message)) return message.join(". ");
+    if (message) return message;
+  }
+  if (error instanceof Error) return error.message;
+  return "Something went wrong. Please try again.";
+}
 
 export default function FriendshipButton({
   userId,
@@ -28,6 +39,7 @@ export default function FriendshipButton({
     queryFn: () => getRelationshipStatus(userId),
     enabled: !isOwnProfile && userId > 0,
     retry: false,
+    refetchInterval: 4000,
   });
 
   const mutation = useMutation({
@@ -142,9 +154,7 @@ export default function FriendshipButton({
 
       {mutation.isError && (
         <p role="alert" className="text-sm text-destructive">
-          {mutation.error instanceof Error
-            ? mutation.error.message
-            : "Something went wrong. Please try again."}
+          {getErrorMessage(mutation.error)}
         </p>
       )}
     </div>

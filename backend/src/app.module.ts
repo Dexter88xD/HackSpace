@@ -11,7 +11,7 @@ import { SkillsModule } from './domains/skills/skills.module';
 import { UserModule } from './domains/users/user.module';
 import { FilesModule } from './shared/files/files.module';
 import { ChatModule } from './domains/chat/chat.module';
-import { FriendsModule } from './domains/friendships/friends.module';
+import { FriendshipsModule } from './domains/friendships/friendships.module';
 
 // Configures the application by loading environment variables globally, establishing the PostgreSQL
 // database connection through TypeORM with automatic entity loading and migrations required for schema
@@ -41,7 +41,7 @@ import { FriendsModule } from './domains/friendships/friends.module';
     SkillsModule,
     FilesModule,
     ChatModule,
-    FriendsModule,
+    FriendshipsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

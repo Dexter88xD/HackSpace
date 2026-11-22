@@ -6,6 +6,8 @@ import {
   ManyToOne,
   CreateDateColumn,
   UpdateDateColumn,
+  Check,
+  Index,
 } from 'typeorm';
 
 import { User } from '../../users/entities/user.entity';
@@ -16,6 +18,11 @@ export enum FriendshipStatus {
 }
 
 @Entity('friendships')
+@Check('CHK_friendships_not_self', '"requester_id" <> "addressee_id"')
+@Check('CHK_friendships_status', "\"status\" IN ('PENDING', 'ACCEPTED')")
+// Managed manually because it indexes LEAST(requester_id, addressee_id),
+// GREATEST(requester_id, addressee_id); synchronization is disabled.
+@Index('UQ_friendships_pair', { synchronize: false })
 export class Friendship {
   @PrimaryGeneratedColumn()
   id!: number;

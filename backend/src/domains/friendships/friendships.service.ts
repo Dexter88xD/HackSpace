@@ -8,14 +8,14 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, QueryFailedError } from 'typeorm';
 
-import { Friendship, FriendshipStatus } from './entities/friend.entity';
+import { Friendship, FriendshipStatus } from './entities/friendship.entity';
 import { User } from '../users/entities/user.entity';
 
 import { FriendResponseDto } from './dto/friend-response.dto';
 import { FriendRequestResponseDto } from './dto/friend-request-response.dto';
 
 @Injectable()
-export class FriendsService {
+export class FriendshipsService {
   constructor(
     @InjectRepository(Friendship)
     private readonly friendshipRepository: Repository<Friendship>,
@@ -150,7 +150,7 @@ export class FriendsService {
     });
 
     if (result.affected !== 1)
-      throw new ConflictException('This requested could not be rejected');
+      throw new ConflictException('This request could not be rejected');
   }
 
   async cancelFriendRequest(

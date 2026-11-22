@@ -1,19 +1,12 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { S3Module } from 'nestjs-s3';
-import { FilesService } from './files.service';
-import { FilesController } from './files.controller';
-import {
-  FILE_PUBLIC_ENDPOINT,
-  FileManager,
-  MAX_FILE_UPLOAD_BYTES,
-} from './file-manager';
+import { FileManager, MAX_FILE_UPLOAD_BYTES } from './file-manager';
 import { S3FileManager } from './s3-file-manager';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { StoredFile } from './entities/stored-file.entity';
 import { Hackathon } from '../../domains/hackathons/entities/hackathon.entity';
 import { Team } from '../../domains/teams/entities/team.entity';
-import { MulterModule } from '@nestjs/platform-express';
 
 function maxFileUploadBytes(config: ConfigService): number {
   const limit = Number(config.getOrThrow<number>(MAX_FILE_UPLOAD_BYTES));
@@ -28,20 +21,27 @@ function storageConnection(connection?: string) {
     {
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        config: {
-          endpoint:
-            connection === 'public'
-              ? config.getOrThrow<string>('MINIO_PUBLIC_ENDPOINT')
-              : config.getOrThrow<string>('MINIO_ENDPOINT'),
-          region: 'us-east-1',
-          forcePathStyle: true,
-          credentials: {
-            accessKeyId: config.getOrThrow<string>('MINIO_ROOT_USER'),
-            secretAccessKey: config.getOrThrow<string>('MINIO_ROOT_PASSWORD'),
+      useFactory: (config: ConfigService) => {
+        const accessKeyId = config.getOrThrow<string>('MINIO_ACCESS_KEY');
+        const secretAccessKey = config.getOrThrow<string>('MINIO_SECRET_KEY');
+        if (!accessKeyId.trim() || !secretAccessKey.trim()) {
+          throw new Error('MinIO application credentials must not be empty');
+        }
+        return {
+          config: {
+            endpoint:
+              connection === 'public'
+                ? config.getOrThrow<string>('MINIO_PUBLIC_ENDPOINT')
+                : config.getOrThrow<string>('MINIO_ENDPOINT'),
+            region: 'us-east-1',
+            forcePathStyle: true,
+            credentials: {
+              accessKeyId,
+              secretAccessKey,
+            },
           },
-        },
-      }),
+        };
+      },
     },
     connection,
   );
@@ -50,34 +50,17 @@ function storageConnection(connection?: string) {
 @Module({
   imports: [
     ConfigModule,
-    MulterModule.registerAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        limits: {
-          fileSize: maxFileUploadBytes(config),
-        },
-      }),
-    }),
     TypeOrmModule.forFeature([StoredFile, Hackathon, Team]),
     storageConnection(),
     storageConnection('public'),
   ],
-  controllers: [FilesController],
   exports: [FileManager],
   providers: [
-    FilesService,
     { provide: FileManager, useClass: S3FileManager },
     {
       provide: MAX_FILE_UPLOAD_BYTES,
       inject: [ConfigService],
       useFactory: maxFileUploadBytes,
-    },
-    {
-      provide: FILE_PUBLIC_ENDPOINT,
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) =>
-        config.getOrThrow<string>('MINIO_PUBLIC_ENDPOINT'),
     },
   ],
 })
