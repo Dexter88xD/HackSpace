@@ -6,6 +6,7 @@ import {
   NotFoundException,
   PayloadTooLargeException,
   OnModuleInit,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -15,11 +16,8 @@ import { GetObjectCommand, S3ServiceException } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
-import {
-  FILE_PUBLIC_ENDPOINT,
-  FileManager,
-  MAX_FILE_UPLOAD_BYTES,
-} from './file-manager';
+import { Readable } from 'node:stream';
+import { FileManager, MAX_FILE_UPLOAD_BYTES } from './file-manager';
 import type { UploadFile } from './file-manager';
 import { StoredFile } from './entities/stored-file.entity';
 import { ALLOWED_FILE_TYPES } from './file-type';
@@ -38,15 +36,10 @@ export class S3FileManager extends FileManager implements OnModuleInit {
     @InjectRepository(Hackathon)
     private readonly hackathons: Repository<Hackathon>,
     @InjectRepository(Team) private readonly teams: Repository<Team>,
-    @Inject(FILE_PUBLIC_ENDPOINT) private readonly publicEndpoint: string,
     @InjectS3('public') private readonly publicS3: S3,
     @Inject(MAX_FILE_UPLOAD_BYTES) private readonly maxUploadBytes: number,
   ) {
     super();
-  }
-
-  private objectKey(file: Pick<StoredFile, 'id' | 'name'>): string {
-    return `${file.id}${extname(file.name)}`;
   }
 
   async onModuleInit(): Promise<void> {
@@ -54,20 +47,11 @@ export class S3FileManager extends FileManager implements OnModuleInit {
       try {
         await this.s3.headBucket({ Bucket: bucket });
       } catch (error) {
-        if (
-          !(error instanceof S3ServiceException) ||
-          error.$metadata.httpStatusCode !== 404
-        )
-          throw error;
-        try {
-          await this.s3.createBucket({ Bucket: bucket });
-        } catch (error) {
-          if (
-            !(error instanceof S3ServiceException) ||
-            error.name !== 'BucketAlreadyOwnedByYou'
-          )
-            throw error;
-        }
+        const reason = error instanceof Error ? error.name : 'unknown error';
+        throw new Error(
+          `Cannot access MinIO bucket "${bucket}" (${reason}); check application credentials and run MinIO provisioning`,
+          { cause: error },
+        );
       }
     }
   }
@@ -75,9 +59,30 @@ export class S3FileManager extends FileManager implements OnModuleInit {
   async delete(file: StoredFile): Promise<void> {
     await this.s3.deleteObject({
       Bucket: file.bucket,
-      Key: this.objectKey(file),
+      Key: file.storedName,
     });
     await this.files.delete(file.id);
+  }
+
+  async getStream(file: StoredFile): Promise<Readable> {
+    try {
+      const object = await this.s3.getObject({
+        Bucket: file.bucket,
+        Key: file.storedName,
+      });
+      if (!(object.Body instanceof Readable)) {
+        throw new InternalServerErrorException('File stream is unavailable');
+      }
+      return object.Body;
+    } catch (error) {
+      if (
+        error instanceof S3ServiceException &&
+        error.$metadata.httpStatusCode === 404
+      ) {
+        throw new NotFoundException('File not found');
+      }
+      throw error;
+    }
   }
 
   getFile(file: StoredFile): Promise<string> {
@@ -85,7 +90,7 @@ export class S3FileManager extends FileManager implements OnModuleInit {
       this.publicS3,
       new GetObjectCommand({
         Bucket: file.bucket,
-        Key: this.objectKey(file),
+        Key: file.storedName,
       }),
       { expiresIn: 3600 },
     );
@@ -128,13 +133,12 @@ export class S3FileManager extends FileManager implements OnModuleInit {
     }
 
     const id = randomUUID();
-    const key = this.objectKey({ id, name: file.originalname });
-    const url = `${this.publicEndpoint.replace(/\/+$/, '')}/${encodeURIComponent(bucket)}/${encodeURIComponent(key)}`;
+    const key = `${id}${extname(file.originalname)}`;
     const storedFile = this.files.create({
       id,
       name: file.originalname,
       bucket,
-      url,
+      storedName: key,
       fileType: allowed.type,
       hackathon,
       team,

@@ -10,7 +10,6 @@ export async function getProfile(): Promise<Profile> {
 export async function createProfile(data: ProfileFormData): Promise<Profile> {
   const response = await api.post("/users/me/profile", {
     ...data,
-    avatarUrl: data.avatarUrl || null,
   });
 
   return response.data;
@@ -19,8 +18,18 @@ export async function createProfile(data: ProfileFormData): Promise<Profile> {
 export async function updateProfile(data: ProfileFormData): Promise<Profile> {
   const response = await api.patch("/users/me/profile", {
     ...data,
-    avatarUrl: data.avatarUrl || null,
   });
 
   return response.data;
+}
+
+export async function uploadAvatar(file: File): Promise<string> {
+  const data = new FormData();
+  data.append("file", file);
+  const response = await api.post<string>("/users/me/profile/avatar", data);
+  return response.data;
+}
+
+export async function deleteAvatar(): Promise<void> {
+  await api.delete("/users/me/profile/avatar");
 }

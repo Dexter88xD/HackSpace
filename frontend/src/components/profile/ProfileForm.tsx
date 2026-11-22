@@ -50,7 +50,7 @@ export function ProfileForm({
   });
   const skillsReady = !profile || skillsQuery.isSuccess;
   const selectedSkills = draftSkills ?? skillsQuery.data ?? [];
-  const isEditing = hasSavedProfile;
+  const isEditing = hasSavedProfile || !!profile;
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -58,14 +58,14 @@ export function ProfileForm({
       bio: profile?.bio ?? "",
       organizationName: profile?.organizationName ?? "",
       major: profile?.major ?? "",
-      avatarUrl: profile?.avatarUrl ?? "",
     },
   });
 
   const profileMutation = useMutation({
     mutationFn: async (data: ProfileFormData) => {
+      const profileId = savedProfileId.current ?? profile?.id;
       const savedProfile =
-        savedProfileId.current !== undefined
+        profileId !== undefined
           ? await updateProfile(data)
           : await createProfile(data);
       savedProfileId.current = savedProfile.id;
@@ -155,21 +155,6 @@ export function ProfileForm({
                 />
                 {form.formState.errors.major && (
                   <FieldError>{form.formState.errors.major.message}</FieldError>
-                )}
-              </Field>
-
-              <Field>
-                <FieldLabel htmlFor="avatar">Avatar URL</FieldLabel>
-                <Input
-                  id="avatar"
-                  type="url"
-                  placeholder="https://example.com/avatar.jpg"
-                  {...form.register("avatarUrl")}
-                />
-                {form.formState.errors.avatarUrl && (
-                  <FieldError>
-                    {form.formState.errors.avatarUrl.message}
-                  </FieldError>
                 )}
               </Field>
 
