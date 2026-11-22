@@ -12,6 +12,9 @@ import CreateHackathon from "./pages/CreateHackathon";
 import EditHackathon from "./pages/EditHackathon";
 import HackathonDetails from "./pages/HackathonDetails";
 import HackathonTeam from "./pages/HackathonTeam";
+import Friends from "./pages/Friends";
+import UserProfile from "./pages/UserProfile";
+
 function App() {
   return (
     <BrowserRouter>
@@ -82,10 +85,26 @@ function App() {
             path="/profile"
             element={
               <ProtectedRoute>
-                <Profile />
+                <Profile/>
+              </ProtectedRoute>
+            } 
+          />
+          <Route
+            path="/friends"
+            element={
+              <ProtectedRoute>
+                <Friends />
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/users/:id"
+            element={
+              <ProtectedRoute>
+                <UserProfile />
+              </ProtectedRoute>
+            }
+          /> 
         </Routes>
       </main>
     </BrowserRouter>

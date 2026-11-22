@@ -8,18 +8,12 @@ export async function getProfile(): Promise<Profile> {
 }
 
 export async function createProfile(data: ProfileFormData): Promise<Profile> {
-  const response = await api.post("/users/me/profile", {
-    ...data,
-  });
-
+  const response = await api.post("/users/me/profile", data);
   return response.data;
 }
 
 export async function updateProfile(data: ProfileFormData): Promise<Profile> {
-  const response = await api.patch("/users/me/profile", {
-    ...data,
-  });
-
+  const response = await api.patch("/users/me/profile", data);
   return response.data;
 }
 
