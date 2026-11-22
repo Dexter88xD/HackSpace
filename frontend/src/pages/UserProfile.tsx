@@ -63,7 +63,7 @@ export default function UserProfile() {
   const isOwnProfile = meQuery.data.id === user.id;
 
   return (
-    <main className="mx-auto max-w-2xl p-6">
+    <div className="mx-auto max-w-2xl p-6">
       <Link
         to="/friends"
         className="mb-6 inline-block text-sm text-muted-foreground hover:underline"
@@ -136,6 +136,6 @@ export default function UserProfile() {
           </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
