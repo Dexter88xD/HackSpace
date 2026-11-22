@@ -84,7 +84,10 @@ function Navbar() {
   const navLinks = isAuthenticated ? authenticatedLinks : guestLinks;
 
   return (
-    <nav aria-label="Main navigation" className="px-8 py-4">
+    <nav
+      aria-label="Main navigation"
+      className="sticky top-0 z-50 border-b border-border bg-background px-4 py-4 sm:px-8"
+    >
       <div className="flex items-center justify-between">
         <NavLink
           to="/"

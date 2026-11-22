@@ -78,14 +78,14 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/verify-otp" element={<OtpVerification />} />
           <Route path="/login" element={<Login />} />
-		  <Route
-		  	path="/profile"
-			element={
-				<ProtectedRoute>
-					<Profile/>
-				</ProtectedRoute>
-			}
-		   />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </main>
     </BrowserRouter>

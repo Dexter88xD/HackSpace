@@ -6,9 +6,15 @@
 @custom-variant dark (&:is(.dark *));
 
 main {
-    max-width: 72rem;
-    margin: 10vh auto;
+  max-width: 72rem;
+  margin: 10vh auto;
+  padding: 1rem;
+}
+
+@media (min-width: 640px) {
+  main {
     padding: 2rem;
+  }
 }
 
 @theme inline {
