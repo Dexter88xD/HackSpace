@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   Param,
   ParseIntPipe,
   Post,
@@ -11,13 +12,14 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { AuthenticatedRequest } from '../auth/interfaces/authenticated-request.interface';
 import { AssignJudgeDto } from './dto/assign-judge.dto';
 import { JuryService } from './jury.service';
+import { CreateScoringCriterionDto } from './dto/create-scoring-criterion.dto';
 
 @UseGuards(JwtAuthGuard)
-@Controller('hackathons/:hackathonId/judges')
+@Controller('hackathons/:hackathonId')
 export class JuryController {
   constructor(private readonly juryService: JuryService) {}
 
-  @Post()
+  @Post('judges')
   assignJudge(
     @Param('hackathonId', ParseIntPipe) hackathonId: number,
     @Body() dto: AssignJudgeDto,
@@ -28,5 +30,24 @@ export class JuryController {
       dto.userId,
       req.user.userId,
     );
+  }
+
+  @Get('judges')
+  findJudges(@Param('hackathonId', ParseIntPipe) hackathonId: number) {
+    return this.juryService.findJudges(hackathonId);
+  }
+
+  @Post('criteria')
+  createCriterion(
+    @Param('hackathonId', ParseIntPipe) hackathonId: number,
+    @Body() dto: CreateScoringCriterionDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.juryService.createCriterion(hackathonId, dto, req.user.userId);
+  }
+
+  @Get('criteria')
+  findCriteria(@Param('hackathonId', ParseIntPipe) hackathonId: number) {
+    return this.juryService.findCriteria(hackathonId);
   }
 }
