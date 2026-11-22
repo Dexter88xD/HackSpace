@@ -46,7 +46,7 @@ export class HackathonsService {
     private readonly dataSource: DataSource,
   ) {}
 
-  private async canEditHackathon(
+  async canEditHackathon(
     hackathonId: number,
     userId: number,
     manager?: EntityManager,
