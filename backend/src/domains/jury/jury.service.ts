@@ -448,4 +448,140 @@ export class JuryService {
       scores: result,
     };
   }
+
+  async getRankings(hackathonId: number, requesterId: number) {
+    const hackathon = await this.hackathonRepository.findOne({
+      where: { id: hackathonId },
+      relations: { phases: true },
+    });
+
+    if (!hackathon) {
+      throw new NotFoundException('Hackathon not found');
+    }
+
+    const evaluationPhase = hackathon.phases.find(
+      (phase) => phase.phaseName === HackathonPhaseName.EVALUATION,
+    );
+
+    const evaluationEnded =
+      evaluationPhase !== undefined &&
+      new Date() >= new Date(evaluationPhase.endAt);
+
+    if (!evaluationEnded) {
+      const canManage = await this.hackathonsService.canEditHackathon(
+        hackathonId,
+        requesterId,
+      );
+
+      if (!canManage) {
+        throw new ForbiddenException('Rankings are not available yet');
+      }
+    }
+
+    const [teams, criteria, scores] = await Promise.all([
+      this.teamRepository.find({
+        where: { hackathon: { id: hackathonId } },
+        order: { id: 'ASC' },
+      }),
+
+      this.criterionRepository.find({
+        where: { hackathon: { id: hackathonId } },
+      }),
+
+      this.scoreRepository.find({
+        where: {
+          team: { hackathon: { id: hackathonId } },
+          judge: {
+            hackathon: { id: hackathonId },
+            hackRoleName: HackRoleName.JURY,
+          },
+          criterion: { hackathon: { id: hackathonId } },
+        },
+        relations: {
+          team: true,
+          judge: true,
+          criterion: true,
+        },
+      }),
+    ]);
+
+    const criterionIds = new Set(criteria.map((criterion) => criterion.id));
+
+    const evaluations = new Map<number, Map<number, Map<number, number>>>();
+
+    for (const score of scores) {
+      if (!criterionIds.has(score.criterion.id)) {
+        continue;
+      }
+
+      if (!evaluations.has(score.team.id)) {
+        evaluations.set(score.team.id, new Map());
+      }
+
+      const teamEvaluations = evaluations.get(score.team.id)!;
+
+      if (!teamEvaluations.has(score.judge.id)) {
+        teamEvaluations.set(score.judge.id, new Map());
+      }
+
+      teamEvaluations.get(score.judge.id)!.set(score.criterion.id, score.score);
+    }
+
+    const results = teams.map((team) => {
+      const teamEvaluations = evaluations.get(team.id);
+      const completedAverages: number[] = [];
+
+      if (teamEvaluations && criterionIds.size > 0) {
+        for (const judgeScores of teamEvaluations.values()) {
+          if (judgeScores.size !== criterionIds.size) {
+            continue;
+          }
+
+          const total = [...judgeScores.values()].reduce(
+            (sum, score) => sum + score,
+            0,
+          );
+
+          completedAverages.push(total / criterionIds.size);
+        }
+      }
+
+      const average =
+        completedAverages.length > 0
+          ? completedAverages.reduce((sum, score) => sum + score, 0) /
+            completedAverages.length
+          : null;
+
+      return {
+        teamId: team.id,
+        teamName: team.name,
+        average,
+        completedEvaluations: completedAverages.length,
+        status: average === null ? 'NOT_EVALUATED' : 'EVALUATED',
+      };
+    });
+
+    results.sort((a, b) => {
+      if (a.average === null && b.average === null) {
+        return a.teamId - b.teamId;
+      }
+
+      if (a.average === null) return 1;
+      if (b.average === null) return -1;
+
+      return b.average - a.average || a.teamId - b.teamId;
+    });
+
+    let position = 0;
+
+    return results.map((team) => ({
+      rank: team.average === null ? null : ++position,
+      teamId: team.teamId,
+      teamName: team.teamName,
+      averageScore:
+        team.average === null ? null : Number(team.average.toFixed(2)),
+      completedEvaluations: team.completedEvaluations,
+      status: team.status,
+    }));
+  }
 }
