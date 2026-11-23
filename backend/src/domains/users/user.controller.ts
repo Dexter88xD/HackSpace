@@ -9,6 +9,9 @@ import {
   Body,
   Req,
   UseGuards,
+  Param,
+  ParseIntPipe,
+  Query,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -30,6 +33,16 @@ export class UserController {
   @Get('me/profile')
   getProfile(@Req() req: AuthenticatedRequest) {
     return this.userService.getProfile(req.user.userId);
+  }
+
+  @Get(':id/public')
+  getPublicProfile(@Param('id', ParseIntPipe) userId: number) {
+    return this.userService.getPublicProfile(userId);
+  }
+
+  @Get('search')
+  searchUsers(@Query('q') query: string, @Req() req: AuthenticatedRequest) {
+    return this.userService.searchUsers(query, req.user.userId);
   }
 
   @Post('me/profile')

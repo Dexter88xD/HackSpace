@@ -17,6 +17,7 @@ import { StoredFile } from '../shared/files/entities/stored-file.entity';
 import { ChatMember } from '../domains/chat/entities/chat-member.entity';
 import { Message } from '../domains/chat/entities/message.entity';
 import { ChatRoom } from '../domains/chat/entities/chat-room.entity';
+import { Friendship } from '../domains/friendships/entities/friendship.entity';
 
 loadEnv({ path: '../.env', quiet: true });
 
@@ -46,6 +47,7 @@ export default new DataSource({
     ChatRoom,
     ChatMember,
     Message,
+    Friendship,
   ],
 
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
