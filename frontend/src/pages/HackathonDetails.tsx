@@ -22,6 +22,8 @@ import { useEffect, useState } from "react";
 import HackathonPhaseSchedule from "@/components/hackathon/hackathon-phase-schedule";
 import LaunchPhaseView from "@/components/hackathon/phases/launch-phase-view";
 import RegistrationPhaseView from "@/components/hackathon/phases/registration-phase-view";
+import EvaluationPhaseView from "@/components/hackathon/phases/evaluation-phase-view";
+import FinishedPhaseView from "@/components/hackathon/phases/finished-phase-view";
 
 export default function HackathonDetails() {
   const { id } = useParams<{ id: string }>();
@@ -160,13 +162,30 @@ export default function HackathonDetails() {
   const canManageJury = canManageJudges || canManageCriteria;
 
   const isEvaluationOpen =
-    phaseName === HackathonPhaseName.EVALUATION && !evaluationEnded;
+    !isPhasePending &&
+    !isPhaseError &&
+    phaseName === HackathonPhaseName.EVALUATION &&
+    evaluationStarted &&
+    !evaluationEnded;
 
   const canEvaluate =
-    isEvaluationOpen && membership?.role === HackathonRoleName.JURY;
+    isEvaluationOpen &&
+    isMembershipSuccess &&
+    !isMembershipError &&
+    membership?.role === HackathonRoleName.JURY;
 
   const canViewRankings =
     evaluationEnded || (hackathon.canEdit && isEvaluationOpen);
+
+  const showEvaluationView = isEvaluationOpen;
+
+  const showFinishedView =
+    evaluationEnded ||
+    (!isPhasePending &&
+      !isPhaseError &&
+      phaseName === HackathonPhaseName.FINISHED);
+
+  const hasResultsPhaseView = showEvaluationView || showFinishedView;
 
   const phaseLabels: Record<HackathonPhaseName, string> = {
     [HackathonPhaseName.LAUNCH]: "Launch",
@@ -320,23 +339,45 @@ export default function HackathonDetails() {
       ) : (
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
           <div className="min-w-0 space-y-4">
-            {canEvaluate && currentUserId !== undefined && (
-              <JuryEvaluation
-                key={`${currentUserId}:${hackathon.id}`}
-                hackathonId={hackathon.id}
-                userId={currentUserId}
-              />
+            {/* EVALUATION phase view */}
+            {showEvaluationView && evaluationPhase && (
+              <EvaluationPhaseView evaluationEndAt={evaluationPhase.endAt}>
+                {canEvaluate && currentUserId !== undefined && (
+                  <JuryEvaluation
+                    key={`${currentUserId}:${hackathon.id}`}
+                    hackathonId={hackathon.id}
+                    userId={currentUserId}
+                  />
+                )}
+
+                {canViewRankings && currentUserId !== undefined && (
+                  <HackathonRankings
+                    hackathonId={hackathon.id}
+                    userId={currentUserId}
+                    isPublished={false}
+                  />
+                )}
+              </EvaluationPhaseView>
             )}
 
-            {canViewRankings && currentUserId !== undefined && (
-              <HackathonRankings
-                hackathonId={hackathon.id}
-                userId={currentUserId}
-                isPublished={evaluationEnded}
-              />
+            {/* FINISHED phase view */}
+            {showFinishedView && (
+              <FinishedPhaseView>
+                {evaluationEnded && currentUserId !== undefined ? (
+                  <HackathonRankings
+                    hackathonId={hackathon.id}
+                    userId={currentUserId}
+                    isPublished={true}
+                  />
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Rankings are currently unavailable.
+                  </p>
+                )}
+              </FinishedPhaseView>
             )}
 
-            {!canEvaluate && !canViewRankings && (
+            {!hasResultsPhaseView && (
               <section className="space-y-2 rounded-lg border p-4">
                 <h2 className="font-semibold">About this hackathon</h2>
 
@@ -351,7 +392,7 @@ export default function HackathonDetails() {
             className="min-w-0 space-y-4"
             aria-label="Hackathon information"
           >
-            {(canEvaluate || canViewRankings) && (
+            {hasResultsPhaseView && (
               <section className="space-y-2 rounded-lg border p-4">
                 <h2 className="font-semibold">About this hackathon</h2>
 
