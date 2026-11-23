@@ -383,6 +383,48 @@ export class HackathonsService {
 
       validatePhaseSchedule(phasesToValidate, startAt, endAt);
 
+      const now = new Date();
+
+      for (const existingPhase of hackathon.phases) {
+        const proposedPhase = phasesToValidate.find(
+          (phase) => phase.phaseName === existingPhase.phaseName,
+        );
+
+        if (!proposedPhase) {
+          continue;
+        }
+
+        const proposedStartAt = new Date(proposedPhase.startAt);
+        const proposedEndAt = new Date(proposedPhase.endAt);
+
+        const hasStarted = now >= existingPhase.startAt;
+        const hasEnded = now >= existingPhase.endAt;
+
+        if (
+          hasStarted &&
+          proposedStartAt.getTime() !== existingPhase.startAt.getTime()
+        ) {
+          throw new BadRequestException(
+            `Cannot change the start date of ${existingPhase.phaseName} after it starts`,
+          );
+        }
+
+        if (
+          hasEnded &&
+          proposedEndAt.getTime() !== existingPhase.endAt.getTime()
+        ) {
+          throw new BadRequestException(
+            `Cannot change the end date of ${existingPhase.phaseName} after it ends`,
+          );
+        }
+
+        if (hasStarted && !hasEnded && proposedEndAt <= now) {
+          throw new BadRequestException(
+            `The end date of active phase ${existingPhase.phaseName} must be in the future`,
+          );
+        }
+      }
+
       hackathon.title = dto.title ?? hackathon.title;
       hackathon.description =
         dto.description === undefined ? hackathon.description : dto.description;
