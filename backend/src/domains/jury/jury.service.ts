@@ -53,8 +53,9 @@ export class JuryService {
     targetUserId: number,
     requesterId: number,
   ) {
-    const hackathon = await this.hackathonRepository.findOneBy({
-      id: hackathonId,
+    const hackathon = await this.hackathonRepository.findOne({
+      where: { id: hackathonId },
+      relations: { phases: true },
     });
 
     if (!hackathon) {
@@ -69,6 +70,16 @@ export class JuryService {
     if (!canManage) {
       throw new ForbiddenException(
         'You are not authorised to manage this hackathon',
+      );
+    }
+
+    const evaluationPhase = hackathon.phases.find(
+      (phase) => phase.phaseName === HackathonPhaseName.EVALUATION,
+    );
+
+    if (evaluationPhase && new Date() >= new Date(evaluationPhase.startAt)) {
+      throw new BadRequestException(
+        'Judges cannot be assigned once evaluation begins',
       );
     }
 
