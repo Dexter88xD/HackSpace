@@ -16,6 +16,7 @@ import { ChatRoom } from '../../chat/entities/chat-room.entity';
 
 // Two teams in the same hackathon cannot share a name.
 @Unique('UQ_teams_hackathon_name', ['hackathon', 'name'])
+@Unique('UQ_teams_id_hackathon', ['id', 'hackathonId'])
 @Entity('teams')
 export class Team {
   @PrimaryGeneratedColumn({ primaryKeyConstraintName: 'PK_teams' })
@@ -29,6 +30,9 @@ export class Team {
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt!: Date;
+
+  @Column({ name: 'hackathon_id', type: 'integer' })
+  hackathonId!: number;
 
   @ManyToOne(() => Hackathon, (hackathon) => hackathon.teams, {
     nullable: false,

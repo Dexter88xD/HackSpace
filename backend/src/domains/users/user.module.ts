@@ -29,6 +29,7 @@ function maxFileUploadBytes(config: ConfigService): number {
       imports: [ConfigModule, FilesModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
+        defParamCharset: 'utf8',
         limits: {
           fileSize: maxFileUploadBytes(config),
         },

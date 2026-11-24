@@ -557,6 +557,12 @@ export class HackathonsService {
         relations: { team: true },
       });
 
+      if (membership) {
+        await manager.findOne(Team, {
+          where: { id: membership.team.id },
+          lock: { mode: 'pessimistic_write' },
+        });
+      }
       await manager.remove(hackathonUser);
 
       if (membership) {

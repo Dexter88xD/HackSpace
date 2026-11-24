@@ -39,6 +39,7 @@ describe('UserService', () => {
     getFile: jest.Mock;
     getStream: jest.Mock;
     delete: jest.Mock;
+    deleteObject: jest.Mock;
   };
   let service: UserService;
 
@@ -82,6 +83,7 @@ describe('UserService', () => {
         .fn()
         .mockResolvedValue('https://storage.example/signed-avatar'),
       delete: jest.fn().mockResolvedValue(undefined),
+      deleteObject: jest.fn(),
     };
     service = new UserService(
       users as unknown as Repository<User>,

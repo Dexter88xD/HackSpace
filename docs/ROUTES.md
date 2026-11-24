@@ -18,7 +18,7 @@ The following paths are defined in `frontend/src/App.tsx`.
 | `/hackathons/new`      | Create Hackathon     | Authenticated | Create a hackathon with team and file settings; not restricted to `ROLE_ADMIN`                              |
 | `/hackathons/:id` | Hackathon Details | Authenticated | Show hackathon details and phases; edit controls use the backend's `canEdit` flag |
 | `/hackathons/:id/edit` | Edit Hackathon       | Authenticated | Edit hackathon details and settings; organiser or platform administrator only |
-| `/hackathons/:id/team` | Hackathon Team       | Authenticated | View, create, join or leave teams according to membership rules                 |
+| `/hackathons/:id/team` | Hackathon Team       | Authenticated | Manage team membership and the team's submission                               |
 | `/profile`             | User Profile         | Authenticated | View and manage the user's profile and skills                                   |
 | `/login`               | Login                | Public        | Password sign-in and OAuth initiation                                           |
 | `/register`            | Register             | Public        | Account registration                                                            |
@@ -81,6 +81,25 @@ membership count; the minimum team size is checked at submission time.
 | `DELETE` | `/teams/:id/leave`                  | Authenticated team member            | Leave a team                                 |
 
 Team operations also enforce applicable constraints on membership, team capacity and hackathon state within `TeamsService`.
+
+### Team submissions
+
+All routes require authentication and membership in the specified team. `:teamId` is the team ID, and `:fileId` is the UUID of a file in that team's submission.
+
+| Method   | Path                                      | Success | Purpose |
+| -------- | ----------------------------------------- | ------- | ------- |
+| `GET`    | `/teams/:teamId/submission`                | `200`   | Read submission status, files, limits, and blocked actions |
+| `POST`   | `/teams/:teamId/submission/files`          | `201`   | Upload one file as the `file` field in a `multipart/form-data` request |
+| `GET`    | `/teams/:teamId/submission/files/:fileId`  | `200`   | Download a file as an attachment |
+| `DELETE` | `/teams/:teamId/submission/files/:fileId`  | `200`   | Remove a file from the draft |
+| `POST`   | `/teams/:teamId/submission/submit`         | `201`   | Submit the draft and record its submission time |
+| `POST`   | `/teams/:teamId/submission/unsubmit`       | `201`   | Reopen the draft and clear its submission time while keeping the files |
+
+Members can view and download files in any phase. Upload, delete, submit, and unsubmit require the `IN_PROGRESS` phase and a team size within the hackathon's configured range. Submit requires at least one file and locks uploads and deletions until the team unsubmits. Uploads respect the configured file count and the lower of the hackathon's per-file size limit and the server upload limit.
+
+All successful requests except downloads return the current submission state. It includes `isSubmitted`, `submittedAt` (ISO timestamp or `null`), `files` (each with `id`, `name`, and `fileType`), `filesLimit`, and `fileMaxSize` in bytes. The `blocked` object gives a reason for each unavailable action (`upload`, `delete`, `submit`, or `unsubmit`), or `null` if the action is allowed.
+
+Common errors include `401` for missing or invalid authentication, `403` for non-members, `404` for a missing team or file outside the team's submission, `409` for a blocked action, and `413` for an oversized upload.
 
 ### Chat history
 
@@ -171,7 +190,7 @@ These skill-specific permissions are enforced in `SkillsService`, including the 
 | `/hackathons/new`                    | `POST /hackathons`                                               |
 | `/hackathons/:id`                    | `GET /hackathons/:id`, membership and registration endpoints     |
 | `/hackathons/:id/edit`               | `GET /hackathons/:id`, `PATCH /hackathons/:id`                   |
-| `/hackathons/:id/team`               | Team listing, current team, create, join and leave endpoints     |
+| `/hackathons/:id/team`               | Team membership and `/teams/:teamId/submission` endpoints        |
 | `/profile`                           | `/users/me/profile` and `/skills` endpoints                      |
 | `/login`, `/register`, `/verify-otp` | `/auth` endpoints                                                |
 

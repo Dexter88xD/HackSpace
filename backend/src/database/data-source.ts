@@ -9,6 +9,7 @@ import { OAuthIdentity } from '../domains/auth/entities/oauth-identity.entity';
 import { HackathonPhase } from '../domains/hackathons/entities/hackathon-phase.entity';
 import { HackathonSettings } from '../domains/hackathons/entities/hackathon-settings.entity';
 import { HackathonUser } from '../domains/hackathons/entities/hackathon-user.entity';
+import { TeamSubmission } from '../domains/teams/entities/team-submission.entity';
 import { Team } from '../domains/teams/entities/team.entity';
 import { TeamMember } from '../domains/teams/entities/team-member.entity';
 import { TeamJoinRequest } from '../domains/teams/entities/team-join-request.entity';
@@ -39,6 +40,7 @@ export default new DataSource({
     HackathonSettings,
     HackathonUser,
     Team,
+    TeamSubmission,
     TeamMember,
     TeamJoinRequest,
     StoredFile,
