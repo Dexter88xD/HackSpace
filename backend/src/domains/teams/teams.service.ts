@@ -30,6 +30,7 @@ import { ChatMember } from '../chat/entities/chat-member.entity';
 import { ChatGateway } from '../chat/chat.gateway';
 import { ChatRoom, ChatRoomType } from '../chat/entities/chat-room.entity';
 import { HackathonSettings } from '../hackathons/entities/hackathon-settings.entity';
+import { TeamSubmission } from './entities/team-submission.entity';
 
 @Injectable()
 export class TeamsService {
@@ -58,11 +59,69 @@ export class TeamsService {
     private readonly dataSource: DataSource,
   ) {}
 
+  private async lockTeamForMutation(manager: EntityManager, teamId: number) {
+    // Lock the hackathon before the team to match the submission
+    // workflow and prevent conflicting schedule and membership changes.
+    const team = await manager.findOneBy(Team, { id: teamId });
+
+    if (!team) {
+      throw new NotFoundException('Team not found');
+    }
+
+    const hackathon = await manager.findOne(Hackathon, {
+      where: { id: team.hackathonId },
+      lock: { mode: 'pessimistic_read' },
+    });
+
+    if (!hackathon) {
+      throw new NotFoundException('Hackathon not found');
+    }
+
+    const lockedTeam = await manager.findOne(Team, {
+      where: { id: teamId },
+      lock: { mode: 'pessimistic_write' },
+    });
+
+    if (!lockedTeam) {
+      throw new NotFoundException('Team not found');
+    }
+
+    hackathon.phases = await manager.find(HackathonPhase, {
+      where: { hackathon: { id: hackathon.id } },
+    });
+
+    lockedTeam.hackathon = hackathon;
+
+    return lockedTeam;
+  }
+
+  private async checkMembershipChangeAllowed(
+    manager: EntityManager,
+    hackathon: Hackathon,
+    teamId: number,
+  ) {
+    // Membership changes are allowed during registration and in progress,
+    // provided the team has no finalised submission.
+    this.checkPhaseAllowed(hackathon, [
+      HackathonPhaseName.REGISTRATION,
+      HackathonPhaseName.IN_PROGRESS,
+    ]);
+
+    const submission = await manager.findOneBy(TeamSubmission, {
+      teamId,
+      hackathonId: hackathon.id,
+    });
+
+    if (submission?.isSubmitted) {
+      throw new ConflictException(
+        'Unsubmit your project before changing team membership',
+      );
+    }
+  }
+
   async create(hackathonId: number, dto: CreateTeamDto, userId: number) {
     const hackathon = await this.findHackathon(hackathonId);
-    if (hackathon.endAt <= new Date()) {
-      throw new BadRequestException('This hackathon has ended');
-    }
+    this.checkRegistrationOpen(hackathon);
 
     const registration = await this.findParticipantWithoutTeam(
       hackathonId,
@@ -78,16 +137,30 @@ export class TeamsService {
       throw new ConflictException('A team with this name already exists');
     }
 
-    // The team and its first member are saved together: if one insert fails,
-    // neither row is kept.
+    // Create the team, its first member and its chat room atomically.
+    // If any operation fails, the entire transaction is rolled back.
     let team: Team;
     try {
       team = await this.dataSource.transaction(async (manager) => {
+        const lockedHackathon = await manager.findOne(Hackathon, {
+          where: { id: hackathonId },
+          lock: { mode: 'pessimistic_read' },
+        });
+
+        if (!lockedHackathon) {
+          throw new NotFoundException('Hackathon not found');
+        }
+
+        lockedHackathon.phases = await manager.find(HackathonPhase, {
+          where: { hackathon: { id: hackathonId } },
+        });
+
+        this.checkRegistrationOpen(lockedHackathon);
         const savedTeam = await manager.save(
           manager.create(Team, {
             name,
             description: dto.description?.trim() || null,
-            hackathon,
+            hackathon: lockedHackathon,
           }),
         );
 
@@ -146,25 +219,37 @@ export class TeamsService {
   }
 
   async update(teamId: number, dto: UpdateTeamDto, userId: number) {
-    const team = await this.findTeam(teamId);
-    await this.checkLeaderOrOrganizer(team, userId);
-
-    if (dto.name !== undefined) {
-      const name = dto.name.trim();
-      const sameName = await this.teamRepository.findOne({
-        where: { hackathon: { id: team.hackathon.id }, name },
-      });
-      if (sameName && sameName.id !== teamId) {
-        throw new ConflictException('A team with this name already exists');
-      }
-      team.name = name;
-    }
-    if (dto.description !== undefined) {
-      team.description = dto.description?.trim() || null;
-    }
-
     try {
-      await this.teamRepository.save(team);
+      await this.dataSource.transaction(async (manager) => {
+        const team = await this.lockTeamForMutation(manager, teamId);
+
+        await this.checkLeaderOrOrganizer(team, userId, manager);
+
+        this.checkPhaseAllowed(team.hackathon, [
+          HackathonPhaseName.REGISTRATION,
+          HackathonPhaseName.IN_PROGRESS,
+        ]);
+
+        if (dto.name !== undefined) {
+          const name = dto.name.trim();
+
+          const sameName = await manager.findOne(Team, {
+            where: { hackathon: { id: team.hackathonId }, name },
+          });
+
+          if (sameName && sameName.id !== teamId) {
+            throw new ConflictException('A team with this name already exists');
+          }
+
+          team.name = name;
+        }
+
+        if (dto.description !== undefined) {
+          team.description = dto.description?.trim() || null;
+        }
+
+        await manager.save(Team, team);
+      });
     } catch (error) {
       throw this.toConflict(error);
     }
@@ -173,11 +258,15 @@ export class TeamsService {
   }
 
   async remove(teamId: number, userId: number) {
-    const team = await this.findTeam(teamId);
-    await this.checkLeaderOrOrganizer(team, userId);
+    await this.dataSource.transaction(async (manager) => {
+      const team = await this.lockTeamForMutation(manager, teamId);
 
-    // Members and join requests are deleted with the team (ON DELETE CASCADE).
-    await this.teamRepository.delete(teamId);
+      await this.checkLeaderOrOrganizer(team, userId, manager);
+      this.checkRegistrationOpen(team.hackathon);
+
+      // Related records are removed through cascading foreign keys.
+      await manager.delete(Team, teamId);
+    });
 
     return { message: 'Team deleted' };
   }
@@ -393,19 +482,11 @@ export class TeamsService {
     }
 
     const chatRoomId = await this.dataSource.transaction(async (manager) => {
-      const team = await manager.findOne(Team, {
-        where: { id: teamId },
-        relations: { hackathon: true },
-        lock: { mode: 'pessimistic_write' },
-      });
-      if (!team) {
-        throw new NotFoundException('Team not found');
-      }
-      if (team.hackathon.endAt <= new Date()) {
-        throw new BadRequestException('This hackathon has ended');
-      }
+      const team = await this.lockTeamForMutation(manager, teamId);
 
       await this.checkLeader(manager, teamId, userId);
+
+      await this.checkMembershipChangeAllowed(manager, team.hackathon, teamId);
 
       const member = await manager.findOne(TeamMember, {
         where: {
@@ -439,42 +520,52 @@ export class TeamsService {
   }
 
   async leave(teamId: number, userId: number) {
-    const membership = await this.teamMemberRepository.findOne({
-      where: {
-        team: { id: teamId },
-        hackathonUser: { user: { id: userId } },
-      },
-      relations: { team: { hackathon: true, chatRoom: true } },
-    });
-    if (!membership) {
-      throw new NotFoundException('You are not a member of this team');
-    }
-    if (membership.team.hackathon.endAt <= new Date()) {
-      throw new BadRequestException('This hackathon has ended');
-    }
+    const chatRoomId = await this.dataSource.transaction(async (manager) => {
+      const team = await this.lockTeamForMutation(manager, teamId);
 
-    const chatRoomId = membership.team.chatRoom.id;
-
-    // A team left with no members is deleted.
-    await this.dataSource.transaction(async (manager) => {
-      await manager.findOne(Team, {
-        where: { id: teamId },
-        lock: { mode: 'pessimistic_write' },
+      const membership = await manager.findOne(TeamMember, {
+        where: {
+          team: { id: teamId },
+          hackathonUser: { user: { id: userId } },
+        },
       });
 
-      await manager.remove(membership);
+      if (!membership) {
+        throw new NotFoundException('You are not a member of this team');
+      }
+
+      await this.checkMembershipChangeAllowed(manager, team.hackathon, teamId);
+
+      const memberCount = await manager.count(TeamMember, {
+        where: { team: { id: teamId } },
+      });
+
+      // The last member can only leave during registration,
+      // because an empty team is automatically deleted.
+      if (memberCount === 1) {
+        this.checkRegistrationOpen(team.hackathon);
+      }
+
+      const chatRoom = await manager.findOne(ChatRoom, {
+        where: { team: { id: teamId } },
+      });
+
+      if (!chatRoom) {
+        throw new NotFoundException('Team chat room not found');
+      }
 
       await manager.delete(ChatMember, {
         user: { id: userId },
-        chatRoom: { id: chatRoomId },
+        chatRoom: { id: chatRoom.id },
       });
 
-      const remaining = await manager.count(TeamMember, {
-        where: { team: { id: teamId } },
-      });
-      if (remaining === 0) {
+      await manager.remove(TeamMember, membership);
+
+      if (memberCount === 1) {
         await manager.delete(Team, teamId);
       }
+
+      return chatRoom.id;
     });
 
     await this.chatGateway.removeUserFromRoom(userId, chatRoomId);
@@ -575,15 +666,21 @@ export class TeamsService {
     }
   }
 
-  private async checkLeaderOrOrganizer(team: Team, userId: number) {
-    const organizer = await this.hackathonUserRepository.findOne({
+  private async checkLeaderOrOrganizer(
+    team: Team,
+    userId: number,
+    manager: EntityManager = this.dataSource.manager,
+  ) {
+    const organizer = await manager.findOne(HackathonUser, {
       where: {
         user: { id: userId },
-        hackathon: { id: team.hackathon.id },
+        hackathon: { id: team.hackathonId },
         hackRoleName: HackRoleName.ORGANIZER,
       },
     });
-    const leaderId = await this.findLeaderId(this.dataSource.manager, team.id);
+
+    const leaderId = await this.findLeaderId(manager, team.id);
+
     if (!organizer && leaderId !== userId) {
       throw new ForbiddenException(
         'Only the team leader or an organizer can do this',
@@ -591,23 +688,27 @@ export class TeamsService {
     }
   }
 
-  // Joining is only allowed before the hackathon ends and, when the
-  // hackathon has a REGISTRATION phase, during that phase.
-  private checkRegistrationOpen(hackathon: Hackathon) {
+  // Team operations are restricted to their permitted hackathon phases.
+  // A phase includes its start time but excludes its end time.
+  private checkPhaseAllowed(
+    hackathon: Hackathon,
+    allowedPhases: HackathonPhaseName[],
+  ) {
     const now = new Date();
-    if (hackathon.endAt <= now) {
-      throw new BadRequestException('This hackathon has ended');
-    }
 
-    const registration = hackathon.phases.find(
-      (phase) => phase.phaseName === HackathonPhaseName.REGISTRATION,
+    const activePhase = hackathon.phases.find(
+      (phase) => now >= phase.startAt && now < phase.endAt,
     );
-    if (
-      registration &&
-      (now < registration.startAt || now >= registration.endAt)
-    ) {
-      throw new BadRequestException('Team registration is not open');
+
+    if (!activePhase || !allowedPhases.includes(activePhase.phaseName)) {
+      throw new BadRequestException(
+        'This operation is not allowed during the current phase',
+      );
     }
+  }
+
+  private checkRegistrationOpen(hackathon: Hackathon) {
+    this.checkPhaseAllowed(hackathon, [HackathonPhaseName.REGISTRATION]);
   }
 
   private async findParticipantWithoutTeam(
@@ -661,7 +762,7 @@ export class TeamsService {
   private async findTeam(teamId: number) {
     const team = await this.teamRepository.findOne({
       where: { id: teamId },
-      relations: { hackathon: true },
+      relations: { hackathon: { phases: true } },
     });
     if (!team) {
       throw new NotFoundException('Team not found');
@@ -672,6 +773,7 @@ export class TeamsService {
   private async findHackathon(hackathonId: number) {
     const hackathon = await this.hackathonRepository.findOne({
       where: { id: hackathonId },
+      relations: { phases: true },
     });
     if (!hackathon) {
       throw new NotFoundException('Hackathon not found');
