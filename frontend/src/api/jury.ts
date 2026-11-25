@@ -32,6 +32,13 @@ export async function assignHackathonJudge(
   return data;
 }
 
+export async function removeHackathonJudge(
+  hackathonId: number,
+  judgeId: number,
+): Promise<void> {
+  await api.delete(`/hackathons/${hackathonId}/judges/${judgeId}`);
+}
+
 export async function getScoringCriteria(hackathonId: number) {
   const { data } = await api.get<ScoringCriterion[]>(
     `/hackathons/${hackathonId}/criteria`,

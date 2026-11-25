@@ -1,12 +1,28 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { assignHackathonJudge, getHackathonJudges } from "@/api/jury";
+import {
+  assignHackathonJudge,
+  getHackathonJudges,
+  removeHackathonJudge,
+} from "@/api/jury";
 import { searchUsers } from "@/api/users";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { shouldRetryQuery } from "@/lib/query-retry";
 import { getJuryError } from "./jury-error";
+import { Trash2 } from "lucide-react";
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type Props = {
   hackathonId: number;
@@ -51,6 +67,16 @@ export function JudgeManagement({ hackathonId, canManage }: Props) {
       await queryClient.invalidateQueries({ queryKey });
     },
   });
+
+  const removeMutation = useMutation({
+    mutationFn: (judgeId: number) => removeHackathonJudge(hackathonId, judgeId),
+
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey });
+    },
+  });
+
+  const isMutating = assignMutation.isPending || removeMutation.isPending;
 
   const judges = judgesQuery.data ?? [];
   const assignedIds = new Set(judges.map((judge) => judge.userId));
@@ -98,12 +124,79 @@ export function JudgeManagement({ hackathonId, canManage }: Props) {
           ) : (
             <ul className="divide-y rounded-md border">
               {judges.map((judge) => (
-                <li key={judge.id} className="p-3 text-sm">
-                  @{judge.username}
+                <li
+                  key={judge.id}
+                  className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm"
+                >
+                  <span className="min-w-0 break-words">@{judge.username}</span>
+
+                  {canManage && (
+                    <AlertDialog>
+                      <AlertDialogTrigger
+                        render={
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={isMutating}
+                            className="text-destructive"
+                            aria-label={`Remove judge ${judge.username}`}
+                          />
+                        }
+                      >
+                        <Trash2 className="size-4" aria-hidden="true" />
+
+                        {removeMutation.isPending &&
+                        removeMutation.variables === judge.id
+                          ? "Removing..."
+                          : "Remove"}
+                      </AlertDialogTrigger>
+
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Remove judge?</AlertDialogTitle>
+
+                          <AlertDialogDescription>
+                            @{judge.username} will lose their judge assignment
+                            for this hackathon. This will not delete their
+                            account or affect their other hackathon memberships.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+
+                        <AlertDialogAction
+                          render={
+                            <Button
+                              variant="destructive"
+                              disabled={isMutating || !canManage}
+                              onClick={() => {
+                                assignMutation.reset();
+                                removeMutation.mutate(judge.id);
+                              }}
+                            />
+                          }
+                        >
+                          Remove judge
+                        </AlertDialogAction>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
                 </li>
               ))}
             </ul>
           ))}
+
+        {removeMutation.isError && (
+          <p role="alert" className="text-sm text-destructive">
+            {getJuryError(removeMutation.error)}
+          </p>
+        )}
+
+        {removeMutation.isSuccess && (
+          <p role="status" className="text-sm text-muted-foreground">
+            Judge removed successfully.
+          </p>
+        )}
 
         {canManage && judgesQuery.isSuccess && (
           <div className="space-y-3 border-t pt-4">
@@ -120,7 +213,7 @@ export function JudgeManagement({ hackathonId, canManage }: Props) {
                 setSearch(event.target.value);
                 assignMutation.reset();
               }}
-              disabled={assignMutation.isPending}
+              disabled={isMutating}
             />
 
             {search.trim().length >= 2 &&
@@ -160,8 +253,11 @@ export function JudgeManagement({ hackathonId, canManage }: Props) {
 
                         <Button
                           size="sm"
-                          disabled={assigned || assignMutation.isPending}
-                          onClick={() => assignMutation.mutate(user.id)}
+                          disabled={assigned || isMutating}
+                          onClick={() => {
+                            removeMutation.reset();
+                            assignMutation.mutate(user.id);
+                          }}
                         >
                           {assigned
                             ? "Assigned"

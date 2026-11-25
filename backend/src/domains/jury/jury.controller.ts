@@ -1,7 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseIntPipe,
   Post,
@@ -32,6 +35,16 @@ export class JuryController {
       dto.userId,
       req.user.userId,
     );
+  }
+
+  @Delete('judges/:judgeId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  removeJudge(
+    @Param('hackathonId', ParseIntPipe) hackathonId: number,
+    @Param('judgeId', ParseIntPipe) judgeId: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.juryService.removeJudge(hackathonId, judgeId, req.user.userId);
   }
 
   @Get('judges')

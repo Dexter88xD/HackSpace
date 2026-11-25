@@ -61,6 +61,24 @@ export class JuryService {
     private readonly dataSource: DataSource,
   ) {}
 
+  private assertJudgeManagementAllowed(hackathon: Hackathon): void {
+    const evaluationPhase = hackathon.phases.find(
+      (phase) => phase.phaseName === HackathonPhaseName.EVALUATION,
+    );
+
+    if (!evaluationPhase) {
+      throw new BadRequestException(
+        'The EVALUATION phase has not been configured',
+      );
+    }
+
+    if (new Date() >= new Date(evaluationPhase.startAt)) {
+      throw new BadRequestException(
+        'Judge assignments cannot be modified once evaluation begins',
+      );
+    }
+  }
+
   async assignJudge(
     hackathonId: number,
     targetUserId: number,
@@ -86,15 +104,7 @@ export class JuryService {
       );
     }
 
-    const evaluationPhase = hackathon.phases.find(
-      (phase) => phase.phaseName === HackathonPhaseName.EVALUATION,
-    );
-
-    if (evaluationPhase && new Date() >= new Date(evaluationPhase.startAt)) {
-      throw new BadRequestException(
-        'Judges cannot be assigned once evaluation begins',
-      );
-    }
+    this.assertJudgeManagementAllowed(hackathon);
 
     const targetUser = await this.userRepository.findOneBy({
       id: targetUserId,
@@ -150,6 +160,46 @@ export class JuryService {
       }
 
       throw error;
+    }
+  }
+
+  async removeJudge(
+    hackathonId: number,
+    judgeId: number,
+    requesterId: number,
+  ): Promise<void> {
+    const hackathon = await this.hackathonRepository.findOne({
+      where: { id: hackathonId },
+      relations: { phases: true },
+    });
+
+    if (!hackathon) {
+      throw new NotFoundException('Hackathon not found');
+    }
+
+    const canManage = await this.hackathonsService.canEditHackathon(
+      hackathonId,
+      requesterId,
+    );
+
+    if (!canManage) {
+      throw new ForbiddenException(
+        'You are not authorised to manage this hackathon',
+      );
+    }
+
+    this.assertJudgeManagementAllowed(hackathon);
+
+    const result = await this.hackathonUserRepository.delete({
+      id: judgeId,
+      hackathon: { id: hackathonId },
+      hackRoleName: HackRoleName.JURY,
+    });
+
+    if (!result.affected) {
+      throw new NotFoundException(
+        'Judge assignment not found in this hackathon',
+      );
     }
   }
 
