@@ -14,6 +14,7 @@ import HackathonDetails from "./pages/HackathonDetails";
 import HackathonTeam from "./pages/HackathonTeam";
 import Friends from "./pages/Friends";
 import UserProfile from "./pages/UserProfile";
+import AdminUsers from "./pages/AdminUsers";
 
 function App() {
   return (
@@ -94,6 +95,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Friends />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <ProtectedRoute requiredRole="ROLE_ADMIN">
+                <AdminUsers />
               </ProtectedRoute>
             }
           />

@@ -1,6 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
+import { InjectRepository } from '@nestjs/typeorm';
 import { Strategy } from 'passport-jwt';
+import { IsNull, Repository } from 'typeorm';
+import { User } from '../../users/entities/user.entity';
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
 import type { Request } from 'express';
 
@@ -12,7 +15,10 @@ import type { Request } from 'express';
 // token has been successfully verified.
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor() {
+  constructor(
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+  ) {
     super({
       jwtFromRequest: (req: Request) => {
         const cookies = req.cookies as Record<string, unknown> | undefined;
@@ -24,7 +30,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       secretOrKey: process.env.JWT_SECRET!,
     });
   }
-  validate(payload: JwtPayload) {
+  // Also rejects tokens of users deleted after the token was issued.
+  async validate(payload: JwtPayload) {
+    const exists = await this.userRepository.existsBy({
+      id: payload.sub,
+      deletedAt: IsNull(),
+    });
+    if (!exists) throw new UnauthorizedException();
     return {
       userId: payload.sub,
     };

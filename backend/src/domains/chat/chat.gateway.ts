@@ -21,11 +21,12 @@ import type {
 import { JoinRoomDto } from './dto/join-room.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ChatMember } from './entities/chat-member.entity';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { MessageDto } from './dto/message.dto';
 import { ChatService } from './chat.service';
 import { LeaveRoomDto } from './dto/leave-room.dto';
 import { Message } from './entities/message.entity';
+import { User } from '../users/entities/user.entity';
 
 @WebSocketGateway({
   namespace: '/chat',
@@ -42,6 +43,8 @@ export class ChatGateway
     private readonly chatService: ChatService,
     @InjectRepository(ChatMember)
     private readonly chatMembershipRepository: Repository<ChatMember>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
   ) {}
 
   @WebSocketServer()
@@ -65,6 +68,13 @@ export class ChatGateway
         }
 
         const payload = await this.jwtService.verifyAsync<JwtPayload>(token);
+        const exists = await this.userRepository.existsBy({
+          id: payload.sub,
+          deletedAt: IsNull(),
+        });
+        if (!exists) {
+          return next(new Error('Unauthorized'));
+        }
 
         client.data.user = payload;
         next();
