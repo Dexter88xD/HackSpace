@@ -26,6 +26,10 @@ import type { UploadFile } from '../../shared/files/file-manager';
 import { Team } from './entities/team.entity';
 import { TeamMember } from './entities/team-member.entity';
 import { TeamSubmission } from './entities/team-submission.entity';
+import {
+  HackathonUser,
+  HackRoleName,
+} from '../hackathons/entities/hackathon-user.entity';
 
 @Injectable()
 export class TeamSubmissionsService {
@@ -42,6 +46,7 @@ export class TeamSubmissionsService {
     teamId: number,
     userId: number,
     lock = false,
+    allowJudge = false,
   ) {
     const team = await manager.findOneBy(Team, { id: teamId });
     if (!team) throw new NotFoundException('Team not found');
@@ -63,8 +68,40 @@ export class TeamSubmissionsService {
       team: { id: teamId },
       hackathonUser: { user: { id: userId } },
     });
-    if (!membership)
-      throw new ForbiddenException('You are not a member of this team');
+    if (!membership) {
+      if (!allowJudge) {
+        throw new ForbiddenException('You are not a member of this team');
+      }
+
+      const isJudge = await manager.existsBy(HackathonUser, {
+        user: { id: userId },
+        hackathon: { id: team.hackathonId },
+        hackRoleName: HackRoleName.JURY,
+      });
+
+      if (!isJudge) {
+        throw new ForbiddenException(
+          'You are not authorised to access this submission',
+        );
+      }
+
+      const evaluationPhase = await manager.findOneBy(HackathonPhase, {
+        hackathon: { id: team.hackathonId },
+        phaseName: HackathonPhaseName.EVALUATION,
+      });
+
+      const now = new Date();
+
+      if (
+        !evaluationPhase ||
+        now < evaluationPhase.startAt ||
+        now >= evaluationPhase.endAt
+      ) {
+        throw new ForbiddenException(
+          'Judges can only access submissions during evaluation',
+        );
+      }
+    }
 
     const scope = {
       team: { id: teamId },
@@ -80,6 +117,11 @@ export class TeamSubmissionsService {
     });
     const count = await manager.countBy(TeamMember, { team: { id: teamId } });
     const submission = await manager.findOneBy(TeamSubmission, { teamId });
+    if (!membership && !submission?.isSubmitted) {
+      throw new ForbiddenException(
+        'Judges can only access finalised submissions',
+      );
+    }
     const files = await manager.find(StoredFile, {
       where: scope,
       order: { createdAt: 'ASC', id: 'ASC' },
@@ -135,7 +177,9 @@ export class TeamSubmissionsService {
   }
 
   async get(teamId: number, userId: number) {
-    return this.state(await this.load(this.dataSource.manager, teamId, userId));
+    return this.state(
+      await this.load(this.dataSource.manager, teamId, userId, false, true),
+    );
   }
 
   private requireAllowed(reason: string | null): void {
@@ -149,7 +193,13 @@ export class TeamSubmissionsService {
   }
 
   async download(teamId: number, userId: number, id: string) {
-    const { files } = await this.load(this.dataSource.manager, teamId, userId);
+    const { files } = await this.load(
+      this.dataSource.manager,
+      teamId,
+      userId,
+      false,
+      true,
+    );
     const file = this.findFile(files, id);
     const name = encodeURIComponent(file.name).replace(
       /['()*]/g,
