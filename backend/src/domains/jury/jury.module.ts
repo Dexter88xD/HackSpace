@@ -9,6 +9,7 @@ import { JuryController } from './jury.controller';
 import { JuryService } from './jury.service';
 import { Hackathon } from '../hackathons/entities/hackathon.entity';
 import { Team } from '../teams/entities/team.entity';
+import { TeamSubmission } from '../teams/entities/team-submission.entity';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { Team } from '../teams/entities/team.entity';
       HackathonUser,
       User,
       Team,
+      TeamSubmission,
     ]),
     HackathonsModule,
   ],

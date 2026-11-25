@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { QueryFailedError, Repository } from 'typeorm';
+import { IsNull, Not, QueryFailedError, Repository } from 'typeorm';
 import { HackathonsService } from '../hackathons/hackathons.service';
 import { Hackathon } from '../hackathons/entities/hackathon.entity';
 import {
@@ -21,6 +21,7 @@ import { Team } from '../teams/entities/team.entity';
 import { Score } from './entities/score.entity';
 import { DataSource, In } from 'typeorm';
 import { UpsertTeamScoresDto } from './dto/upsert-team-scores.dto';
+import { TeamSubmission } from '../teams/entities/team-submission.entity';
 
 @Injectable()
 export class JuryService {
@@ -44,6 +45,9 @@ export class JuryService {
 
     @InjectRepository(Score)
     private readonly scoreRepository: Repository<Score>,
+
+    @InjectRepository(TeamSubmission)
+    private readonly submissionRepository: Repository<TeamSubmission>,
 
     private readonly dataSource: DataSource,
   ) {}
@@ -333,6 +337,18 @@ export class JuryService {
       throw new NotFoundException('Team not found in this hackathon');
     }
 
+    const isSubmitted = await this.submissionRepository.existsBy({
+      teamId,
+      hackathonId,
+      submittedAt: Not(IsNull()),
+    });
+
+    if (!isSubmitted) {
+      throw new BadRequestException(
+        'Only teams with finalised submissions can be evaluated',
+      );
+    }
+
     const criterionIds = dto.scores.map((item) => item.criterionId);
     const uniqueIds = new Set(criterionIds);
 
@@ -422,6 +438,18 @@ export class JuryService {
       throw new NotFoundException('Team not found in this hackathon');
     }
 
+    const isSubmitted = await this.submissionRepository.existsBy({
+      teamId,
+      hackathonId,
+      submittedAt: Not(IsNull()),
+    });
+
+    if (!isSubmitted) {
+      throw new BadRequestException(
+        'Only teams with finalised submissions can be evaluated',
+      );
+    }
+
     const criteria = await this.criterionRepository.find({
       where: { hackathon: { id: hackathonId } },
       order: { id: 'ASC' },
@@ -489,7 +517,7 @@ export class JuryService {
       }
     }
 
-    const [teams, criteria, scores] = await Promise.all([
+    const [teams, criteria, scores, submissions] = await Promise.all([
       this.teamRepository.find({
         where: { hackathon: { id: hackathonId } },
         order: { id: 'ASC' },
@@ -514,7 +542,21 @@ export class JuryService {
           criterion: true,
         },
       }),
+
+      this.submissionRepository.find({
+        where: {
+          hackathonId,
+          submittedAt: Not(IsNull()),
+        },
+        select: { teamId: true },
+      }),
     ]);
+
+    const submittedTeamIds = new Set(
+      submissions.map((submission) => submission.teamId),
+    );
+
+    const eligibleTeams = teams.filter((team) => submittedTeamIds.has(team.id));
 
     const criterionIds = new Set(criteria.map((criterion) => criterion.id));
 
@@ -538,7 +580,7 @@ export class JuryService {
       teamEvaluations.get(score.judge.id)!.set(score.criterion.id, score.score);
     }
 
-    const results = teams.map((team) => {
+    const results = eligibleTeams.map((team) => {
       const teamEvaluations = evaluations.get(team.id);
       const completedAverages: number[] = [];
 
