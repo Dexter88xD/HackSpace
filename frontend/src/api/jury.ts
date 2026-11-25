@@ -10,6 +10,7 @@ import type {
   TeamEvaluation,
   TeamRanking,
   UpsertTeamScoresPayload,
+  UpdateScoringCriterionPayload,
 } from "@/types/jury";
 
 export async function getHackathonJudges(hackathonId: number) {
@@ -57,6 +58,26 @@ export async function createScoringCriterion(
   );
 
   return data;
+}
+
+export async function updateScoringCriterion(
+  hackathonId: number,
+  criterionId: number,
+  payload: UpdateScoringCriterionPayload,
+) {
+  const { data } = await api.patch<ScoringCriterion>(
+    `/hackathons/${hackathonId}/criteria/${criterionId}`,
+    payload,
+  );
+
+  return data;
+}
+
+export async function removeScoringCriterion(
+  hackathonId: number,
+  criterionId: number,
+): Promise<void> {
+  await api.delete(`/hackathons/${hackathonId}/criteria/${criterionId}`);
 }
 
 export async function getEligibleTeams(hackathonId: number) {

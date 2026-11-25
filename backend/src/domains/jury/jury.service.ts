@@ -31,6 +31,7 @@ import { Team } from '../teams/entities/team.entity';
 import { Score } from './entities/score.entity';
 import { UpsertTeamScoresDto } from './dto/upsert-team-scores.dto';
 import { TeamSubmission } from '../teams/entities/team-submission.entity';
+import { UpdateScoringCriterionDto } from './dto/update-scoring-criterion.dto';
 
 @Injectable()
 export class JuryService {
@@ -246,11 +247,10 @@ export class JuryService {
     }
   }
 
-  async createCriterion(
+  private async getManageableCriteriaHackathon(
     hackathonId: number,
-    dto: CreateScoringCriterionDto,
     requesterId: number,
-  ) {
+  ): Promise<Hackathon> {
     const hackathon = await this.hackathonRepository.findOne({
       where: { id: hackathonId },
       relations: { phases: true },
@@ -272,6 +272,39 @@ export class JuryService {
     }
 
     this.assertCriteriaManagementAllowed(hackathon);
+
+    return hackathon;
+  }
+
+  private handleCriterionPersistenceError(error: unknown): never {
+    if (error instanceof QueryFailedError) {
+      const driverError = error.driverError as {
+        code?: string;
+        constraint?: string;
+      };
+
+      if (
+        driverError.code === '23505' &&
+        driverError.constraint === 'UQ_scoring_criteria_hackathon_title'
+      ) {
+        throw new ConflictException(
+          'A scoring criterion with this title already exists',
+        );
+      }
+    }
+
+    throw error;
+  }
+
+  async createCriterion(
+    hackathonId: number,
+    dto: CreateScoringCriterionDto,
+    requesterId: number,
+  ) {
+    const hackathon = await this.getManageableCriteriaHackathon(
+      hackathonId,
+      requesterId,
+    );
 
     const title = dto.title.trim();
 
@@ -308,23 +341,112 @@ export class JuryService {
         description: saved.description,
       };
     } catch (error) {
-      if (error instanceof QueryFailedError) {
-        const driverError = error.driverError as {
-          code?: string;
-          constraint?: string;
-        };
+      this.handleCriterionPersistenceError(error);
+    }
+  }
 
-        if (
-          driverError.code === '23505' &&
-          driverError.constraint === 'UQ_scoring_criteria_hackathon_title'
-        ) {
-          throw new ConflictException(
-            'A scoring criterion with this title already exists',
-          );
-        }
+  async updateCriterion(
+    hackathonId: number,
+    criterionId: number,
+    dto: UpdateScoringCriterionDto,
+    requesterId: number,
+  ) {
+    await this.getManageableCriteriaHackathon(hackathonId, requesterId);
+
+    const criterion = await this.criterionRepository.findOne({
+      where: {
+        id: criterionId,
+        hackathon: { id: hackathonId },
+      },
+    });
+
+    if (!criterion) {
+      throw new NotFoundException(
+        'Scoring criterion not found in this hackathon',
+      );
+    }
+
+    if (dto.title === undefined && dto.description === undefined) {
+      throw new BadRequestException(
+        'At least one criterion field must be provided',
+      );
+    }
+
+    const changes: Partial<ScoringCriterion> = {};
+
+    if (dto.title !== undefined) {
+      const title = dto.title.trim();
+
+      if (!title) {
+        throw new BadRequestException('Criterion title cannot be empty');
       }
 
-      throw error;
+      const existingCriterion = await this.criterionRepository.findOne({
+        where: {
+          id: Not(criterionId),
+          hackathon: { id: hackathonId },
+          title,
+        },
+      });
+
+      if (existingCriterion) {
+        throw new ConflictException(
+          'A scoring criterion with this title already exists',
+        );
+      }
+
+      changes.title = title;
+    }
+
+    if (dto.description !== undefined) {
+      changes.description = dto.description;
+    }
+
+    try {
+      const result = await this.criterionRepository.update(
+        {
+          id: criterionId,
+          hackathon: { id: hackathonId },
+        },
+        changes,
+      );
+
+      if (!result.affected) {
+        throw new NotFoundException(
+          'Scoring criterion not found in this hackathon',
+        );
+      }
+
+      return {
+        id: criterion.id,
+        hackathonId,
+        title: changes.title ?? criterion.title,
+        description:
+          changes.description !== undefined
+            ? changes.description
+            : criterion.description,
+      };
+    } catch (error) {
+      this.handleCriterionPersistenceError(error);
+    }
+  }
+
+  async removeCriterion(
+    hackathonId: number,
+    criterionId: number,
+    requesterId: number,
+  ): Promise<void> {
+    await this.getManageableCriteriaHackathon(hackathonId, requesterId);
+
+    const result = await this.criterionRepository.delete({
+      id: criterionId,
+      hackathon: { id: hackathonId },
+    });
+
+    if (!result.affected) {
+      throw new NotFoundException(
+        'Scoring criterion not found in this hackathon',
+      );
     }
   }
 

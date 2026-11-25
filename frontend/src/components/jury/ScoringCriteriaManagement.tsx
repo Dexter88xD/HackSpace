@@ -1,11 +1,31 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { createScoringCriterion, getScoringCriteria } from "@/api/jury";
+import {
+  createScoringCriterion,
+  getScoringCriteria,
+  updateScoringCriterion,
+  removeScoringCriterion,
+} from "@/api/jury";
+import type {
+  ScoringCriterion,
+  UpdateScoringCriterionPayload,
+} from "@/types/jury";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { shouldRetryQuery } from "@/lib/query-retry";
 import { getJuryError } from "./jury-error";
+import { Pencil, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type Props = {
   hackathonId: number;
@@ -16,6 +36,12 @@ export function ScoringCriteriaManagement({ hackathonId, canManage }: Props) {
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [editingCriterionId, setEditingCriterionId] = useState<number | null>(
+    null,
+  );
+
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
 
   const queryKey = ["scoring-criteria", hackathonId];
 
@@ -38,6 +64,56 @@ export function ScoringCriteriaManagement({ hackathonId, canManage }: Props) {
       await queryClient.invalidateQueries({ queryKey });
     },
   });
+
+  const updateMutation = useMutation({
+    mutationFn: ({
+      criterionId,
+      payload,
+    }: {
+      criterionId: number;
+      payload: UpdateScoringCriterionPayload;
+    }) => updateScoringCriterion(hackathonId, criterionId, payload),
+
+    onSuccess: async () => {
+      setEditingCriterionId(null);
+      setEditTitle("");
+      setEditDescription("");
+
+      await queryClient.invalidateQueries({ queryKey });
+    },
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: (criterionId: number) =>
+      removeScoringCriterion(hackathonId, criterionId),
+
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey });
+    },
+  });
+
+  const isMutating =
+    createMutation.isPending ||
+    updateMutation.isPending ||
+    removeMutation.isPending;
+
+  function startEditing(criterion: ScoringCriterion) {
+    createMutation.reset();
+    updateMutation.reset();
+    removeMutation.reset();
+
+    setEditingCriterionId(criterion.id);
+    setEditTitle(criterion.title);
+    setEditDescription(criterion.description ?? "");
+  }
+
+  function cancelEditing() {
+    setEditingCriterionId(null);
+    setEditTitle("");
+    setEditDescription("");
+
+    updateMutation.reset();
+  }
 
   const criteria = criteriaQuery.data ?? [];
 
@@ -85,18 +161,193 @@ export function ScoringCriteriaManagement({ hackathonId, canManage }: Props) {
           ) : (
             <ul className="divide-y rounded-md border">
               {criteria.map((criterion) => (
-                <li key={criterion.id} className="space-y-1 p-3">
-                  <h3 className="break-words font-medium">{criterion.title}</h3>
+                <li key={criterion.id} className="space-y-3 p-3">
+                  {canManage && editingCriterionId === criterion.id ? (
+                    <form
+                      className="space-y-3"
+                      onSubmit={(event) => {
+                        event.preventDefault();
 
-                  {criterion.description && (
-                    <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
-                      {criterion.description}
-                    </p>
+                        if (!canManage || !editTitle.trim() || isMutating) {
+                          return;
+                        }
+
+                        updateMutation.mutate({
+                          criterionId: criterion.id,
+                          payload: {
+                            title: editTitle.trim(),
+                            description: editDescription.trim() || null,
+                          },
+                        });
+                      }}
+                    >
+                      <label className="block space-y-2 text-sm">
+                        <span>Title</span>
+
+                        <input
+                          required
+                          value={editTitle}
+                          maxLength={100}
+                          disabled={isMutating}
+                          className="w-full rounded-md border bg-background px-3 py-2"
+                          onChange={(event) => {
+                            setEditTitle(event.target.value);
+                            updateMutation.reset();
+                          }}
+                        />
+                      </label>
+
+                      <label className="block space-y-2 text-sm">
+                        <span>Description (optional)</span>
+
+                        <textarea
+                          value={editDescription}
+                          rows={2}
+                          disabled={isMutating}
+                          className="w-full resize-y rounded-md border bg-background px-3 py-2"
+                          onChange={(event) => {
+                            setEditDescription(event.target.value);
+                            updateMutation.reset();
+                          }}
+                        />
+                      </label>
+
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={isMutating}
+                          onClick={cancelEditing}
+                        >
+                          Cancel
+                        </Button>
+
+                        <Button
+                          type="submit"
+                          size="sm"
+                          disabled={!editTitle.trim() || isMutating}
+                        >
+                          {updateMutation.isPending
+                            ? "Saving..."
+                            : "Save changes"}
+                        </Button>
+                      </div>
+
+                      {updateMutation.isError && (
+                        <p role="alert" className="text-sm text-destructive">
+                          {getJuryError(updateMutation.error)}
+                        </p>
+                      )}
+                    </form>
+                  ) : (
+                    <>
+                      <h3 className="break-words font-medium">
+                        {criterion.title}
+                      </h3>
+
+                      {criterion.description && (
+                        <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
+                          {criterion.description}
+                        </p>
+                      )}
+
+                      {canManage && (
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={isMutating || editingCriterionId !== null}
+                            aria-label={`Edit criterion ${criterion.title}`}
+                            onClick={() => startEditing(criterion)}
+                          >
+                            <Pencil className="size-4" aria-hidden="true" />
+                            Edit
+                          </Button>
+
+                          <AlertDialog>
+                            <AlertDialogTrigger
+                              render={
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={
+                                    isMutating || editingCriterionId !== null
+                                  }
+                                  className="text-destructive"
+                                  aria-label={`Delete criterion ${criterion.title}`}
+                                />
+                              }
+                            >
+                              <Trash2 className="size-4" aria-hidden="true" />
+
+                              {removeMutation.isPending &&
+                              removeMutation.variables === criterion.id
+                                ? "Deleting..."
+                                : "Delete"}
+                            </AlertDialogTrigger>
+
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                  Delete scoring criterion?
+                                </AlertDialogTitle>
+
+                                <AlertDialogDescription>
+                                  "{criterion.title}" will be permanently
+                                  removed from this hackathon. This action
+                                  cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+
+                              <AlertDialogAction
+                                render={
+                                  <Button
+                                    variant="destructive"
+                                    disabled={isMutating || !canManage}
+                                    onClick={() => {
+                                      createMutation.reset();
+                                      updateMutation.reset();
+                                      removeMutation.mutate(criterion.id);
+                                    }}
+                                  />
+                                }
+                              >
+                                Delete criterion
+                              </AlertDialogAction>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      )}
+                    </>
                   )}
                 </li>
               ))}
             </ul>
           ))}
+
+        {updateMutation.isSuccess && (
+          <p role="status" className="text-sm text-muted-foreground">
+            Criterion updated successfully.
+          </p>
+        )}
+
+        {removeMutation.isError && (
+          <p role="alert" className="text-sm text-destructive">
+            {getJuryError(removeMutation.error)}
+          </p>
+        )}
+
+        {removeMutation.isSuccess && (
+          <p role="status" className="text-sm text-muted-foreground">
+            Criterion deleted successfully.
+          </p>
+        )}
+
         {!canManage && (
           <p className="text-xs text-muted-foreground">
             Scoring criteria configuration is locked once the IN_PROGRESS phase
@@ -110,7 +361,14 @@ export function ScoringCriteriaManagement({ hackathonId, canManage }: Props) {
             onSubmit={(event) => {
               event.preventDefault();
 
-              if (title.trim() && !createMutation.isPending) {
+              if (
+                canManage &&
+                title.trim() &&
+                !isMutating &&
+                editingCriterionId === null
+              ) {
+                updateMutation.reset();
+                removeMutation.reset();
                 createMutation.mutate();
               }
             }}
@@ -124,7 +382,7 @@ export function ScoringCriteriaManagement({ hackathonId, canManage }: Props) {
                 required
                 value={title}
                 maxLength={100}
-                disabled={createMutation.isPending}
+                disabled={isMutating || editingCriterionId !== null}
                 placeholder="e.g. Innovation"
                 className="w-full rounded-md border bg-background px-3 py-2"
                 onChange={(event) => {
@@ -140,7 +398,7 @@ export function ScoringCriteriaManagement({ hackathonId, canManage }: Props) {
               <textarea
                 value={description}
                 rows={2}
-                disabled={createMutation.isPending}
+                disabled={isMutating || editingCriterionId !== null}
                 placeholder="Describe what judges should evaluate..."
                 className="w-full resize-y rounded-md border bg-background px-3 py-2"
                 onChange={(event) => {
@@ -152,7 +410,9 @@ export function ScoringCriteriaManagement({ hackathonId, canManage }: Props) {
 
             <Button
               type="submit"
-              disabled={!title.trim() || createMutation.isPending}
+              disabled={
+                !title.trim() || isMutating || editingCriterionId !== null
+              }
             >
               {createMutation.isPending ? "Adding..." : "Add criterion"}
             </Button>

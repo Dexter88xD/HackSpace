@@ -27,6 +27,11 @@ export type CreateScoringCriterionPayload = {
   description?: string | null;
 };
 
+export type UpdateScoringCriterionPayload = {
+  title?: string;
+  description?: string | null;
+};
+
 export type EligibleTeam = {
   teamId: number;
   teamName: string;

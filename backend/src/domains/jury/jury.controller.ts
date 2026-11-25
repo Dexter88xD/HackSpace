@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   Put,
   Req,
@@ -18,6 +19,7 @@ import { AssignJudgeDto } from './dto/assign-judge.dto';
 import { JuryService } from './jury.service';
 import { CreateScoringCriterionDto } from './dto/create-scoring-criterion.dto';
 import { UpsertTeamScoresDto } from './dto/upsert-team-scores.dto';
+import { UpdateScoringCriterionDto } from './dto/update-scoring-criterion.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('hackathons/:hackathonId')
@@ -59,6 +61,35 @@ export class JuryController {
     @Req() req: AuthenticatedRequest,
   ) {
     return this.juryService.createCriterion(hackathonId, dto, req.user.userId);
+  }
+
+  @Patch('criteria/:criterionId')
+  updateCriterion(
+    @Param('hackathonId', ParseIntPipe) hackathonId: number,
+    @Param('criterionId', ParseIntPipe) criterionId: number,
+    @Body() dto: UpdateScoringCriterionDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.juryService.updateCriterion(
+      hackathonId,
+      criterionId,
+      dto,
+      req.user.userId,
+    );
+  }
+
+  @Delete('criteria/:criterionId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  removeCriterion(
+    @Param('hackathonId', ParseIntPipe) hackathonId: number,
+    @Param('criterionId', ParseIntPipe) criterionId: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.juryService.removeCriterion(
+      hackathonId,
+      criterionId,
+      req.user.userId,
+    );
   }
 
   @Get('criteria')
