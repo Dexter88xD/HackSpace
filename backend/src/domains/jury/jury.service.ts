@@ -384,21 +384,35 @@ export class JuryService {
         throw new BadRequestException('Evaluation is not open');
       }
 
-      // Use a consistent criterion order to reduce deadlock risk
-      // when concurrent requests update overlapping scores.
-      const scores = [...dto.scores]
-        .sort((a, b) => a.criterionId - b.criterionId)
-        .map((item) => ({
+      const scoreRepository = manager.getRepository(Score);
+
+      // Use consistent criterion ordering to reduce deadlock risk.
+      const sortedScores = [...dto.scores].sort(
+        (a, b) => a.criterionId - b.criterionId,
+      );
+
+      for (const item of sortedScores) {
+        const score = {
           judge: { id: judge.id },
           team: { id: team.id },
           criterion: { id: item.criterionId },
           score: item.score,
-        }));
+        };
 
-      // Insert new scores or update existing ones atomically.
-      await manager.getRepository(Score).upsert(scores, {
-        conflictPaths: ['judge', 'team', 'criterion'],
-      });
+        // Omitted comments must not overwrite existing feedback.
+        const values =
+          item.comment === undefined
+            ? score
+            : {
+                ...score,
+                comment: item.comment?.trim() || null,
+              };
+
+        // Atomically insert or update each criterion score.
+        await scoreRepository.upsert(values, {
+          conflictPaths: ['judge', 'team', 'criterion'],
+        });
+      }
     });
 
     return this.getMyTeamScores(hackathonId, teamId, requesterId);
@@ -565,13 +579,14 @@ export class JuryService {
     });
 
     const scoreMap = new Map(
-      scores.map((score) => [score.criterion.id, score.score]),
+      scores.map((score) => [score.criterion.id, score]),
     );
 
     const result = criteria.map((criterion) => ({
       criterionId: criterion.id,
       title: criterion.title,
-      score: scoreMap.get(criterion.id) ?? null,
+      score: scoreMap.get(criterion.id)?.score ?? null,
+      comment: scoreMap.get(criterion.id)?.comment ?? null,
     }));
 
     const scoredCount = result.filter((item) => item.score !== null).length;
