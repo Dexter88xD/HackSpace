@@ -99,8 +99,8 @@ export function ScoringCriteriaManagement({ hackathonId, canManage }: Props) {
           ))}
         {!canManage && (
           <p className="text-xs text-muted-foreground">
-            Scoring criteria can only be configured during launch and
-            registration.
+            Scoring criteria configuration is locked once the IN_PROGRESS phase
+            begins.
           </p>
         )}
 

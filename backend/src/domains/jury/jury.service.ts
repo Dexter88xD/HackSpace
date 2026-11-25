@@ -178,6 +178,24 @@ export class JuryService {
     }));
   }
 
+  private assertCriteriaManagementAllowed(hackathon: Hackathon): void {
+    const inProgressPhase = hackathon.phases.find(
+      (phase) => phase.phaseName === HackathonPhaseName.IN_PROGRESS,
+    );
+
+    if (!inProgressPhase) {
+      throw new BadRequestException(
+        'The IN_PROGRESS phase has not been configured',
+      );
+    }
+
+    if (new Date() >= new Date(inProgressPhase.startAt)) {
+      throw new BadRequestException(
+        'Scoring criteria cannot be modified once IN_PROGRESS begins',
+      );
+    }
+  }
+
   async createCriterion(
     hackathonId: number,
     dto: CreateScoringCriterionDto,
@@ -203,20 +221,7 @@ export class JuryService {
       );
     }
 
-    const now = new Date();
-
-    const currentPhase = hackathon.phases.find(
-      (phase) => now >= new Date(phase.startAt) && now < new Date(phase.endAt),
-    );
-
-    if (
-      currentPhase?.phaseName !== HackathonPhaseName.LAUNCH &&
-      currentPhase?.phaseName !== HackathonPhaseName.REGISTRATION
-    ) {
-      throw new BadRequestException(
-        'Scoring criteria can only be created during launch or registration',
-      );
-    }
+    this.assertCriteriaManagementAllowed(hackathon);
 
     const title = dto.title.trim();
 

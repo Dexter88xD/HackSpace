@@ -180,10 +180,14 @@ export default function HackathonDetails() {
   const canManageJudges =
     hackathon.canEdit && evaluationPhase !== undefined && !evaluationStarted;
 
+  const inProgressPhase = hackathon.phases.find(
+    (phase) => phase.phaseName === HackathonPhaseName.IN_PROGRESS,
+  );
+
   const canManageCriteria =
     hackathon.canEdit &&
-    (phaseName === HackathonPhaseName.LAUNCH ||
-      phaseName === HackathonPhaseName.REGISTRATION);
+    inProgressPhase !== undefined &&
+    now < new Date(inProgressPhase.startAt).getTime();
 
   const canManageJury = canManageJudges || canManageCriteria;
 
