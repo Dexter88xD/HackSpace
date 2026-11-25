@@ -722,8 +722,12 @@ export class JuryService {
 
       const average =
         completedAverages.length > 0
-          ? completedAverages.reduce((sum, score) => sum + score, 0) /
-            completedAverages.length
+          ? Number(
+              (
+                completedAverages.reduce((sum, score) => sum + score, 0) /
+                completedAverages.length
+              ).toFixed(2),
+            )
           : null;
 
       return {
@@ -747,15 +751,28 @@ export class JuryService {
     });
 
     let position = 0;
+    let rank = 0;
+    let previousAverage: number | null = null;
 
-    return results.map((team) => ({
-      rank: team.average === null ? null : ++position,
-      teamId: team.teamId,
-      teamName: team.teamName,
-      averageScore:
-        team.average === null ? null : Number(team.average.toFixed(2)),
-      completedEvaluations: team.completedEvaluations,
-      status: team.status,
-    }));
+    return results.map((team) => {
+      if (team.average !== null) {
+        position++;
+
+        if (team.average !== previousAverage) {
+          rank = position;
+        }
+
+        previousAverage = team.average;
+      }
+
+      return {
+        rank: team.average === null ? null : rank,
+        teamId: team.teamId,
+        teamName: team.teamName,
+        averageScore: team.average,
+        completedEvaluations: team.completedEvaluations,
+        status: team.status,
+      };
+    });
   }
 }
