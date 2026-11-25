@@ -23,6 +23,7 @@ The following paths are defined in `frontend/src/App.tsx`.
 | `/login`               | Login                | Public        | Password sign-in and OAuth initiation                                           |
 | `/register`            | Register             | Public        | Account registration                                                            |
 | `/verify-otp`          | OTP Verification     | Public        | Email verification                                                              |
+| `/admin/users`         | User Administration  | `ROLE_ADMIN`  | List users, grant or remove the administrator role and delete users; link shown to admins only |
 
 Frontend `ProtectedRoute` verifies authentication using `GET /api/auth/me`; access controls in the UI do **not** replace backend permission checks.
 
@@ -123,6 +124,16 @@ The chat history endpoint returns messages in ascending `sentAt` order. Each mes
 
 Authentication alone is not sufficient: the authenticated user must be a member of the requested chat room. A non-member receives `403`.
 
+### Administration
+
+All endpoints use `RolesGuard` with `@Roles(ROLE_ADMIN)`; other users receive `403`.
+
+| Method  | Path                    | Access       | Purpose                                                                                       |
+| ------- | ----------------------- | ------------ | --------------------------------------------------------------------------------------------- |
+| `GET`   | `/admin/users`          | `ROLE_ADMIN` | Paginated users (`page`, `limit` up to 100); returns `{ data, total, page, limit }`           |
+| `PATCH` | `/admin/users/:id/role` | `ROLE_ADMIN` | Set `{ role: "ROLE_USER" \| "ROLE_ADMIN" }`; `409` when it would demote the last administrator |
+| `DELETE` | `/admin/users/:id`      | `ROLE_ADMIN` | Soft-delete a user (`204`): sets `deleted_at`, blocks sign-in, OAuth, sessions and sockets; `409` for the last administrator |
+
 ## Socket.IO chat protocol
 
 Socket.IO uses the `/chat` namespace. Through the normal local Caddy entry point, the Socket.IO transport is proxied at `/socket.io/*`; the browser connects to the HTTPS application origin with credentials so the `accessToken` cookie is available during the handshake.
@@ -193,6 +204,7 @@ These skill-specific permissions are enforced in `SkillsService`, including the 
 | `/hackathons/:id/team`               | Team membership and `/teams/:teamId/submission` endpoints        |
 | `/profile`                           | `/users/me/profile` and `/skills` endpoints                      |
 | `/login`, `/register`, `/verify-otp` | `/auth` endpoints                                                |
+| `/admin/users`                       | `GET /admin/users`, `PATCH /admin/users/:id/role`, `DELETE /admin/users/:id` |
 
 ## Local development tools
 

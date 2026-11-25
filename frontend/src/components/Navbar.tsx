@@ -82,7 +82,11 @@ function Navbar() {
   );
 
   const isAuthenticated = !!user;
-  const navLinks = isAuthenticated ? authenticatedLinks : guestLinks;
+  const navLinks = !isAuthenticated
+    ? guestLinks
+    : user.role === "ROLE_ADMIN"
+      ? [...authenticatedLinks, { label: "Admin", to: "/admin/users" }]
+      : authenticatedLinks;
 
   return (
     <nav

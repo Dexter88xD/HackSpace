@@ -7,7 +7,14 @@ import {
   StreamableFile,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, ILike, Not, QueryFailedError, Repository } from 'typeorm';
+import {
+  DataSource,
+  ILike,
+  IsNull,
+  Not,
+  QueryFailedError,
+  Repository,
+} from 'typeorm';
 
 import { User } from './entities/user.entity';
 import { UserProfile } from './entities/user-profile.entity';
@@ -163,7 +170,7 @@ export class UserService {
 
   async getPublicProfile(userId: number) {
     const user = await this.userRepository.findOne({
-      where: { id: userId },
+      where: { id: userId, deletedAt: IsNull() },
     });
 
     if (!user) {
@@ -205,6 +212,7 @@ export class UserService {
       where: {
         id: Not(currentUserId),
         username: ILike(`%${escaped}%`),
+        deletedAt: IsNull(),
       },
       select: {
         id: true,

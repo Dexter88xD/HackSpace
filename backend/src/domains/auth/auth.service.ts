@@ -15,7 +15,7 @@ import { OtpVerificationDto } from './dto/otp-verification.dto';
 import { LoginDto } from './dto/login.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../users/entities/user.entity';
-import { DataSource, QueryFailedError, Repository } from 'typeorm';
+import { DataSource, IsNull, QueryFailedError, Repository } from 'typeorm';
 import { RoleName, UserRole } from '../users/entities/user-role.entity';
 import { OAuthIdentity, OAuthProvider } from './entities/oauth-identity.entity';
 import { randomBytes } from 'crypto';
@@ -110,8 +110,8 @@ export class AuthService {
     const normalizedIdentifier = loginDto.identifier.trim().toLowerCase();
     const user = await this.userRepository.findOne({
       where: [
-        { email: normalizedIdentifier },
-        { username: normalizedIdentifier },
+        { email: normalizedIdentifier, deletedAt: IsNull() },
+        { username: normalizedIdentifier, deletedAt: IsNull() },
       ],
     });
     if (!user || !(await bcrypt.compare(loginDto.password, user.passwordHash)))
@@ -266,6 +266,10 @@ export class AuthService {
           });
           await identityRepository.save(newIdentity);
         }
+
+        // Throwing here also rolls back any change made above.
+        if (user.deletedAt)
+          throw new UnauthorizedException('This account has been deleted');
 
         return this.jwtService.sign({ sub: user.id });
       });

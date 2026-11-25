@@ -49,6 +49,11 @@ export class User {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date;
 
+  // Soft delete: set by an administrator. A plain column (not @DeleteDateColumn)
+  // so the user's teams, messages and other history keep loading.
+  @Column({ name: 'deleted_at', type: 'timestamp', nullable: true })
+  deletedAt!: Date | null;
+
   @OneToOne(() => UserProfile, (profile) => profile.user)
   profile!: UserProfile;
 
