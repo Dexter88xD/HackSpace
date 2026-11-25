@@ -25,6 +25,10 @@ erDiagram
   hackathons ||--o{ teams : "hackathon_id"
   hackathon_users ||--o| team_members : "hackathon_user_id"
   teams ||--o{ team_members : "team_id"
+  hackathons ||--o{ scoring_criteria : "hackathon_id"
+  hackathon_users ||--o{ scores : "judge_id"
+  teams ||--o{ scores : "team_id"
+  scoring_criteria ||--o{ scores : "criterion_id"
   user_profiles ||--o{ user_profile_skills : "profile_id"
   user_skills ||--o{ user_profile_skills : "skill_id"
 
@@ -107,6 +111,24 @@ erDiagram
     int team_id FK
     int hackathon_user_id FK,UK
   }
+  scoring_criteria {
+    int id PK
+    varchar title
+    text description
+    timestamp created_at
+    timestamp updated_at
+    int hackathon_id FK
+  }
+  scores {
+    int id PK
+    int score
+    text comment
+    timestamp created_at
+    timestamp updated_at
+    int judge_id FK
+    int team_id FK
+    int criterion_id FK
+  }
   user_skills {
     int id PK
     varchar name
@@ -120,19 +142,21 @@ erDiagram
 
 ## Constraints and important rules
 
-| Table | Relevant constraint | Purpose |
-| --- | --- | --- |
-| `users` | Unique `username` and `email` | Prevent duplicate accounts |
-| `user_profiles` | Unique `user_id` | At most one profile per user |
-| `oauth_identities` | Unique (`provider`, `provider_user_id`) | One external identity per provider and provider user |
-| `hackathons` | `start_at < end_at` | Enforce valid overall dates |
-| `hackathon_phases` | `start_at < end_at` | Enforce valid phase dates |
-| `hackathon_settings` | Unique `hackathon_id`; file limits >= 1; valid min/max team size | One settings row per hackathon, with valid limits |
-| `hackathon_users` | Unique (`user_id`, `hackathon_id`) | One registration per user per hackathon |
-| `teams` | Unique (`hackathon_id`, `name`) | No duplicate team names within a hackathon |
-| `team_members` | Unique `hackathon_user_id` | A registration may belong to at most one team |
-| `user_skills` | Unique `normalized_name` | Case/whitespace-normalised catalogue uniqueness |
-| `user_profile_skills` | Composite primary key (`profile_id`, `skill_id`) | No duplicate profile-skill association |
+| Table                 | Relevant constraint                                                | Purpose                                               |
+| --------------------- | ------------------------------------------------------------------ | ----------------------------------------------------- |
+| `users`               | Unique `username` and `email`                                      | Prevent duplicate accounts                            |
+| `user_profiles`       | Unique `user_id`                                                   | At most one profile per user                          |
+| `oauth_identities`    | Unique (`provider`, `provider_user_id`)                            | One external identity per provider and provider user  |
+| `hackathons`          | `start_at < end_at`                                                | Enforce valid overall dates                           |
+| `hackathon_phases`    | `start_at < end_at`                                                | Enforce valid phase dates                             |
+| `hackathon_settings`  | Unique `hackathon_id`; file limits >= 1; valid min/max team size   | One settings row per hackathon, with valid limits     |
+| `hackathon_users`     | Unique (`user_id`, `hackathon_id`)                                 | One registration per user per hackathon               |
+| `teams`               | Unique (`hackathon_id`, `name`)                                    | No duplicate team names within a hackathon            |
+| `team_members`        | Unique `hackathon_user_id`                                         | A registration may belong to at most one team         |
+| `scoring_criteria`    | Unique (`hackathon_id`, `title`)                                   | Prevent duplicate criterion titles within a hackathon |
+| `scores`              | Unique (`judge_id`, `team_id`, `criterion_id`); `0 <= score <= 10` | One integer score per judge/team/criterion            |
+| `user_skills`         | Unique `normalized_name`                                           | Case/whitespace-normalised catalogue uniqueness       |
+| `user_profile_skills` | Composite primary key (`profile_id`, `skill_id`)                   | No duplicate profile-skill association                |
 
 Hackathon settings defaults are `min_team_members = 1`, `max_team_members = 5`,
 `files_limit = 1`, and `file_max_size = 10485760` (10 MiB, stored in **bytes**).
@@ -145,17 +169,26 @@ Some constraints above are enforced by the database; additional domain rules
 (such as only participants joining teams, team capacity, administrator overrides
 and active registration windows) are enforced in NestJS services.
 
+## Jury and scoring
+
+Migration `1795310793374-CreateJuryScoring.ts` creates `scoring_criteria` and `scores`. Judges reuse `hackathon_users` with `hack_role_name = JURY`; no separate judge table is introduced. `scores.judge_id` references the membership ID, not `users.id`.
+
+- `scoring_criteria.title` is `varchar(100)` and non-null; `description` is nullable text. `scores.score` is a non-null integer; `comment` is nullable text. Both tables have non-null creation and update timestamps defaulting to `now()`.
+- All four new foreign keys are non-null and use `ON DELETE CASCADE`: deleting a hackathon removes its criteria, and deleting a judge membership, team or criterion removes associated scores.
+- The service enforces the judge role, same-hackathon relationships, finalised submission eligibility, phase restrictions and comment length; these are not additional database check constraints.
+- Score writes use a transaction and upsert on the unique judge/team/criterion key, with shared hackathon and team locks and consistent criterion ordering. Rankings and evaluation completion are computed on demand, not stored in a separate table.
+
 ## Naming and migration verification
 
 The development team agreed to reset local databases when the physical FK and
 skills-column names are standardised. The affected legacy physical columns are:
 
-| Table | Previous | Target |
-| --- | --- | --- |
-| `users` | `roleId` | `role_id` |
-| `user_profiles` | `userId` | `user_id` |
-| `oauth_identities` | `userId` | `user_id` |
-| `user_skills` | `normalizedName` | `normalized_name` |
+| Table              | Previous         | Target            |
+| ------------------ | ---------------- | ----------------- |
+| `users`            | `roleId`         | `role_id`         |
+| `user_profiles`    | `userId`         | `user_id`         |
+| `oauth_identities` | `userId`         | `user_id`         |
+| `user_skills`      | `normalizedName` | `normalized_name` |
 
 For a new or deliberately reset **local development** database, apply the
 current migrations and seed data in that order. Do not modify applied migration

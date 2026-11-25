@@ -48,17 +48,17 @@ Paths below are listed relative to the backend `/api` prefix. Through the normal
 
 ### Hackathons
 
-| Method   | Path                            | Access                                     | Purpose                                                          |
-| -------- | ------------------------------- | ------------------------------------------ | ---------------------------------------------------------------- |
-| `GET`    | `/hackathons`                   | Authenticated                              | List and filter hackathons                                       |
-| `GET`    | `/hackathons/mine`              | Authenticated                              | List hackathons where the user is an `ORGANIZER`                 |
-| `GET`    | `/hackathons/:id`               | Authenticated                              | Retrieve details, settings, and the `canEdit` flag                    |
-| `GET`    | `/hackathons/:id/current-phase` | Authenticated                              | Get the current hackathon phase                                  |
-| `POST`   | `/hackathons`                   | Authenticated                              | Create a hackathon with default/custom settings; creator becomes `ORGANIZER` |
-| `PATCH`  | `/hackathons/:id`               | `ORGANIZER` or `ROLE_ADMIN`                | Edit details/settings; `409` if proposed maximum is below an existing team size                   |
-| `POST`   | `/hackathons/:id/register`      | Authenticated; phase and membership checks | Register to participate                                          |
-| `DELETE` | `/hackathons/:id/unregister`    | Authenticated; membership checks           | Unregister from a hackathon                                      |
-| `GET`    | `/hackathons/:id/membership`    | Authenticated                              | Get the current user's hackathon membership                      |
+| Method   | Path                            | Access                                     | Purpose                                                                         |
+| -------- | ------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------- |
+| `GET`    | `/hackathons`                   | Authenticated                              | List and filter hackathons                                                      |
+| `GET`    | `/hackathons/mine`              | Authenticated                              | List hackathons where the user is an `ORGANIZER`                                |
+| `GET`    | `/hackathons/:id`               | Authenticated                              | Retrieve details, settings, and the `canEdit` flag                              |
+| `GET`    | `/hackathons/:id/current-phase` | Authenticated                              | Get the current hackathon phase                                                 |
+| `POST`   | `/hackathons`                   | Authenticated                              | Create a hackathon with default/custom settings; creator becomes `ORGANIZER`    |
+| `PATCH`  | `/hackathons/:id`               | `ORGANIZER` or `ROLE_ADMIN`                | Edit details/settings; `409` if proposed maximum is below an existing team size |
+| `POST`   | `/hackathons/:id/register`      | Authenticated; phase and membership checks | Register to participate                                                         |
+| `DELETE` | `/hackathons/:id/unregister`    | Authenticated; membership checks           | Unregister from a hackathon                                                     |
+| `GET`    | `/hackathons/:id/membership`    | Authenticated                              | Get the current user's hackathon membership                                     |
 
 Hackathon settings use camelCase in JSON: `minTeamMembers`, `maxTeamMembers`,
 `filesLimit`, and `fileMaxSize` (bytes). Defaults are 1, 5, 1, and 10485760
@@ -84,27 +84,49 @@ Team operations also enforce applicable constraints on membership, team capacity
 
 ### Team submissions
 
-All routes require authentication and membership in the specified team. `:teamId` is the team ID, and `:fileId` is the UUID of a file in that team's submission.
+All routes require authentication. Mutations require membership in the specified team. The two GET routes also allow a judge assigned to the same hackathon to read or download a finalised submission during active `EVALUATION`. `:teamId` is the team ID, and `:fileId` is the UUID of a file in that team's submission.
 
-| Method   | Path                                      | Success | Purpose |
-| -------- | ----------------------------------------- | ------- | ------- |
-| `GET`    | `/teams/:teamId/submission`                | `200`   | Read submission status, files, limits, and blocked actions |
-| `POST`   | `/teams/:teamId/submission/files`          | `201`   | Upload one file as the `file` field in a `multipart/form-data` request |
-| `GET`    | `/teams/:teamId/submission/files/:fileId`  | `200`   | Download a file as an attachment |
-| `DELETE` | `/teams/:teamId/submission/files/:fileId`  | `200`   | Remove a file from the draft |
-| `POST`   | `/teams/:teamId/submission/submit`         | `201`   | Submit the draft and record its submission time |
-| `POST`   | `/teams/:teamId/submission/unsubmit`       | `201`   | Reopen the draft and clear its submission time while keeping the files |
+| Method   | Path                                      | Success | Purpose                                                                |
+| -------- | ----------------------------------------- | ------- | ---------------------------------------------------------------------- |
+| `GET`    | `/teams/:teamId/submission`               | `200`   | Read submission status, files, limits, and blocked actions             |
+| `POST`   | `/teams/:teamId/submission/files`         | `201`   | Upload one file as the `file` field in a `multipart/form-data` request |
+| `GET`    | `/teams/:teamId/submission/files/:fileId` | `200`   | Download a file as an attachment                                       |
+| `DELETE` | `/teams/:teamId/submission/files/:fileId` | `200`   | Remove a file from the draft                                           |
+| `POST`   | `/teams/:teamId/submission/submit`        | `201`   | Submit the draft and record its submission time                        |
+| `POST`   | `/teams/:teamId/submission/unsubmit`      | `201`   | Reopen the draft and clear its submission time while keeping the files |
 
 Members can view and download files in any phase. Upload, delete, submit, and unsubmit require the `IN_PROGRESS` phase and a team size within the hackathon's configured range. Submit requires at least one file and locks uploads and deletions until the team unsubmits. Uploads respect the configured file count and the lower of the hackathon's per-file size limit and the server upload limit.
 
 All successful requests except downloads return the current submission state. It includes `isSubmitted`, `submittedAt` (ISO timestamp or `null`), `files` (each with `id`, `name`, and `fileType`), `filesLimit`, and `fileMaxSize` in bytes. The `blocked` object gives a reason for each unavailable action (`upload`, `delete`, `submit`, or `unsubmit`), or `null` if the action is allowed.
 
-Common errors include `401` for missing or invalid authentication, `403` for non-members, `404` for a missing team or file outside the team's submission, `409` for a blocked action, and `413` for an oversized upload.
+Common errors include `401` for missing or invalid authentication, `403` for unauthorised access, `404` for a missing team or file outside the team's submission, `409` for a blocked action, and `413` for an oversized upload.
+
+### Jury, scoring and rankings
+
+All routes require authentication. Management permissions mean hackathon `ORGANIZER` or platform `ROLE_ADMIN`.
+
+| Method | Path                                               | Access                                                               | Purpose                                                                         |
+| ------ | -------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `POST` | `/hackathons/:hackathonId/judges`                  | Management; before evaluation starts                                 | Assign an existing user as `JURY` (`201`)                                       |
+| `GET`  | `/hackathons/:hackathonId/judges`                  | Authenticated                                                        | List judges (`200`)                                                             |
+| `POST` | `/hackathons/:hackathonId/criteria`                | Management; active `LAUNCH` or `REGISTRATION`                        | Create a scoring criterion (`201`)                                              |
+| `GET`  | `/hackathons/:hackathonId/criteria`                | Authenticated                                                        | List criteria (`200`)                                                           |
+| `GET`  | `/hackathons/:hackathonId/jury/teams`              | Assigned judge; active `EVALUATION`                                  | List finalised submissions and personal evaluation progress (`200`)             |
+| `PUT`  | `/hackathons/:hackathonId/teams/:teamId/scores`    | Assigned judge; active `EVALUATION`                                  | Insert or update personal criterion scores (`200`)                              |
+| `GET`  | `/hackathons/:hackathonId/teams/:teamId/scores/me` | Assigned judge; finalised submission                                 | Read personal scores, including unscored criteria (`200`); no phase restriction |
+| `GET`  | `/hackathons/:hackathonId/rankings`                | Management before evaluation ends; any authenticated user afterwards | Read calculated rankings (`200`)                                                |
+
+- Criteria can only be created during launch or registration, including for administrators. Judge assignment stops at the evaluation start timestamp (the service checks the cutoff if an evaluation phase exists). There are no criterion edit/delete or judge removal endpoints.
+- Assigning a user who already has any hackathon membership returns `409`. Criterion titles are trimmed, non-empty, at most 100 characters before trimming, and unique within the hackathon.
+- Evaluation uses the interval `startAt <= now < endAt`. Scores are integers from 0 to 10; partial updates are accepted, duplicate or foreign criterion IDs are rejected, and only finalised teams can be scored. Omitted comments preserve previous feedback; explicit null or whitespace-only comments clear it. Comments have a maximum length of 1,000 characters.
+- A judge's evaluation is complete only when at least one criterion exists and all criteria are scored. Rankings average the criterion scores of each complete evaluation, then average those judge averages equally. Partial evaluations are excluded. Evaluated teams sort by unrounded average descending, then team ID ascending, receiving sequential ranks even for ties. Displayed averages are rounded to two decimal places. Finalised teams without complete evaluations have null rank and average and appear last, ordered by ID.
+- `400` indicates invalid input, a disallowed phase or an ineligible submission; `401` missing authentication; `403` insufficient permissions; `404` missing hackathon, team or target user as applicable; `409` duplicate membership or criterion title.
+- The hackathon details UI provides management controls before their respective cutoffs, judge evaluation during evaluation, management ranking previews during evaluation, and published rankings after evaluation ends. Submission viewing and downloads reuse the team submission GET endpoints above.
 
 ### Chat history
 
-| Method | Path                              | Access              | Purpose                         |
-| ------ | --------------------------------- | ------------------- | ------------------------------- |
+| Method | Path                               | Access               | Purpose                          |
+| ------ | ---------------------------------- | -------------------- | -------------------------------- |
 | `GET`  | `/chat-rooms/:chatRoomId/messages` | Authenticated member | Load persisted team chat history |
 
 The chat history endpoint returns messages in ascending `sentAt` order. Each message contains only the fields needed by the frontend:
@@ -133,18 +155,18 @@ The gateway verifies the `accessToken` cookie during the Socket.IO handshake. If
 
 ### Client-to-server events
 
-| Event        | Payload                         | Acknowledgement                                      | Purpose                                      |
-| ------------ | ------------------------------- | ---------------------------------------------------- | -------------------------------------------- |
-| `join-chat`  | `{ chatRoomId: number }`         | `{ success: boolean, error?: string }`               | Verify membership and join `chat:<chatRoomId>` |
-| `send-message` | `{ chatRoomId: number, content: string }` | `{ success: boolean, message?: Message, error?: string }` | Validate, persist and broadcast a message |
+| Event          | Payload                                   | Acknowledgement                                           | Purpose                                        |
+| -------------- | ----------------------------------------- | --------------------------------------------------------- | ---------------------------------------------- |
+| `join-chat`    | `{ chatRoomId: number }`                  | `{ success: boolean, error?: string }`                    | Verify membership and join `chat:<chatRoomId>` |
+| `send-message` | `{ chatRoomId: number, content: string }` | `{ success: boolean, message?: Message, error?: string }` | Validate, persist and broadcast a message      |
 
 The frontend applies a five-second timeout to acknowledgement-based events. Timeout errors are separate from a server response with `success: false` and must be handled separately.
 
 ### Server-to-client events
 
-| Event         | Payload   | Recipients                              | Purpose                         |
-| ------------- | --------- | --------------------------------------- | ------------------------------- |
-| `new-message` | `Message` | Members of `chat:<chatRoomId>`          | Deliver a persisted live message |
+| Event         | Payload   | Recipients                     | Purpose                          |
+| ------------- | --------- | ------------------------------ | -------------------------------- |
+| `new-message` | `Message` | Members of `chat:<chatRoomId>` | Deliver a persisted live message |
 
 `Message` has the same shape as the HTTP history response:
 
@@ -183,24 +205,24 @@ These skill-specific permissions are enforced in `SkillsService`, including the 
 
 ## Frontend-to-API mapping
 
-| Frontend page                        | Main backend endpoints                                           |
-| ------------------------------------ | ---------------------------------------------------------------- |
-| `/hackathon-explorer`                | `GET /hackathons`, `GET /hackathons/:id`                         |
-| `/hackathons`                        | `GET /hackathons` (admin), `GET /hackathons/mine` (regular user) |
-| `/hackathons/new`                    | `POST /hackathons`                                               |
-| `/hackathons/:id`                    | `GET /hackathons/:id`, membership and registration endpoints     |
-| `/hackathons/:id/edit`               | `GET /hackathons/:id`, `PATCH /hackathons/:id`                   |
-| `/hackathons/:id/team`               | Team membership and `/teams/:teamId/submission` endpoints        |
-| `/profile`                           | `/users/me/profile` and `/skills` endpoints                      |
-| `/login`, `/register`, `/verify-otp` | `/auth` endpoints                                                |
+| Frontend page                        | Main backend endpoints                                                                            |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| `/hackathon-explorer`                | `GET /hackathons`, `GET /hackathons/:id`                                                          |
+| `/hackathons`                        | `GET /hackathons` (admin), `GET /hackathons/mine` (regular user)                                  |
+| `/hackathons/new`                    | `POST /hackathons`                                                                                |
+| `/hackathons/:id`                    | `GET /hackathons/:id`, membership, registration, jury, criteria, evaluation and ranking endpoints |
+| `/hackathons/:id/edit`               | `GET /hackathons/:id`, `PATCH /hackathons/:id`                                                    |
+| `/hackathons/:id/team`               | Team membership and `/teams/:teamId/submission` endpoints                                         |
+| `/profile`                           | `/users/me/profile` and `/skills` endpoints                                                       |
+| `/login`, `/register`, `/verify-otp` | `/auth` endpoints                                                                                 |
 
 ## Local development tools
 
-| URL                         | Purpose                          |
-| --------------------------- | -------------------------------- |
+| URL                               | Purpose                          |
+| --------------------------------- | -------------------------------- |
 | `https://localhost:8443/api/docs` | Swagger UI                       |
-| `http://localhost:5173`     | Frontend application             |
-| `http://localhost:8081`     | Adminer, when enabled in Compose |
+| `http://localhost:5173`           | Frontend application             |
+| `http://localhost:8081`           | Adminer, when enabled in Compose |
 
 For local setup and environment variables, see [Development Setup](./DEVELOPMENT_SETUP.md). For coding standards and permissions, see [Development Guidelines](./DEVELOPMENT_GUIDELINES.md).
 

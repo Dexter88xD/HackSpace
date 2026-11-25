@@ -3,10 +3,10 @@ info:
   title: HackSpace API
   version: 0.2.0
   description: |
-    HTTP API served at the backend root. The interactive Swagger UI is at /api;
-    /api is not a prefix for these endpoint paths. JSON property names use camelCase.
+    HTTP API served under /api. The interactive Swagger UI is at /api/docs.
+    Endpoint paths below are relative to /api. JSON property names use camelCase.
 servers:
-  - url: /
+  - url: /api
 security:
   - accessToken: []
 paths:
@@ -314,7 +314,11 @@ paths:
           name: error
           schema: { type: string }
       responses:
-        "302": { description: Redirect to frontend, setting accessToken cookie on success }
+        "302":
+          {
+            description: Redirect to frontend,
+            setting accessToken cookie on success,
+          }
   /users/me/profile:
     get:
       tags: [Profiles]
@@ -394,7 +398,14 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/HackathonWithSettings" }
-        "400": { description: Invalid input, missing or duplicate phases, invalid dates, gaps, overlaps or misaligned hackathon boundaries }
+        "400":
+          {
+            description: Invalid input,
+            missing or duplicate phases,
+            invalid dates,
+            gaps,
+            overlaps or misaligned hackathon boundaries,
+          }
         "401": { description: Authentication required }
   /hackathons/mine:
     get:
@@ -440,11 +451,20 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/HackathonWithSettings" }
-        "400": { description: Empty or invalid update; duplicate phases, invalid dates, gaps, overlaps or misaligned hackathon boundaries }
+        "400":
+          {
+            description: Empty or invalid update; duplicate phases,
+            invalid dates,
+            gaps,
+            overlaps or misaligned hackathon boundaries,
+          }
         "401": { description: Authentication required }
         "403": { description: Organiser or platform administrator required }
         "404": { description: Hackathon or settings not found }
-        "409": { description: Proposed maximum team size is below an existing team's current membership count }
+        "409":
+          {
+            description: Proposed maximum team size is below an existing team's current membership count,
+          }
   /hackathons/{id}/current-phase:
     parameters:
       - $ref: "#/components/parameters/HackathonId"
@@ -625,6 +645,293 @@ paths:
         "400": { description: Invalid chat room ID }
         "401": { description: Authentication required }
         "403": { description: Chat room membership required }
+  /hackathons/{hackathonId}/judges:
+    parameters:
+      - $ref: "#/components/parameters/HackathonIdNamed"
+    post:
+      tags:
+        - Jury
+      summary: Assign judge
+      description:
+        Organiser or platform administrator. Rejected at or after evaluation start when that phase exists. Target
+        must have no existing hackathon membership.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignJudge"
+      responses:
+        "201":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssignedJudge"
+        "401":
+          description: Authentication required
+        "400":
+          description: Invalid input or assignment closed
+        "403":
+          description: Management permission required
+        "404":
+          description: Hackathon or user not found
+        "409":
+          description: Existing hackathon membership
+    get:
+      tags:
+        - Jury
+      summary: List judges
+      description: Any authenticated user; ordered by membership ID.
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/HackathonJudge"
+        "401":
+          description: Authentication required
+        "404":
+          description: Hackathon not found
+  /hackathons/{hackathonId}/criteria:
+    parameters:
+      - $ref: "#/components/parameters/HackathonIdNamed"
+    post:
+      tags:
+        - Jury
+      summary: Create scoring criterion
+      description:
+        Organiser or platform administrator during active LAUNCH or REGISTRATION only. Title is trimmed and must
+        remain non-empty; exact title must be unique within hackathon.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateScoringCriterion"
+      responses:
+        "201":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScoringCriterion"
+        "401":
+          description: Authentication required
+        "400":
+          description: Invalid input or criteria creation closed
+        "403":
+          description: Management permission required
+        "404":
+          description: Hackathon not found
+        "409":
+          description: Duplicate criterion title
+    get:
+      tags:
+        - Jury
+      summary: List scoring criteria
+      description: Any authenticated user; ordered by criterion ID.
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ScoringCriterion"
+        "401":
+          description: Authentication required
+        "404":
+          description: Hackathon not found
+  /hackathons/{hackathonId}/jury/teams:
+    parameters:
+      - $ref: "#/components/parameters/HackathonIdNamed"
+    get:
+      tags:
+        - Jury
+      summary: List eligible jury teams
+      description:
+        Assigned judge during active EVALUATION (start inclusive, end exclusive). Only finalised submissions, ordered
+        by team ID; progress is specific to requester. Completion requires at least one criterion and all criteria scored.
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/JuryEligibleTeam"
+        "401":
+          description: Authentication required
+        "400":
+          description: Evaluation is not open
+        "403":
+          description: Assigned judge required
+        "404":
+          description: Hackathon not found
+  /hackathons/{hackathonId}/teams/{teamId}/scores:
+    parameters:
+      - $ref: "#/components/parameters/HackathonIdNamed"
+      - in: path
+        name: teamId
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+    put:
+      tags:
+        - Jury
+      summary: Upsert personal team scores
+      description:
+        Assigned judge during active EVALUATION only; finalised team in same hackathon. Partial updates allowed;
+        criterion IDs must be distinct and belong to hackathon. Transactional upsert returns full personal evaluation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertTeamScores"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamEvaluation"
+        "401":
+          description: Authentication required
+        "400":
+          description: Invalid scores, duplicate or foreign criteria, unfinalised submission or evaluation closed
+        "403":
+          description: Assigned judge required
+        "404":
+          description: Hackathon or team not found
+  /hackathons/{hackathonId}/teams/{teamId}/scores/me:
+    parameters:
+      - $ref: "#/components/parameters/HackathonIdNamed"
+      - in: path
+        name: teamId
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+    get:
+      tags:
+        - Jury
+      summary: Read personal team scores
+      description:
+        Assigned judge; finalised team in same hackathon. No evaluation phase restriction. All criteria ordered by
+        ID, with null score and comment if not scored.
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamEvaluation"
+        "401":
+          description: Authentication required
+        "400":
+          description: Submission not finalised
+        "403":
+          description: Assigned judge required
+        "404":
+          description: Hackathon or team not found
+  /hackathons/{hackathonId}/rankings:
+    parameters:
+      - $ref: "#/components/parameters/HackathonIdNamed"
+    get:
+      tags:
+        - Jury
+      summary: Get hackathon rankings
+      description:
+        Before evaluation ends, organiser or platform administrator only; afterwards any authenticated user. Finalised
+        teams only. Average each complete judge evaluation across all criteria, then average complete evaluations equally. Partial
+        evaluations excluded. Sort by unrounded average descending then team ID ascending; sequential ranks, displayed average
+        rounded to two decimals. Teams without complete evaluations sort last by ID with null rank and average.
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TeamRanking"
+        "401":
+          description: Authentication required
+        "403":
+          description: Rankings not available to requester yet
+        "404":
+          description: Hackathon not found
+  /teams/{teamId}/submission:
+    parameters:
+      - in: path
+        name: teamId
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+    get:
+      tags:
+        - Teams
+      summary: Read submission state
+      description:
+        Team member, or assigned judge of the same hackathon during active EVALUATION for a finalised submission.
+        Judge access is read-only.
+      responses:
+        "200":
+          description: Submission state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JuryReadableSubmission"
+        "401":
+          description: Authentication required
+        "403":
+          description: Submission access denied
+        "404":
+          description: Team not found
+  /teams/{teamId}/submission/files/{fileId}:
+    parameters:
+      - in: path
+        name: teamId
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+      - in: path
+        name: fileId
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags:
+        - Teams
+      summary: Download submission file
+      description:
+        Team member, or assigned judge of the same hackathon during active EVALUATION for a finalised submission.
+        Judge access is read-only.
+      responses:
+        "200":
+          description: Submission file
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "401":
+          description: Authentication required
+        "403":
+          description: Submission access denied
+        "404":
+          description: Team or file not found
 components:
   securitySchemes:
     accessToken:
@@ -755,7 +1062,12 @@ components:
       required: [phaseName, startAt, endAt]
       properties:
         phaseName: { $ref: "#/components/schemas/PhaseName" }
-        description: { type: string, nullable: true, description: "Optional; defaults to null on creation. On update, omit to preserve the existing description, or send null to clear it." }
+        description:
+          {
+            type: string,
+            nullable: true,
+            description: "Optional; defaults to null on creation. On update, omit to preserve the existing description, or send null to clear it.",
+          }
         startAt: { type: string, format: date-time }
         endAt: { type: string, format: date-time }
     HackathonSettingsInput:
@@ -763,10 +1075,32 @@ components:
       additionalProperties: false
       description: "Optional settings fields. Omitted values use defaults on create (minTeamMembers 1, maxTeamMembers 5, filesLimit 1, fileMaxSize 10485760 bytes), or retain saved values on update. Minimum must not exceed maximum. Changes to file limits do not delete existing uploaded files; new uploads and replacements must comply with current limits. Submission-time enforcement is handled by the submission feature."
       properties:
-        minTeamMembers: { type: integer, minimum: 1, description: "Minimum team size required at project submission." }
-        maxTeamMembers: { type: integer, minimum: 1, description: "Maximum allowed team membership; cannot be reduced below an existing team's size." }
-        filesLimit: { type: integer, minimum: 1, maximum: 2147483647, description: "Maximum submission file count; at least one file may be uploaded." }
-        fileMaxSize: { type: integer, minimum: 1, maximum: 2147483647, description: "Maximum size per uploaded file, in bytes; the frontend displays MiB." }
+        minTeamMembers:
+          {
+            type: integer,
+            minimum: 1,
+            description: "Minimum team size required at project submission.",
+          }
+        maxTeamMembers:
+          {
+            type: integer,
+            minimum: 1,
+            description: "Maximum allowed team membership; cannot be reduced below an existing team's size.",
+          }
+        filesLimit:
+          {
+            type: integer,
+            minimum: 1,
+            maximum: 2147483647,
+            description: "Maximum submission file count; at least one file may be uploaded.",
+          }
+        fileMaxSize:
+          {
+            type: integer,
+            minimum: 1,
+            maximum: 2147483647,
+            description: "Maximum size per uploaded file, in bytes; the frontend displays MiB.",
+          }
     HackathonSettings:
       type: object
       additionalProperties: false
@@ -776,7 +1110,13 @@ components:
         minTeamMembers: { type: integer, minimum: 1 }
         maxTeamMembers: { type: integer, minimum: 1 }
         filesLimit: { type: integer, minimum: 1, maximum: 2147483647 }
-        fileMaxSize: { type: integer, minimum: 1, maximum: 2147483647, description: "Bytes" }
+        fileMaxSize:
+          {
+            type: integer,
+            minimum: 1,
+            maximum: 2147483647,
+            description: "Bytes",
+          }
     HackathonInput:
       type: object
       additionalProperties: false
@@ -813,7 +1153,17 @@ components:
           items: { $ref: "#/components/schemas/HackathonPhaseInput" }
     Hackathon:
       type: object
-      required: [id, title, description, organizationName, startAt, endAt, createdAt, updatedAt]
+      required:
+        [
+          id,
+          title,
+          description,
+          organizationName,
+          startAt,
+          endAt,
+          createdAt,
+          updatedAt,
+        ]
       properties:
         id: { type: integer }
         title: { type: string }
@@ -912,7 +1262,17 @@ components:
         joinedAt: { type: string, format: date-time }
     Team:
       type: object
-      required: [id, name, description, createdAt, hackathonId, minMembers, maxMembers, members]
+      required:
+        [
+          id,
+          name,
+          description,
+          createdAt,
+          hackathonId,
+          minMembers,
+          maxMembers,
+          members,
+        ]
       properties:
         id: { type: integer }
         name: { type: string }
@@ -960,3 +1320,281 @@ components:
         - required: [name]
           properties:
             id: { type: integer, nullable: true, enum: [null] }
+    AssignJudge:
+      type: object
+      required:
+        - userId
+      properties:
+        userId:
+          type: integer
+          minimum: 1
+      additionalProperties: false
+    AssignedJudge:
+      type: object
+      required:
+        - id
+        - userId
+        - hackathonId
+        - role
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        userId:
+          type: integer
+          minimum: 1
+        hackathonId:
+          type: integer
+          minimum: 1
+        role:
+          type: string
+          enum:
+            - JURY
+    HackathonJudge:
+      type: object
+      required:
+        - id
+        - userId
+        - username
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        userId:
+          type: integer
+          minimum: 1
+        username:
+          type: string
+    CreateScoringCriterion:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          nullable: true
+      additionalProperties: false
+    ScoringCriterion:
+      type: object
+      required:
+        - id
+        - hackathonId
+        - title
+        - description
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        hackathonId:
+          type: integer
+          minimum: 1
+        title:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+          nullable: true
+    CriterionScoreInput:
+      type: object
+      required:
+        - criterionId
+        - score
+      properties:
+        criterionId:
+          type: integer
+          minimum: 1
+        score:
+          type: integer
+          minimum: 0
+          maximum: 10
+        comment:
+          type: string
+          nullable: true
+          maxLength: 1000
+          description: Omit to preserve existing feedback; null or whitespace-only clears it.
+      additionalProperties: false
+    UpsertTeamScores:
+      type: object
+      required:
+        - scores
+      properties:
+        scores:
+          type: array
+          items:
+            $ref: "#/components/schemas/CriterionScoreInput"
+          minItems: 1
+      additionalProperties: false
+    CriterionScore:
+      type: object
+      required:
+        - criterionId
+        - title
+        - score
+        - comment
+      properties:
+        criterionId:
+          type: integer
+          minimum: 1
+        title:
+          type: string
+        score:
+          type: integer
+          minimum: 0
+          maximum: 10
+          nullable: true
+        comment:
+          type: string
+          nullable: true
+    TeamEvaluation:
+      type: object
+      required:
+        - hackathonId
+        - teamId
+        - judgeId
+        - isComplete
+        - scoredCount
+        - totalCriteria
+        - scores
+      properties:
+        hackathonId:
+          type: integer
+          minimum: 1
+        teamId:
+          type: integer
+          minimum: 1
+        judgeId:
+          type: integer
+          minimum: 1
+          description: Hackathon membership ID, not user ID.
+        isComplete:
+          type: boolean
+        scoredCount:
+          type: integer
+          minimum: 0
+        totalCriteria:
+          type: integer
+          minimum: 0
+        scores:
+          type: array
+          items:
+            $ref: "#/components/schemas/CriterionScore"
+    JuryEligibleTeam:
+      type: object
+      required:
+        - teamId
+        - teamName
+        - submittedAt
+        - scoredCount
+        - totalCriteria
+        - isComplete
+      properties:
+        teamId:
+          type: integer
+          minimum: 1
+        teamName:
+          type: string
+        submittedAt:
+          type: string
+          format: date-time
+        scoredCount:
+          type: integer
+          minimum: 0
+        totalCriteria:
+          type: integer
+          minimum: 0
+        isComplete:
+          type: boolean
+    TeamRanking:
+      type: object
+      required:
+        - rank
+        - teamId
+        - teamName
+        - averageScore
+        - completedEvaluations
+        - status
+      properties:
+        rank:
+          type: integer
+          minimum: 1
+          nullable: true
+        teamId:
+          type: integer
+          minimum: 1
+        teamName:
+          type: string
+        averageScore:
+          type: number
+          minimum: 0
+          maximum: 10
+          nullable: true
+        completedEvaluations:
+          type: integer
+          minimum: 0
+        status:
+          type: string
+          enum:
+            - EVALUATED
+            - NOT_EVALUATED
+    JuryReadableSubmission:
+      type: object
+      required:
+        - submittedAt
+        - isSubmitted
+        - files
+        - filesLimit
+        - fileMaxSize
+        - blocked
+      properties:
+        submittedAt:
+          type: string
+          format: date-time
+          nullable: true
+        isSubmitted:
+          type: boolean
+        files:
+          type: array
+          items:
+            type: object
+            required:
+              - id
+              - name
+              - fileType
+            properties:
+              id:
+                type: string
+                format: uuid
+              name:
+                type: string
+              fileType:
+                type: string
+        filesLimit:
+          type: integer
+          minimum: 0
+        fileMaxSize:
+          type: integer
+          minimum: 0
+        blocked:
+          type: object
+          required:
+            - upload
+            - delete
+            - submit
+            - unsubmit
+          properties:
+            upload:
+              type: string
+              nullable: true
+            delete:
+              type: string
+              nullable: true
+            submit:
+              type: string
+              nullable: true
+            unsubmit:
+              type: string
+              nullable: true
