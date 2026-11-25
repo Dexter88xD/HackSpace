@@ -8,6 +8,13 @@ export type AssignJudgePayload = {
   userId: number;
 };
 
+export type AssignJudgeResponse = {
+  id: number;
+  userId: number;
+  hackathonId: number;
+  role: "JURY";
+};
+
 export type ScoringCriterion = {
   id: number;
   hackathonId: number;

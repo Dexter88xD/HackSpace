@@ -2,6 +2,7 @@ import api from "./client";
 
 import type {
   AssignJudgePayload,
+  AssignJudgeResponse,
   CreateScoringCriterionPayload,
   EligibleTeam,
   HackathonJudge,
@@ -23,7 +24,7 @@ export async function assignHackathonJudge(
   hackathonId: number,
   payload: AssignJudgePayload,
 ) {
-  const { data } = await api.post<HackathonJudge>(
+  const { data } = await api.post<AssignJudgeResponse>(
     `/hackathons/${hackathonId}/judges`,
     payload,
   );
