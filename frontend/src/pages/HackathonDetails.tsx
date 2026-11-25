@@ -22,6 +22,7 @@ import { useEffect, useState } from "react";
 import HackathonPhaseSchedule from "@/components/hackathon/hackathon-phase-schedule";
 import LaunchPhaseView from "@/components/hackathon/phases/launch-phase-view";
 import RegistrationPhaseView from "@/components/hackathon/phases/registration-phase-view";
+import InProgressPhaseView from "@/components/hackathon/phases/in-progress-phase-view";
 import EvaluationPhaseView from "@/components/hackathon/phases/evaluation-phase-view";
 import FinishedPhaseView from "@/components/hackathon/phases/finished-phase-view";
 
@@ -315,6 +316,24 @@ export default function HackathonDetails() {
             isMembershipPending={isMembershipPending}
             isMembershipError={isMembershipError}
             isMembershipSuccess={isMembershipSuccess}
+            onRetryMembership={() => void refetchMembership()}
+          />
+        )}
+
+      {/* IN_PROGRESS phase view */}
+      {!isPhasePending &&
+        !isPhaseError &&
+        !evaluationEnded &&
+        currentPhase?.phaseName === HackathonPhaseName.IN_PROGRESS &&
+        now >= new Date(currentPhase.startAt).getTime() &&
+        now < new Date(currentPhase.endAt).getTime() && (
+          <InProgressPhaseView
+            key={hackathon.id}
+            hackathonId={hackathon.id}
+            phaseEndAt={currentPhase.endAt}
+            membership={membership}
+            isMembershipPending={isMembershipPending}
+            isMembershipError={isMembershipError}
             onRetryMembership={() => void refetchMembership()}
           />
         )}
