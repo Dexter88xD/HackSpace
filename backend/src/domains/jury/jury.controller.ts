@@ -88,4 +88,12 @@ export class JuryController {
   ) {
     return this.juryService.getRankings(hackathonId, req.user.userId);
   }
+
+  @Get('jury/teams')
+  findEligibleTeams(
+    @Param('hackathonId', ParseIntPipe) hackathonId: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.juryService.findEligibleTeams(hackathonId, req.user.userId);
+  }
 }

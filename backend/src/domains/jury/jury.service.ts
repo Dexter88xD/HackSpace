@@ -6,7 +6,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Not, QueryFailedError, Repository } from 'typeorm';
+import {
+  DataSource,
+  In,
+  IsNull,
+  Not,
+  QueryFailedError,
+  Repository,
+} from 'typeorm';
 import { HackathonsService } from '../hackathons/hackathons.service';
 import { Hackathon } from '../hackathons/entities/hackathon.entity';
 import {
@@ -15,11 +22,13 @@ import {
 } from '../hackathons/entities/hackathon-user.entity';
 import { User } from '../users/entities/user.entity';
 import { CreateScoringCriterionDto } from './dto/create-scoring-criterion.dto';
-import { HackathonPhaseName } from '../hackathons/entities/hackathon-phase.entity';
+import {
+  HackathonPhase,
+  HackathonPhaseName,
+} from '../hackathons/entities/hackathon-phase.entity';
 import { ScoringCriterion } from './entities/scoring-criterion.entity';
 import { Team } from '../teams/entities/team.entity';
 import { Score } from './entities/score.entity';
-import { DataSource, In } from 'typeorm';
 import { UpsertTeamScoresDto } from './dto/upsert-team-scores.dto';
 import { TeamSubmission } from '../teams/entities/team-submission.entity';
 
@@ -289,6 +298,113 @@ export class JuryService {
     requesterId: number,
     dto: UpsertTeamScoresDto,
   ) {
+    await this.dataSource.transaction(async (manager) => {
+      // Protect the evaluation schedule against concurrent modifications.
+      const hackathon = await manager.findOne(Hackathon, {
+        where: { id: hackathonId },
+        lock: { mode: 'pessimistic_read' },
+      });
+
+      if (!hackathon) {
+        throw new NotFoundException('Hackathon not found');
+      }
+
+      const evaluationPhase = await manager.findOneBy(HackathonPhase, {
+        hackathon: { id: hackathonId },
+        phaseName: HackathonPhaseName.EVALUATION,
+      });
+
+      const judge = await manager.findOne(HackathonUser, {
+        where: {
+          user: { id: requesterId },
+          hackathon: { id: hackathonId },
+          hackRoleName: HackRoleName.JURY,
+        },
+      });
+
+      if (!judge) {
+        throw new ForbiddenException(
+          'You are not assigned as a judge for this hackathon',
+        );
+      }
+
+      const team = await manager.findOne(Team, {
+        where: {
+          id: teamId,
+          hackathonId,
+        },
+        lock: { mode: 'pessimistic_read' },
+      });
+
+      if (!team) {
+        throw new NotFoundException('Team not found in this hackathon');
+      }
+
+      const isSubmitted = await manager.existsBy(TeamSubmission, {
+        teamId,
+        hackathonId,
+        submittedAt: Not(IsNull()),
+      });
+
+      if (!isSubmitted) {
+        throw new BadRequestException(
+          'Only teams with finalised submissions can be evaluated',
+        );
+      }
+
+      const criterionIds = dto.scores.map((item) => item.criterionId);
+      const uniqueIds = new Set(criterionIds);
+
+      if (uniqueIds.size !== criterionIds.length) {
+        throw new BadRequestException(
+          'Duplicate criterion IDs are not allowed',
+        );
+      }
+
+      const criteria = await manager.find(ScoringCriterion, {
+        where: {
+          id: In(criterionIds),
+          hackathon: { id: hackathonId },
+        },
+      });
+
+      if (criteria.length !== criterionIds.length) {
+        throw new BadRequestException(
+          'One or more criteria do not belong to this hackathon',
+        );
+      }
+
+      const now = new Date();
+
+      if (
+        !evaluationPhase ||
+        now < evaluationPhase.startAt ||
+        now >= evaluationPhase.endAt
+      ) {
+        throw new BadRequestException('Evaluation is not open');
+      }
+
+      // Use a consistent criterion order to reduce deadlock risk
+      // when concurrent requests update overlapping scores.
+      const scores = [...dto.scores]
+        .sort((a, b) => a.criterionId - b.criterionId)
+        .map((item) => ({
+          judge: { id: judge.id },
+          team: { id: team.id },
+          criterion: { id: item.criterionId },
+          score: item.score,
+        }));
+
+      // Insert new scores or update existing ones atomically.
+      await manager.getRepository(Score).upsert(scores, {
+        conflictPaths: ['judge', 'team', 'criterion'],
+      });
+    });
+
+    return this.getMyTeamScores(hackathonId, teamId, requesterId);
+  }
+
+  async findEligibleTeams(hackathonId: number, requesterId: number) {
     const hackathon = await this.hackathonRepository.findOne({
       where: { id: hackathonId },
       relations: { phases: true },
@@ -296,20 +412,6 @@ export class JuryService {
 
     if (!hackathon) {
       throw new NotFoundException('Hackathon not found');
-    }
-
-    const evaluationPhase = hackathon.phases.find(
-      (phase) => phase.phaseName === HackathonPhaseName.EVALUATION,
-    );
-
-    const now = new Date();
-
-    if (
-      !evaluationPhase ||
-      new Date(evaluationPhase.startAt) > now ||
-      new Date(evaluationPhase.endAt) <= now
-    ) {
-      throw new BadRequestException('Evaluation is not open');
     }
 
     const judge = await this.hackathonUserRepository.findOne({
@@ -326,78 +428,77 @@ export class JuryService {
       );
     }
 
-    const team = await this.teamRepository.findOne({
-      where: {
-        id: teamId,
-        hackathon: { id: hackathonId },
-      },
-    });
+    const evaluationPhase = hackathon.phases.find(
+      (phase) => phase.phaseName === HackathonPhaseName.EVALUATION,
+    );
 
-    if (!team) {
-      throw new NotFoundException('Team not found in this hackathon');
+    const now = new Date();
+
+    if (
+      !evaluationPhase ||
+      now < evaluationPhase.startAt ||
+      now >= evaluationPhase.endAt
+    ) {
+      throw new BadRequestException('Evaluation is not open');
     }
 
-    const isSubmitted = await this.submissionRepository.existsBy({
-      teamId,
-      hackathonId,
-      submittedAt: Not(IsNull()),
-    });
+    const [submissions, criteria, scores] = await Promise.all([
+      this.submissionRepository.find({
+        where: {
+          hackathonId,
+          submittedAt: Not(IsNull()),
+        },
+        relations: { team: true },
+        order: { teamId: 'ASC' },
+      }),
 
-    if (!isSubmitted) {
-      throw new BadRequestException(
-        'Only teams with finalised submissions can be evaluated',
-      );
-    }
+      this.criterionRepository.find({
+        where: { hackathon: { id: hackathonId } },
+        select: { id: true },
+      }),
 
-    const criterionIds = dto.scores.map((item) => item.criterionId);
-    const uniqueIds = new Set(criterionIds);
+      this.scoreRepository.find({
+        where: {
+          judge: { id: judge.id },
+          team: { hackathon: { id: hackathonId } },
+          criterion: { hackathon: { id: hackathonId } },
+        },
+        relations: {
+          team: true,
+          criterion: true,
+        },
+      }),
+    ]);
 
-    if (uniqueIds.size !== criterionIds.length) {
-      throw new BadRequestException('Duplicate criterion IDs are not allowed');
-    }
+    const criterionIds = new Set(criteria.map((criterion) => criterion.id));
 
-    const criteria = await this.criterionRepository.find({
-      where: {
-        id: In(criterionIds),
-        hackathon: { id: hackathonId },
-      },
-    });
+    const teamScores = new Map<number, Set<number>>();
 
-    if (criteria.length !== criterionIds.length) {
-      throw new BadRequestException(
-        'One or more criteria do not belong to this hackathon',
-      );
-    }
-
-    await this.dataSource.transaction(async (manager) => {
-      const scoreRepository = manager.getRepository(Score);
-
-      for (const item of dto.scores) {
-        const existingScore = await scoreRepository.findOne({
-          where: {
-            judge: { id: judge.id },
-            team: { id: team.id },
-            criterion: { id: item.criterionId },
-          },
-        });
-
-        if (existingScore) {
-          existingScore.score = item.score;
-          await scoreRepository.save(existingScore);
-        } else {
-          const score = scoreRepository.create({
-            judge,
-            team,
-            criterion: { id: item.criterionId },
-            score: item.score,
-          });
-
-          await scoreRepository.save(score);
-        }
+    // Track the criteria already scored by the requesting judge.
+    for (const score of scores) {
+      if (!criterionIds.has(score.criterion.id)) {
+        continue;
       }
-    });
 
-    return this.getMyTeamScores(hackathonId, teamId, requesterId);
+      if (!teamScores.has(score.team.id)) {
+        teamScores.set(score.team.id, new Set());
+      }
+
+      teamScores.get(score.team.id)!.add(score.criterion.id);
+    }
+
+    return submissions.map((submission) => {
+      const scoredCount = teamScores.get(submission.teamId)?.size ?? 0;
+
+      return {
+        teamId: submission.teamId,
+        teamName: submission.team.name,
+        submittedAt: submission.submittedAt,
+        scoredCount,
+        totalCriteria: criteria.length,
+        isComplete: criteria.length > 0 && scoredCount === criteria.length,
+      };
+    });
   }
 
   async getMyTeamScores(
