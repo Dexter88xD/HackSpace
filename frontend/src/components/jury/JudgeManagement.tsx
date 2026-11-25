@@ -61,7 +61,15 @@ export function JudgeManagement({ hackathonId, canManage }: Props) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Judges</CardTitle>
+        <CardTitle className="flex items-center justify-between gap-2">
+          <span>Judges</span>
+
+          {judgesQuery.isSuccess && (
+            <span className="text-xs font-normal text-muted-foreground">
+              {judges.length} assigned
+            </span>
+          )}
+        </CardTitle>
       </CardHeader>
 
       <CardContent className="space-y-4">

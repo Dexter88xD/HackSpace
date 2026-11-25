@@ -177,8 +177,15 @@ export default function HackathonDetails() {
     evaluationPhase !== undefined &&
     now >= new Date(evaluationPhase.endAt).getTime();
 
-  const canManageJury =
+  const canManageJudges =
     hackathon.canEdit && evaluationPhase !== undefined && !evaluationStarted;
+
+  const canManageCriteria =
+    hackathon.canEdit &&
+    (phaseName === HackathonPhaseName.LAUNCH ||
+      phaseName === HackathonPhaseName.REGISTRATION);
+
+  const canManageJury = canManageJudges || canManageCriteria;
 
   const isEvaluationOpen =
     phaseName === HackathonPhaseName.EVALUATION && !evaluationEnded;
@@ -196,8 +203,6 @@ export default function HackathonDetails() {
     [HackathonPhaseName.EVALUATION]: "Evaluation",
     [HackathonPhaseName.FINISHED]: "Finished",
   };
-
-  const hasPrimaryContent = canManageJury || canEvaluate || canViewRankings;
 
   return (
     <section className="mx-auto w-full max-w-7xl space-y-5 px-4 py-5 sm:px-6 lg:px-8">
@@ -372,69 +377,85 @@ export default function HackathonDetails() {
         )}
       </header>
 
-      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <div className="min-w-0 space-y-4">
-          {canManageJury && (
-            <JuryManagement
-              key={hackathon.id}
-              hackathonId={hackathon.id}
-              canManage
-            />
-          )}
+      {canManageJury ? (
+        <div className="space-y-5">
+          <section className="space-y-2">
+            <h2 className="font-semibold">About this hackathon</h2>
 
-          {canEvaluate && currentUserId !== undefined && (
-            <JuryEvaluation
-              key={`${currentUserId}:${hackathon.id}`}
-              hackathonId={hackathon.id}
-              userId={currentUserId}
-            />
-          )}
+            <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
+              {hackathon.description || "No description provided."}
+            </p>
+          </section>
 
-          {canViewRankings && currentUserId !== undefined && (
-            <HackathonRankings
-              hackathonId={hackathon.id}
-              userId={currentUserId}
-              isPublished={evaluationEnded}
-            />
-          )}
-
-          {!hasPrimaryContent && (
-            <section className="space-y-2 rounded-lg border p-4">
-              <h2 className="font-semibold">About this hackathon</h2>
-              <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
-                {hackathon.description || "No description provided."}
-              </p>
-            </section>
-          )}
+          <JuryManagement
+            key={hackathon.id}
+            hackathonId={hackathon.id}
+            canManageJudges={canManageJudges}
+            canManageCriteria={canManageCriteria}
+          />
         </div>
+      ) : (
+        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <div className="min-w-0 space-y-4">
+            {canEvaluate && currentUserId !== undefined && (
+              <JuryEvaluation
+                key={`${currentUserId}:${hackathon.id}`}
+                hackathonId={hackathon.id}
+                userId={currentUserId}
+              />
+            )}
 
-        <aside className="min-w-0 space-y-4" aria-label="Hackathon information">
-          {hasPrimaryContent && (
-            <section className="space-y-2 rounded-lg border p-4">
-              <h2 className="font-semibold">About this hackathon</h2>
-              <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
-                {hackathon.description || "No description provided."}
-              </p>
-            </section>
-          )}
+            {canViewRankings && currentUserId !== undefined && (
+              <HackathonRankings
+                hackathonId={hackathon.id}
+                userId={currentUserId}
+                isPublished={evaluationEnded}
+              />
+            )}
 
-          {!canManageJury && (
+            {!canEvaluate && !canViewRankings && (
+              <section className="space-y-2 rounded-lg border p-4">
+                <h2 className="font-semibold">About this hackathon</h2>
+
+                <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
+                  {hackathon.description || "No description provided."}
+                </p>
+              </section>
+            )}
+          </div>
+
+          <aside
+            className="min-w-0 space-y-4"
+            aria-label="Hackathon information"
+          >
+            {(canEvaluate || canViewRankings) && (
+              <section className="space-y-2 rounded-lg border p-4">
+                <h2 className="font-semibold">About this hackathon</h2>
+
+                <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
+                  {hackathon.description || "No description provided."}
+                </p>
+              </section>
+            )}
+
             <section className="space-y-3">
               <h2 className="font-semibold">Jury and evaluation criteria</h2>
+
               <JudgeManagement
                 key={`judges:${hackathon.id}`}
                 hackathonId={hackathon.id}
                 canManage={false}
               />
+
               <ScoringCriteriaManagement
                 key={`criteria:${hackathon.id}`}
                 hackathonId={hackathon.id}
                 canManage={false}
               />
             </section>
-          )}
-        </aside>
-      </div>
+          </aside>
+        </div>
+      )}
     </section>
   );
 }

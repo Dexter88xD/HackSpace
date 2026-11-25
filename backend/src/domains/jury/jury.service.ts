@@ -203,13 +203,18 @@ export class JuryService {
       );
     }
 
-    const evaluationPhase = hackathon.phases.find(
-      (phase) => phase.phaseName === HackathonPhaseName.EVALUATION,
+    const now = new Date();
+
+    const currentPhase = hackathon.phases.find(
+      (phase) => now >= new Date(phase.startAt) && now < new Date(phase.endAt),
     );
 
-    if (evaluationPhase && new Date() >= new Date(evaluationPhase.startAt)) {
+    if (
+      currentPhase?.phaseName !== HackathonPhaseName.LAUNCH &&
+      currentPhase?.phaseName !== HackathonPhaseName.REGISTRATION
+    ) {
       throw new BadRequestException(
-        'Scoring criteria cannot be changed once evaluation begins',
+        'Scoring criteria can only be created during launch or registration',
       );
     }
 

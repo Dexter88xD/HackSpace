@@ -44,13 +44,20 @@ export function ScoringCriteriaManagement({ hackathonId, canManage }: Props) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Scoring criteria</CardTitle>
+        <CardTitle className="flex items-center justify-between gap-2">
+          <span>Scoring criteria</span>
+
+          {criteriaQuery.isSuccess && (
+            <span className="text-xs font-normal text-muted-foreground">
+              {criteria.length} total
+            </span>
+          )}
+        </CardTitle>
       </CardHeader>
 
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Each criterion is scored from 0 to 10. All criteria carry equal
-          weight.
+          Equal weight · 0–10 points per criterion
         </p>
 
         {criteriaQuery.isPending && <p role="status">Loading criteria...</p>}
@@ -90,6 +97,12 @@ export function ScoringCriteriaManagement({ hackathonId, canManage }: Props) {
               ))}
             </ul>
           ))}
+        {!canManage && (
+          <p className="text-xs text-muted-foreground">
+            Scoring criteria can only be configured during launch and
+            registration.
+          </p>
+        )}
 
         {canManage && criteriaQuery.isSuccess && (
           <form
@@ -126,7 +139,7 @@ export function ScoringCriteriaManagement({ hackathonId, canManage }: Props) {
 
               <textarea
                 value={description}
-                rows={3}
+                rows={2}
                 disabled={createMutation.isPending}
                 placeholder="Describe what judges should evaluate..."
                 className="w-full resize-y rounded-md border bg-background px-3 py-2"
