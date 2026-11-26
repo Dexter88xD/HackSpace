@@ -14,6 +14,9 @@ import HackathonDetails from "./pages/HackathonDetails";
 import HackathonTeam from "./pages/HackathonTeam";
 import Friends from "./pages/Friends";
 import UserProfile from "./pages/UserProfile";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
+import Footer from "./components/Footer";
 
 function App() {
   return (
@@ -81,6 +84,8 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/verify-otp" element={<OtpVerification />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
           <Route
             path="/profile"
             element={
@@ -107,6 +112,7 @@ function App() {
           /> 
         </Routes>
       </main>
+      <Footer />
     </BrowserRouter>
   );
 }
