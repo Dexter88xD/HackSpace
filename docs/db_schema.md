@@ -178,6 +178,11 @@ Migration `1795310793374-CreateJuryScoring.ts` creates `scoring_criteria` and `s
 - The service enforces the judge role, same-hackathon relationships, finalised submission eligibility, phase restrictions and comment length; these are not additional database check constraints.
 - Score writes use a transaction and upsert on the unique judge/team/criterion key, with shared hackathon and team locks and consistent criterion ordering. Rankings and evaluation completion are computed on demand, not stored in a separate table.
 
+- Criteria can be created, edited or deleted before the scheduled `IN_PROGRESS` start, including pre-launch. Judge memberships can be assigned or removed before the scheduled `EVALUATION` start. Missing required phases reject management operations. These service-level restrictions apply to organisers and platform administrators alike.
+- Judge removal deletes only the specified `JURY` membership in the hackathon; the platform account and other hackathon memberships remain intact. Criterion deletion is scoped to the specified hackathon. Existing foreign-key cascades remove dependent scores; normal management closes before scoring begins.
+- Criterion updates preserve omitted fields, allow a null description, and enforce trimmed non-empty titles and the existing per-hackathon unique constraint. No new tables, columns or migrations are required for these management operations.
+- Rankings include finalised teams only. Average all criterion scores for each complete judge evaluation, then average complete evaluations equally. Round the team average to two decimal places before sorting descending, with team ID ascending as the tie-breaker. Equal rounded averages share competition ranks (`1, 1, 3`). Teams without complete evaluations have null average and rank and sort last by ID.
+
 ## Naming and migration verification
 
 The development team agreed to reset local databases when the physical FK and

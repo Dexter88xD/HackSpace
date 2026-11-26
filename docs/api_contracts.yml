@@ -653,8 +653,8 @@ paths:
         - Jury
       summary: Assign judge
       description:
-        Organiser or platform administrator. Rejected at or after evaluation start when that phase exists. Target
-        must have no existing hackathon membership.
+        Organiser or platform administrator before the scheduled EVALUATION start, including pre-launch.
+        Rejected if EVALUATION is missing or has begun. Target must have no existing hackathon membership.
       requestBody:
         required: true
         content:
@@ -696,6 +696,35 @@ paths:
           description: Authentication required
         "404":
           description: Hackathon not found
+  /hackathons/{hackathonId}/judges/{judgeId}:
+    parameters:
+      - $ref: "#/components/parameters/HackathonIdNamed"
+      - name: judgeId
+        in: path
+        required: true
+        description: JURY membership ID (hackathon_users.id), not platform user ID.
+        schema:
+          type: integer
+          minimum: 1
+    delete:
+      tags:
+        - Jury
+      summary: Remove judge
+      description:
+        Organiser or platform administrator before the scheduled EVALUATION start. Rejected if EVALUATION
+        is missing or has begun. Removes only the specified JURY membership in this hackathon; the account
+        and other memberships are preserved. The removed user may register as a participant if registration is open.
+      responses:
+        "204":
+          description: Judge removed; no response body
+        "400":
+          description: Invalid ID, missing EVALUATION phase or judge management closed
+        "401":
+          description: Authentication required
+        "403":
+          description: Management permission required
+        "404":
+          description: Hackathon or JURY membership in this hackathon not found
   /hackathons/{hackathonId}/criteria:
     parameters:
       - $ref: "#/components/parameters/HackathonIdNamed"
@@ -704,8 +733,9 @@ paths:
         - Jury
       summary: Create scoring criterion
       description:
-        Organiser or platform administrator during active LAUNCH or REGISTRATION only. Title is trimmed and must
-        remain non-empty; exact title must be unique within hackathon.
+        Organiser or platform administrator before the scheduled IN_PROGRESS start, including pre-launch.
+        Rejected if IN_PROGRESS is missing or has begun. Title is trimmed and must remain non-empty;
+        exact title must be unique within hackathon.
       requestBody:
         required: true
         content:
@@ -747,6 +777,65 @@ paths:
           description: Authentication required
         "404":
           description: Hackathon not found
+  /hackathons/{hackathonId}/criteria/{criterionId}:
+    parameters:
+      - $ref: "#/components/parameters/HackathonIdNamed"
+      - name: criterionId
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+    patch:
+      tags:
+        - Jury
+      summary: Update scoring criterion
+      description:
+        Organiser or platform administrator before the scheduled IN_PROGRESS start, including pre-launch.
+        Rejected if IN_PROGRESS is missing or has begun. Only criteria belonging to the specified hackathon
+        can be updated. At least one field is required; omitted fields are preserved. Title is trimmed,
+        non-empty and unique within the hackathon, excluding the current criterion. Null description clears it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateScoringCriterion"
+      responses:
+        "200":
+          description: Updated criterion
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScoringCriterion"
+        "400":
+          description: Invalid input, missing IN_PROGRESS phase or criteria management closed
+        "401":
+          description: Authentication required
+        "403":
+          description: Management permission required
+        "404":
+          description: Hackathon or criterion in this hackathon not found
+        "409":
+          description: Duplicate criterion title
+    delete:
+      tags:
+        - Jury
+      summary: Delete scoring criterion
+      description:
+        Organiser or platform administrator before the scheduled IN_PROGRESS start, including pre-launch.
+        Rejected if IN_PROGRESS is missing or has begun. Deletes only the specified criterion in this hackathon.
+      responses:
+        "204":
+          description: Criterion deleted; no response body
+        "400":
+          description: Invalid ID, missing IN_PROGRESS phase or criteria management closed
+        "401":
+          description: Authentication required
+        "403":
+          description: Management permission required
+        "404":
+          description: Hackathon or criterion in this hackathon not found
   /hackathons/{hackathonId}/jury/teams:
     parameters:
       - $ref: "#/components/parameters/HackathonIdNamed"
@@ -852,8 +941,9 @@ paths:
       description:
         Before evaluation ends, organiser or platform administrator only; afterwards any authenticated user. Finalised
         teams only. Average each complete judge evaluation across all criteria, then average complete evaluations equally. Partial
-        evaluations excluded. Sort by unrounded average descending then team ID ascending; sequential ranks, displayed average
-        rounded to two decimals. Teams without complete evaluations sort last by ID with null rank and average.
+        evaluations excluded. Round team averages to two decimals before sorting by rounded average descending then team ID ascending.
+        Equal rounded averages share competition ranks (1, 1, 3). Teams without complete evaluations sort last by ID
+        with null rank and average.
       responses:
         "200":
           description: Successful response
@@ -1377,6 +1467,20 @@ components:
         description:
           type: string
           nullable: true
+      additionalProperties: false
+    UpdateScoringCriterion:
+      type: object
+      minProperties: 1
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Trimmed before persistence; must not be blank or null.
+        description:
+          type: string
+          nullable: true
+          description: Null clears the description; omission preserves it.
       additionalProperties: false
     ScoringCriterion:
       type: object
