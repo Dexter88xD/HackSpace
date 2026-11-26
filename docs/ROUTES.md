@@ -12,7 +12,7 @@ The following paths are defined in `frontend/src/App.tsx`.
 
 | Path                   | Page                 | Access        | Purpose                                                                         |
 | ---------------------- | -------------------- | ------------- | ------------------------------------------------------------------------------- |
-| `/`                    | Home                 | Authenticated | Landing page                                                                    |
+| `/`                    | Landing / Home       | Public        | Public landing for guests; personalised home for authenticated users; session loading/error states |
 | `/hackathon-explorer`  | Hackathon Explorer   | Authenticated | Discover, search and filter hackathons                                          |
 | `/hackathons`          | Hackathon Management | Authenticated | Administrators see all hackathons; regular users see hackathons they organise   |
 | `/hackathons/new`      | Create Hackathon     | Authenticated | Create a hackathon with team and file settings; not restricted to `ROLE_ADMIN`                              |
