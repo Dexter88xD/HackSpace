@@ -155,6 +155,14 @@ export default function HackathonTeam() {
 
   const removeBlockedReason = membershipBlockedReason;
 
+  const editBlockedReason = phaseQuery.isPending
+    ? "Checking the current hackathon phase..."
+    : phaseQuery.isError
+      ? "Unable to verify the current hackathon phase."
+      : !isRegistration && !isInProgress
+        ? "Teams can only be edited during registration or in progress."
+        : null;
+
   const { data: teams } = useQuery({
     queryKey: ["teams", hackathonId],
     queryFn: () => {
@@ -359,7 +367,7 @@ export default function HackathonTeam() {
 
       {team ? (
         <>
-          {isEditing ? (
+          {isEditing && isLeader && editBlockedReason === null ? (
             <Card>
               <CardHeader>
                 <CardTitle className="text-xl font-semibold">
@@ -374,9 +382,11 @@ export default function HackathonTeam() {
                     description: team.description ?? "",
                   }}
                   submitLabel="Save"
-                  onSubmit={(values) =>
-                    updateMutation.mutate({ teamId: team.id, values })
-                  }
+                  onSubmit={(values) => {
+                    if (isLeader && editBlockedReason === null) {
+                      updateMutation.mutate({ teamId: team.id, values });
+                    }
+                  }}
                   onCancel={() => setIsEditing(false)}
                   isSubmitting={updateMutation.isPending}
                 />
@@ -399,6 +409,7 @@ export default function HackathonTeam() {
                     {isLeader && (
                       <Button
                         variant="outline"
+                        disabled={editBlockedReason !== null}
                         onClick={() => setIsEditing(true)}
                       >
                         Edit
@@ -432,6 +443,11 @@ export default function HackathonTeam() {
                     />
                   </div>
 
+                  {isLeader && editBlockedReason && (
+                    <p className="text-right text-xs text-muted-foreground">
+                      Edit: {editBlockedReason}
+                    </p>
+                  )}
                   {isLeader && deleteBlockedReason && (
                     <p className="text-right text-xs text-muted-foreground">
                       Delete: {deleteBlockedReason}
