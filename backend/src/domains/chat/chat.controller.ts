@@ -3,6 +3,7 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  Post,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -22,5 +23,20 @@ export class ChatController {
     @Req() req: AuthenticatedRequest,
   ) {
     return this.chatService.getMessages(req.user.userId, chatRoomId);
+  }
+
+  @Post('private/:friendId')
+  async getOrCreatePrivateChat(
+    @Param('friendId', ParseIntPipe) friendId: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const userId = req.user.userId;
+
+    const chatRoomId = await this.chatService.getOrCreatePrivateChat(
+      userId,
+      friendId,
+    );
+
+    return { chatRoomId };
   }
 }

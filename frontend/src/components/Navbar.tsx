@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getMe, logout } from "@/api/auth";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { logout } from "@/api/auth";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -15,6 +15,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { AuthenticatedUser } from "@/types/auth";
 
 const navItemClass =
   "rounded-md px-3 py-2 text-base font-normal transition-colors";
@@ -40,7 +41,13 @@ const authenticatedLinks = [
   { label: "Friends", to: "/friends" },
 ];
 
-function Navbar() {
+function Navbar({
+  user,
+  isLoading,
+}: {
+  user: AuthenticatedUser | undefined;
+  isLoading: boolean;
+}) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const navigate = useNavigate();
@@ -49,6 +56,7 @@ function Navbar() {
   const logoutMutation = useMutation({
     mutationFn: logout,
     onSuccess: () => {
+      queryClient.setQueryData(["me"], null);
       queryClient.clear();
       setLogoutDialogOpen(false);
       setMenuOpen(false);
@@ -59,12 +67,6 @@ function Navbar() {
   const handleLogout = () => {
     setLogoutDialogOpen(true);
   };
-
-  const { data: user, isLoading } = useQuery({
-    queryKey: ["me"],
-    queryFn: getMe,
-    retry: false,
-  });
 
   const logoutButton = (
     <Button
@@ -82,6 +84,7 @@ function Navbar() {
   );
 
   const isAuthenticated = !!user;
+
   const navLinks = isAuthenticated ? authenticatedLinks : guestLinks;
 
   return (

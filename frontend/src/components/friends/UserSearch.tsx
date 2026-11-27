@@ -99,7 +99,7 @@ export default function UserSearch() {
                 </Link>
                 <p className="text-sm text-muted-foreground">{user.fullName}</p>
               </div>
-
+                
               <FriendshipButton userId={user.id} />
             </div>
           ))}

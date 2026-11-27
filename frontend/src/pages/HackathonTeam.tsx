@@ -55,7 +55,11 @@ function toPayload(values: TeamFormValues) {
   };
 }
 
-export default function HackathonTeam() {
+export default function HackathonTeam({
+  isConnected,
+}: {
+  isConnected: boolean;
+}) {
   const { id } = useParams<{ id: string }>();
   const hackathonId = parseHackathonId(id);
   const queryClient = useQueryClient();
@@ -258,7 +262,11 @@ export default function HackathonTeam() {
           ← Back to team
         </Button>
 
-        <Chat chatRoomId={team.chatRoom.id} currentUserId={currentUser.id} />
+        <Chat
+          chatRoomId={team.chatRoom.id}
+          currentUserId={currentUser.id}
+          isConnected={isConnected}
+        />
       </section>
     );
   }

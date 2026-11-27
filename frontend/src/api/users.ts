@@ -20,6 +20,7 @@ export interface SearchUser {
   id: number;
   username: string;
   fullName: string;
+  isOnline: boolean;
 }
 
 export async function searchUsers(query: string): Promise<SearchUser[]> {

@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
 import UserSearch from "@/components/friends/UserSearch";
-
+import { socket } from "@/api/socket";
 import {
   getFriends,
   getIncomingRequests,
@@ -14,6 +14,12 @@ import {
   cancelFriendRequest,
   removeFriend,
 } from "@/api/friendships";
+import { Friend } from "@/types/friends";
+import Chat from "@/components/Chat/Chat";
+import { getOrCreatePrivateChat } from "@/api/chat";
+import { MessageCircle } from "lucide-react";
+import { getMe } from "@/api/auth";
+import { shouldRetryQuery } from "@/lib/query-retry";
 
 type Tab = "friends" | "incoming" | "outgoing";
 type Action = "accept" | "reject" | "cancel" | "remove";
@@ -27,11 +33,44 @@ function getErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
-export default function Friends() {
+export default function Friends({ isConnected }: { isConnected: boolean }) {
   const [activeTab, setActiveTab] = useState<Tab>("friends");
   const [targetUserId, setTargetUserId] = useState("");
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatRoomId, setChatRoomId] = useState<number>(0);
 
   const queryClient = useQueryClient();
+  useEffect(() => {
+    if (!socket) return;
+    function handleUserOnline(data: { userId: number }) {
+      queryClient.setQueryData<Friend[]>(["friends", "list"], (oldData) =>
+        oldData?.map((item) =>
+          item.user.id === data.userId ? { ...item, isOnline: true } : item,
+        ),
+      );
+    }
+
+    function handleUserOffline(data: { userId: number }) {
+      queryClient.setQueryData<Friend[]>(["friends", "list"], (oldData) =>
+        oldData?.map((item) =>
+          item.user.id === data.userId ? { ...item, isOnline: false } : item,
+        ),
+      );
+    }
+    socket.on("user-online", handleUserOnline);
+    socket.on("user-offline", handleUserOffline);
+
+    return () => {
+      socket.off("user-online", handleUserOnline);
+      socket.off("user-offline", handleUserOffline);
+    };
+  }, [queryClient]);
+
+  const { data: currentUser } = useQuery({
+    queryKey: ["me"],
+    queryFn: getMe,
+    retry: shouldRetryQuery,
+  });
 
   const friendsQuery = useQuery({
     queryKey: ["friends", "list"],
@@ -87,6 +126,15 @@ export default function Friends() {
     },
   });
 
+  const privateChatMutation = useMutation({
+    mutationFn: getOrCreatePrivateChat,
+    onSuccess: (data) => {
+      console.log("Private chat response:", data);
+      setChatRoomId(data.chatRoomId);
+      setIsChatOpen(true);
+    },
+  });
+
   const activeQuery =
     activeTab === "friends"
       ? friendsQuery
@@ -111,6 +159,25 @@ export default function Friends() {
     actionMutation.mutate({ action, friendshipId });
   }
 
+  if (isChatOpen && chatRoomId != 0 && currentUser) {
+    return (
+      <section className="w-full max-w-4xl px-4 py-8 flex flex-col items-center">
+        <Button
+          variant="outline"
+          onClick={() => setIsChatOpen(false)}
+          className="mb-4"
+        >
+          ← Back to team
+        </Button>
+
+        <Chat
+          chatRoomId={chatRoomId}
+          currentUserId={currentUser?.id}
+          isConnected={isConnected}
+        />
+      </section>
+    );
+  }
   return (
     <div className="mx-auto max-w-3xl p-6">
       <h1 className="mb-6 text-3xl font-bold">My Friends</h1>
@@ -221,16 +288,34 @@ export default function Friends() {
                   <p className="text-sm text-muted-foreground">
                     User #{item.user.id}
                   </p>
+                  {"isOnline" in item && (
+                    <p className="flex items-center gap-2 text-sm">
+                      <span
+                        className={`h-2 w-2 rounded-full ${
+                          item.isOnline ? "bg-green-500" : "bg-gray-400"
+                        }`}
+                      />
+                      <span className="text-muted-foreground">
+                        {item.isOnline ? "Online" : "Offline"}
+                      </span>
+                    </p>
+                  )}
                 </div>
 
                 {activeTab === "friends" && (
-                  <Button
-                    variant="destructive"
-                    disabled={actionMutation.isPending}
-                    onClick={() => handleAction("remove", friendshipId)}
-                  >
-                    Remove
-                  </Button>
+                  <>
+                    <MessageCircle
+                      className="cursor-pointer"
+                      onClick={() => privateChatMutation.mutate(item.user.id)}
+                    />
+                    <Button
+                      variant="destructive"
+                      disabled={actionMutation.isPending}
+                      onClick={() => handleAction("remove", friendshipId)}
+                    >
+                      Remove
+                    </Button>
+                  </>
                 )}
 
                 {activeTab === "incoming" && (

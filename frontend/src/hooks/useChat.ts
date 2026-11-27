@@ -21,6 +21,7 @@ export function useChat(chatRoomId: number, isConnected: boolean) {
     },
     retry: shouldRetryQuery,
   });
+
   useEffect(() => {
     if (!isConnected) return;
 

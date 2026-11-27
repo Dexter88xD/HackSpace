@@ -14,11 +14,24 @@ import HackathonDetails from "./pages/HackathonDetails";
 import HackathonTeam from "./pages/HackathonTeam";
 import Friends from "./pages/Friends";
 import UserProfile from "./pages/UserProfile";
+import { useQuery } from "@tanstack/react-query";
+import { getMe } from "./api/auth";
+import { useSocket } from "./hooks/useSocket";
 
 function App() {
+
+    const { data: user, isLoading } = useQuery({
+      queryKey: ["me"],
+      queryFn: getMe,
+      retry: false,
+    });
+
+    const isAuthenticated = !!user;
+    const { isConnected } = useSocket(isAuthenticated)
   return (
+
     <BrowserRouter>
-      <Navbar />
+      <Navbar user={user} isLoading={isLoading}/>
 
       <main>
         <Routes>
@@ -66,7 +79,7 @@ function App() {
             path="/hackathons/:id/team"
             element={
               <ProtectedRoute>
-                <HackathonTeam />
+                <HackathonTeam isConnected={isConnected}/>
               </ProtectedRoute>
             }
           />
@@ -93,7 +106,7 @@ function App() {
             path="/friends"
             element={
               <ProtectedRoute>
-                <Friends />
+                <Friends isConnected={isConnected}/>
               </ProtectedRoute>
             }
           />

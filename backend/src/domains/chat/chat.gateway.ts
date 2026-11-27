@@ -26,6 +26,7 @@ import { MessageDto } from './dto/message.dto';
 import { ChatService } from './chat.service';
 import { LeaveRoomDto } from './dto/leave-room.dto';
 import { Message } from './entities/message.entity';
+import { PresenceService } from './presence.service';
 
 @WebSocketGateway({
   namespace: '/chat',
@@ -40,6 +41,7 @@ export class ChatGateway
   constructor(
     private readonly jwtService: JwtService,
     private readonly chatService: ChatService,
+    private readonly presenceService: PresenceService,
     @InjectRepository(ChatMember)
     private readonly chatMembershipRepository: Repository<ChatMember>,
   ) {}
@@ -73,11 +75,20 @@ export class ChatGateway
       }
     });
   }
+
   handleConnection(client: AuthenticatedSocket) {
-    console.log(`Client connected ${client.id}`);
+    const userId = client.data.user?.sub;
+    const isConnected = this.presenceService.addConnection(userId, client.id);
+    if (isConnected) client.broadcast.emit('user-online', { userId });
   }
+
   handleDisconnect(client: AuthenticatedSocket) {
-    console.log(`Client disconnected ${client.id}`);
+    const userId = client.data.user?.sub;
+    const isDisconnected = this.presenceService.removeConnection(
+      userId,
+      client.id,
+    );
+    if (isDisconnected) client.broadcast.emit('user-offline', { userId });
   }
 
   @SubscribeMessage('join-chat')
