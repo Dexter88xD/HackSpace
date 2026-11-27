@@ -48,17 +48,17 @@ Paths below are listed relative to the backend `/api` prefix. Through the normal
 
 ### Hackathons
 
-| Method   | Path                            | Access                                     | Purpose                                                                         |
-| -------- | ------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------- |
-| `GET`    | `/hackathons`                   | Authenticated                              | List and filter hackathons                                                      |
-| `GET`    | `/hackathons/mine`              | Authenticated                              | List hackathons where the user is an `ORGANIZER`                                |
-| `GET`    | `/hackathons/:id`               | Authenticated                              | Retrieve details, settings, and the `canEdit` flag                              |
-| `GET`    | `/hackathons/:id/current-phase` | Authenticated                              | Get the current hackathon phase                                                 |
-| `POST`   | `/hackathons`                   | Authenticated                              | Create a hackathon with default/custom settings; creator becomes `ORGANIZER`    |
-| `PATCH`  | `/hackathons/:id`               | `ORGANIZER` or `ROLE_ADMIN`                | Edit details/settings; `409` if proposed maximum is below an existing team size |
-| `POST`   | `/hackathons/:id/register`      | Authenticated; phase and membership checks | Register to participate                                                         |
-| `DELETE` | `/hackathons/:id/unregister`    | Authenticated; membership checks           | Unregister from a hackathon                                                     |
-| `GET`    | `/hackathons/:id/membership`    | Authenticated                              | Get the current user's hackathon membership                                     |
+| Method | Path | Access | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/hackathons` | Authenticated | List, filter and sort hackathons; supports `upcomingOnly=true` for events whose start time is strictly in the future |
+| `GET` | `/hackathons/mine` | Authenticated | List hackathons where the user is an `ORGANIZER` |
+| `GET` | `/hackathons/:id` | Authenticated | Retrieve details, settings, and the `canEdit` flag |
+| `GET` | `/hackathons/:id/current-phase` | Authenticated | Get the current hackathon phase |
+| `POST` | `/hackathons` | Authenticated | Create a hackathon with default/custom settings; creator becomes `ORGANIZER` |
+| `PATCH` | `/hackathons/:id` | `ORGANIZER` or `ROLE_ADMIN` | Edit details/settings; `409` if proposed maximum is below an existing team size |
+| `POST` | `/hackathons/:id/register` | Authenticated; phase and membership checks | Register to participate |
+| `DELETE` | `/hackathons/:id/unregister` | Authenticated; membership checks | Unregister from a hackathon |
+| `GET` | `/hackathons/:id/membership` | Authenticated | Get the current user's hackathon membership |
 
 Hackathon settings use camelCase in JSON: `minTeamMembers`, `maxTeamMembers`,
 `filesLimit`, and `fileMaxSize` (bytes). Defaults are 1, 5, 1, and 10485760

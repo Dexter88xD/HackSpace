@@ -26,15 +26,21 @@ import { format } from "date-fns";
 const sortOptions: Record<
   string,
   {
-    sortBy: HackathonSortField;
-    sortOrder: SortOrder;
+    sortBy?: HackathonSortField;
+    sortOrder?: SortOrder;
     label: string;
+    upcomingOnly?: boolean;
   }
 > = {
+  default: {
+    label: "Default order",
+  },
+
   "startAt:asc": {
     sortBy: HackathonSortField.START_AT,
     sortOrder: SortOrder.ASC,
     label: "Starting soonest",
+    upcomingOnly: true,
   },
 
   "startAt:desc": {
@@ -83,7 +89,7 @@ export default function HackathonFilters({
   const selectedSortKey =
     filters.sortBy && filters.sortOrder
       ? `${filters.sortBy}:${filters.sortOrder}`
-      : null;
+      : "default";
 
   return (
     <form
@@ -136,6 +142,7 @@ export default function HackathonFilters({
             ...prev,
             sortBy: selectedSort.sortBy,
             sortOrder: selectedSort.sortOrder,
+            upcomingOnly: selectedSort.upcomingOnly,
             page: 1,
           }));
         }}

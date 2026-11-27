@@ -375,6 +375,27 @@ paths:
         - $ref: "#/components/parameters/HackathonFiltersEndDate"
         - $ref: "#/components/parameters/Page"
         - $ref: "#/components/parameters/Limit"
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            enum: [startAt, title, createdAt]
+            default: startAt
+        - in: query
+          name: sortOrder
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+        - in: query
+          name: upcomingOnly
+          description: >
+            When true, only return hackathons whose start time
+            is strictly in the future. Applied before pagination
+            and combined with existing filters.
+          schema:
+            type: boolean
+            default: false
       responses:
         "200":
           description: Paginated hackathons

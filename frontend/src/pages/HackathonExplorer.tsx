@@ -22,7 +22,7 @@ function HackathonExplorer() {
   });
 
   return (
-    <div className="flex min-h-screen flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <h1 className="mb-6 text-center font-heading text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
         Hackathon Explorer
       </h1>
@@ -42,8 +42,12 @@ function HackathonExplorer() {
             </p>
           </div>
         ) : data?.data.length === 0 ? (
-          <div className="flex flex-1 items-center justify-center">
-            <p>No hackathons found.</p>
+          <div className="flex items-center justify-center py-16">
+            <p className="text-sm text-muted-foreground">
+              {filters.upcomingOnly
+                ? "No upcoming hackathons match your filters."
+                : "No hackathons found."}
+            </p>
           </div>
         ) : (
           <div className="flex flex-1 flex-col justify-between gap-10">

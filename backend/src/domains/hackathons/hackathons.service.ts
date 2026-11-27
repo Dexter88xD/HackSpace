@@ -93,6 +93,11 @@ export class HackathonsService {
     const query = this.hackathonRepository.createQueryBuilder('hackathon');
     const pageNumber = filterQuery.page ?? 1;
     const pageLimit = filterQuery.limit ?? 12;
+    const now = new Date();
+
+    if (filterQuery.upcomingOnly === true) {
+      query.andWhere('hackathon.startAt > :now', { now });
+    }
 
     if (filterQuery.search) {
       query.andWhere(
@@ -120,10 +125,11 @@ export class HackathonsService {
     }
 
     if (filterQuery.phase) {
-      const now = new Date();
       query
         .innerJoin('hackathon.phases', 'phase')
-        .andWhere('phase.phaseName = :phase', { phase: filterQuery.phase })
+        .andWhere('phase.phaseName = :phase', {
+          phase: filterQuery.phase,
+        })
         .andWhere('phase.startAt <= :now', { now })
         .andWhere('phase.endAt > :now', { now });
     }
