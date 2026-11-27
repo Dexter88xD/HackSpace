@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { isAxiosError } from "axios";
 import { Menu, X } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -60,7 +61,7 @@ function Navbar() {
     setLogoutDialogOpen(true);
   };
 
-  const { data: user, isLoading } = useQuery({
+  const meQuery = useQuery({
     queryKey: ["me"],
     queryFn: getMe,
     retry: false,
@@ -81,7 +82,12 @@ function Navbar() {
     </Button>
   );
 
-  const isAuthenticated = !!user;
+  const isGuest =
+    meQuery.isError &&
+    isAxiosError(meQuery.error) &&
+    meQuery.error.response?.status === 401;
+  const isAuthenticated = meQuery.isSuccess;
+  const showNavigation = isAuthenticated || isGuest;
   const navLinks = isAuthenticated ? authenticatedLinks : guestLinks;
 
   return (
@@ -99,7 +105,7 @@ function Navbar() {
         </NavLink>
 
         <div className="hidden md:flex md:items-center md:gap-6">
-          {!isLoading && (
+          {showNavigation && (
             <>
               {navLinks.map((link) => (
                 <NavLink key={link.to} to={link.to} className={getNavLinkClass}>
@@ -127,7 +133,7 @@ function Navbar() {
       </div>
 
       <div id="mobile-navigation" className="md:hidden">
-        {menuOpen && !isLoading && (
+        {menuOpen && showNavigation && (
           <div className="flex flex-col items-end gap-1 pt-3">
             {navLinks.map((link) => (
               <NavLink

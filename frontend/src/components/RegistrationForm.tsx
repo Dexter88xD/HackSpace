@@ -173,6 +173,10 @@ export function RegistrationForm({
                 </FieldDescription>
               </Field>
             </FieldGroup>
+            <FieldDescription className="text-center">
+              Read our <Link to="/terms">Terms of Service</Link> and{" "}
+              <Link to="/privacy">Privacy Policy</Link>.
+            </FieldDescription>
           </FieldGroup>
         </form>
       </CardContent>

@@ -22,14 +22,7 @@ function App() {
 
       <main>
         <Routes>
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Home />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/" element={<Home />} />
           <Route
             path="/hackathon-explorer"
             element={
@@ -85,9 +78,9 @@ function App() {
             path="/profile"
             element={
               <ProtectedRoute>
-                <Profile/>
+                <Profile />
               </ProtectedRoute>
-            } 
+            }
           />
           <Route
             path="/friends"
@@ -104,7 +97,7 @@ function App() {
                 <UserProfile />
               </ProtectedRoute>
             }
-          /> 
+          />
         </Routes>
       </main>
     </BrowserRouter>
