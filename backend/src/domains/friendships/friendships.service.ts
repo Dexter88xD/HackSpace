@@ -4,6 +4,8 @@ import {
   NotFoundException,
   ConflictException,
   ForbiddenException,
+  forwardRef,
+  Inject,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, QueryFailedError } from 'typeorm';
@@ -13,10 +15,13 @@ import { User } from '../users/entities/user.entity';
 
 import { FriendResponseDto } from './dto/friend-response.dto';
 import { FriendRequestResponseDto } from './dto/friend-request-response.dto';
+import { PresenceService } from '../chat/presence.service';
 
 @Injectable()
 export class FriendshipsService {
   constructor(
+    @Inject(forwardRef(() => PresenceService))
+    private readonly presenceService: PresenceService,
     @InjectRepository(Friendship)
     private readonly friendshipRepository: Repository<Friendship>,
 
@@ -248,6 +253,7 @@ export class FriendshipsService {
           username: friend.username,
         },
         friendsSince: friendship.acceptedAt,
+        isOnline: this.presenceService.isOnline(friend.id),
       };
     });
   }

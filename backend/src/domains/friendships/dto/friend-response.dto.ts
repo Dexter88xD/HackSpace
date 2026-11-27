@@ -5,4 +5,5 @@ export interface FriendResponseDto {
     username: string;
   };
   friendsSince: Date | null;
+  isOnline: boolean;
 }

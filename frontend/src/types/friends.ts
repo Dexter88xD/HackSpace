@@ -7,6 +7,7 @@ export interface Friend {
   friendshipId: number;
   user: FriendUser;
   friendsSince: string | null;
+  isOnline: boolean;
 }
 
 export interface FriendRequest {

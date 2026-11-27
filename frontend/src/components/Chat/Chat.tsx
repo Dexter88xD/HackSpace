@@ -1,18 +1,18 @@
 import ChatMessages from "./ChatMessages";
 import ChatInput from "./ChatInput";
-import { useSocket } from "@/hooks/useSocket";
 import { useChat } from "@/hooks/useChat";
 import { useEffect, useRef } from "react";
 
 export default function Chat({
   chatRoomId,
   currentUserId,
+  isConnected,
 }: {
   chatRoomId: number;
   currentUserId: number;
+  isConnected: boolean;
 }) {
-  const { isConnected } = useSocket();
-  const { messages, isPending, isError, joinError, isJoined} = useChat(
+  const { messages, isPending, isError, joinError, isJoined } = useChat(
     chatRoomId,
     isConnected,
   );
@@ -43,7 +43,7 @@ export default function Chat({
   return (
     <div className="flex h-[500px] w-full max-w-md flex-col rounded-lg border">
       <div className="shrink-0 border-b p-3">
-        <h3 className="font-semibold">Team Chat</h3>
+        <h3 className="font-semibold">Chat</h3>
       </div>
 
       {joinError && (
@@ -66,7 +66,11 @@ export default function Chat({
           Scroll to bottom ↓
         </button>
       </div>
-      <ChatInput chatRoomId={chatRoomId} isConnected={isConnected} isJoined={isJoined} />
+      <ChatInput
+        chatRoomId={chatRoomId}
+        isConnected={isConnected}
+        isJoined={isJoined}
+      />
     </div>
   );
 }

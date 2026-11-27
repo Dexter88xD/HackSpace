@@ -73,3 +73,12 @@ export async function getMessages(chatRoomId: number) {
 
   return response.data;
 }
+
+
+
+export const getOrCreatePrivateChat = async (friendId: number) => {
+  const response = await api.post(
+    `chat-rooms/private/${friendId}`
+  );
+  return response.data;
+};

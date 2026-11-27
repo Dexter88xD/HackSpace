@@ -1,17 +1,29 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  forwardRef,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ChatMember } from './entities/chat-member.entity';
 import { Message } from './entities/message.entity';
 import { WsException } from '@nestjs/websockets';
+import { FriendshipsService } from '../friendships/friendships.service';
+import { ChatRoom, ChatRoomType } from './entities/chat-room.entity';
 
 @Injectable()
 export class ChatService {
   constructor(
+    @Inject(forwardRef(() => FriendshipsService))
+    private readonly friendshipsService: FriendshipsService,
     @InjectRepository(ChatMember)
     private readonly chatMemberRepository: Repository<ChatMember>,
     @InjectRepository(Message)
     private readonly messageRepository: Repository<Message>,
+    @InjectRepository(ChatRoom)
+    private readonly chatRoomRepository: Repository<ChatRoom>,
   ) {}
 
   async createMessage(userId: number, chatRoomId: number, content: string) {
@@ -88,6 +100,83 @@ export class ChatService {
       order: {
         sentAt: 'ASC',
       },
+    });
+  }
+
+  async getOrCreatePrivateChat(userId: number, friendId: number) {
+    if (userId === friendId) {
+      throw new BadRequestException('You cannot chat with yourself');
+    }
+
+    const areFriends = await this.friendshipsService.areFriends(
+      userId,
+      friendId,
+    );
+
+    if (!areFriends) {
+      throw new ForbiddenException('You can only chat with friends');
+    }
+
+    const userMemberships = await this.chatMemberRepository.find({
+      where: {
+        user: { id: userId },
+        chatRoom: {
+          chatRoomType: ChatRoomType.PRIVATE,
+        },
+      },
+      relations: {
+        chatRoom: true,
+      },
+    });
+
+    const friendMemberships = await this.chatMemberRepository.find({
+      where: {
+        user: { id: friendId },
+        chatRoom: {
+          chatRoomType: ChatRoomType.PRIVATE,
+        },
+      },
+      relations: {
+        chatRoom: true,
+      },
+    });
+
+    const friendRoomsIds = new Set(
+      friendMemberships.map((membership) => membership.chatRoom.id),
+    );
+
+    const commonRoom = userMemberships.find((membership) =>
+      friendRoomsIds.has(membership.chatRoom.id),
+    );
+
+    if (commonRoom) {
+      return commonRoom.chatRoom.id;
+    }
+    return this.chatRoomRepository.manager.transaction(async (manager) => {
+      const chatRoomRepository = manager.getRepository(ChatRoom);
+      const chatMemberRepository = manager.getRepository(ChatMember);
+
+      const newRoom = chatRoomRepository.create({
+        title: `Chat room`,
+        chatRoomType: ChatRoomType.PRIVATE,
+      });
+
+      const savedRoom = await chatRoomRepository.save(newRoom);
+
+      const members = chatMemberRepository.create([
+        {
+          user: { id: userId },
+          chatRoom: { id: savedRoom.id },
+        },
+        {
+          user: { id: friendId },
+          chatRoom: { id: savedRoom.id },
+        },
+      ]);
+
+      await chatMemberRepository.save(members);
+
+      return savedRoom.id;
     });
   }
 }

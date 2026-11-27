@@ -1,10 +1,11 @@
 import { socket } from "@/api/socket";
 import { useEffect, useState } from "react";
 
-export function useSocket() {
+export function useSocket(enabled: boolean) {
   const [isConnected, setIsConnected] = useState(socket.connected);
 
   useEffect(() => {
+    if(!enabled) return;
     function onConnect() {
       setIsConnected(true);
     }
@@ -29,7 +30,7 @@ export function useSocket() {
       socket.off("connect_error", onConnectError);
       socket.disconnect();
     };
-  }, []);
+  }, [enabled]);
 
   return { socket, isConnected };
 }
