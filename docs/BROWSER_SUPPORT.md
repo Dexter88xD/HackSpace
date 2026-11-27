@@ -12,7 +12,7 @@ The minimums come from the CSS features used by Tailwind v4 (`oklch()`, `color-m
 
 ## What was tested
 
-Every page and feature, at desktop (1366 px) and mobile (390 px) widths: sign up and OTP, login and logout, OAuth redirect, profile and avatar, friends, hackathon create, edit and list, teams, join requests, live chat, and file upload and download. Pages render the same in all three browsers, and no browser-specific bug was found.
+All pages and functionality available at the time of final validation were tested in each browser, at desktop (1366 px) and mobile (390 px) widths. Pages render the same in all three browsers, and no browser-specific bug was found.
 
 ## Differences between browsers
 
