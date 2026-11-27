@@ -96,18 +96,30 @@ export default function HackathonFilters({
       className="grid min-w-0 grid-cols-1 gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2 lg:grid-cols-[10rem_11rem_minmax(0,1fr)_15rem_auto] lg:items-center"
       onSubmit={(e) => {
         e.preventDefault();
-        setFilters((prev) => ({
-          ...prev,
-          search: search || undefined,
-          phase,
-          startDate: date?.from ? format(date.from, "yyyy-MM-dd") : undefined,
-          endDate: date?.to ? format(date.to, "yyyy-MM-dd") : undefined,
-          page: 1,
-        }));
+
+        setFilters((prev) => {
+          const resetUpcoming =
+            phase !== undefined && prev.upcomingOnly === true;
+
+          return {
+            ...prev,
+            search: search || undefined,
+            phase,
+            startDate: date?.from ? format(date.from, "yyyy-MM-dd") : undefined,
+            endDate: date?.to ? format(date.to, "yyyy-MM-dd") : undefined,
+            sortBy: resetUpcoming ? undefined : prev.sortBy,
+            sortOrder: resetUpcoming ? undefined : prev.sortOrder,
+            upcomingOnly: resetUpcoming ? undefined : prev.upcomingOnly,
+            page: 1,
+          };
+        });
       }}
     >
       <Select
+        value={phase ?? "All"}
         onValueChange={(value) => {
+          if (typeof value !== "string") return;
+
           setPhase(value === "All" ? undefined : (value as HackathonPhaseName));
         }}
       >
@@ -138,11 +150,16 @@ export default function HackathonFilters({
           const selectedSort = sortOptions[value];
           if (!selectedSort) return;
 
+          if (selectedSort.upcomingOnly) {
+            setPhase(undefined);
+          }
+
           setFilters((prev) => ({
             ...prev,
             sortBy: selectedSort.sortBy,
             sortOrder: selectedSort.sortOrder,
             upcomingOnly: selectedSort.upcomingOnly,
+            phase: selectedSort.upcomingOnly ? undefined : prev.phase,
             page: 1,
           }));
         }}
