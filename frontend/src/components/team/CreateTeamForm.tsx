@@ -9,9 +9,9 @@ import { Label } from "@/components/ui/label";
 type CreateTeamFormProps = {
   onSubmit: (data: TeamFormValues) => void;
   isSubmitting: boolean;
-  // Used by the edit form to start from the current name and description.
   defaultValues?: TeamFormValues;
   submitLabel?: string;
+  onCancel?: () => void;
 };
 
 function CreateTeamForm({
@@ -19,6 +19,7 @@ function CreateTeamForm({
   isSubmitting,
   defaultValues = { name: "", description: "" },
   submitLabel = "Create Team",
+  onCancel,
 }: CreateTeamFormProps) {
   const {
     register,
@@ -67,7 +68,19 @@ function CreateTeamForm({
           </p>
         )}
       </div>
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        {onCancel && (
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            onClick={onCancel}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </Button>
+        )}
+
         <Button type="submit" size="lg" disabled={isSubmitting}>
           {isSubmitting ? "Saving..." : submitLabel}
         </Button>

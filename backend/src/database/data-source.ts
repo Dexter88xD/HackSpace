@@ -18,6 +18,8 @@ import { ChatMember } from '../domains/chat/entities/chat-member.entity';
 import { Message } from '../domains/chat/entities/message.entity';
 import { ChatRoom } from '../domains/chat/entities/chat-room.entity';
 import { Friendship } from '../domains/friendships/entities/friendship.entity';
+import { Score } from '../domains/jury/entities/score.entity';
+import { ScoringCriterion } from '../domains/jury/entities/scoring-criterion.entity';
 
 loadEnv({ path: '../.env', quiet: true });
 
@@ -48,6 +50,8 @@ export default new DataSource({
     ChatMember,
     Message,
     Friendship,
+    Score,
+    ScoringCriterion,
   ],
 
   migrations: [__dirname + '/migrations/*{.ts,.js}'],

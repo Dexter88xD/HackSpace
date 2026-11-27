@@ -17,10 +17,10 @@ type ConfirmButtonProps = {
   confirmLabel: string;
   onConfirm: () => void;
   isPending: boolean;
+  disabled?: boolean;
   size?: "default" | "sm";
 };
 
-// A button that asks "are you sure?" before running the action.
 function ConfirmButton({
   label,
   title,
@@ -28,12 +28,15 @@ function ConfirmButton({
   confirmLabel,
   onConfirm,
   isPending,
+  disabled = false,
   size = "default",
 }: ConfirmButtonProps) {
+  const isDisabled = isPending || disabled;
+
   return (
     <AlertDialog>
       <AlertDialogTrigger
-        render={<Button variant="outline" size={size} disabled={isPending} />}
+        render={<Button variant="outline" size={size} disabled={isDisabled} />}
       >
         {label}
       </AlertDialogTrigger>
@@ -47,7 +50,16 @@ function ConfirmButton({
         <AlertDialogCancel>Cancel</AlertDialogCancel>
 
         <AlertDialogAction
-          render={<Button variant="default" size="lg" onClick={onConfirm} />}
+          render={
+            <Button
+              variant="default"
+              size="lg"
+              disabled={isDisabled}
+              onClick={() => {
+                if (!isDisabled) onConfirm();
+              }}
+            />
+          }
         >
           {confirmLabel}
         </AlertDialogAction>
