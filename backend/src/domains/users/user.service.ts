@@ -15,6 +15,8 @@ import { UserProfile } from './entities/user-profile.entity';
 import { CreateProfileDto } from './dto/create-profile.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ProfileResponseDto } from './dto/profile-response-dto';
+import { PublicProfileResponseDto } from './dto/public-profile-response.dto';
+
 import { StoredFile } from '../../shared/files/entities/stored-file.entity';
 import { FileManager, UploadFile } from '../../shared/files/file-manager';
 import { FileBucket } from '../../shared/files/file-bucket';
@@ -161,7 +163,7 @@ export class UserService {
     return profile;
   }
 
-  async getPublicProfile(userId: number) {
+  async getPublicProfile(userId: number): Promise<PublicProfileResponseDto> {
     const user = await this.userRepository.findOne({
       where: { id: userId },
     });
@@ -174,6 +176,7 @@ export class UserService {
       where: { user: { id: userId } },
       relations: {
         avatar: true,
+        skills: true,
       },
     });
 
@@ -187,6 +190,7 @@ export class UserService {
       avatarUrl: profile?.avatar
         ? await this.fileManager.getFile(profile.avatar)
         : null,
+      skills: profile?.skills?.map((skill) => skill.name) ?? [],
     };
   }
 

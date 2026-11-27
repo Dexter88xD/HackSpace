@@ -8,6 +8,7 @@ export interface PublicUser {
   major: string | null;
   organizationName: string | null;
   avatarUrl: string | null;
+  skills: string[];
 }
 
 export async function getPublicProfile(userId: number): Promise<PublicUser> {
