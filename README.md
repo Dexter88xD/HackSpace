@@ -11,7 +11,10 @@ This repository is a Docker Compose monorepo containing a React/TypeScript front
 - **Identity:** registration, email verification, sign-in, authenticated account lookup, Google OAuth and 42 Intra OAuth.
 - **Profiles and skills:** profile creation/editing, skills catalogue, profile-skill assignments and catalogue management permissions.
 - **Hackathons:** creation, exploration with filters, details, current phase, management listing, editing, registration, unregistration and membership lookup.
-- **Teams:** create teams for a hackathon, browse teams, view your own team, join and leave teams.
+- **Lifecycle views:** responsive five-phase timeline, phase-specific information and actions, automatic schedule refresh, and completed-event results.
+- **Teams:** create and edit teams, browse teams, request membership, accept/reject/cancel join requests, remove members and leave teams subject to phase and submission restrictions.
+- **Submissions:** upload, download and delete project files using private object storage; submit or reopen a project during `IN_PROGRESS` subject to team size and file limits.
+- **Jury and rankings:** assign judges, manage scoring criteria before their respective deadlines, evaluate finalized submissions, preview rankings as management during evaluation, and publish rankings to authenticated users when evaluation ends.
 - **Team chat:** authenticated team members can load chat history over HTTP and exchange live messages through a Socket.IO WebSocket namespace.
 - **Authorisation:** platform-level `ROLE_USER` and `ROLE_ADMIN` roles, plus hackathon-specific membership roles. An authenticated user can create a hackathon; its organiser or a platform administrator can edit it.
 
