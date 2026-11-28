@@ -132,6 +132,7 @@ export default function HackathonDetails() {
     },
     enabled: currentUserId !== undefined && hackathonId !== null,
     retry: shouldRetryQuery,
+    refetchInterval: 10000,
   });
 
   if (hackathonId === null) {
