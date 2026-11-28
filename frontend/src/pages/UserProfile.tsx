@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 
@@ -6,10 +5,43 @@ import { getMe } from "@/api/auth";
 import { getPublicProfile } from "@/api/users";
 import FriendshipButton from "@/components/friends/FriendshipButton";
 import { Button } from "@/components/ui/button";
-
-import { useEffect, useState } from "react";
+import { UserAvatar } from "@/components/profile/UserAvatar";
+import { UserRoundX, ArrowLeft } from "lucide-react";
 
 import axios from "axios";
+
+function ProfileNotFound({ invalidId = false }: { invalidId?: boolean }) {
+  return (
+    <div className="flex min-h-[70vh] items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md rounded-xl border bg-card p-8 text-center shadow-sm">
+        <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+          <UserRoundX
+            className="h-8 w-8 text-muted-foreground"
+            aria-hidden="true"
+          />
+        </div>
+
+        <h1 className="text-2xl font-semibold">
+          {invalidId ? "Invalid profile link" : "User not found"}
+        </h1>
+
+        <p className="mt-3 text-sm leading-6 text-muted-foreground">
+          {invalidId
+            ? "The profile link contains an invalid user ID."
+            : "We couldn't find this user. The account may not exist, or the link may be incorrect."}
+        </p>
+
+        <Link
+          to="/friends"
+          className="mt-6 inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+        >
+          <ArrowLeft className="h-4 w-4 shrink-0" />
+          <span>Back to Friends</span>
+        </Link>
+      </div>
+    </div>
+  );
+}
 
 export default function UserProfile() {
   const { id } = useParams<{ id: string }>();
@@ -31,32 +63,21 @@ export default function UserProfile() {
     retry: false,
   });
 
-  const [avatarError, setAvatarError] = useState(false);
-  useEffect(() => {
-    setAvatarError(false);
-  }, [userQuery.data?.avatarUrl]);
-
   if (!validId) {
-    return <p className="p-6">Invalid user ID.</p>;
+    return <ProfileNotFound invalidId />;
   }
 
   if (userQuery.isPending || meQuery.isPending) {
     return <p className="p-6">Loading profile...</p>;
   }
 
-  if (userQuery.isError
-    && axios.isAxiosError(userQuery.error)
-    && userQuery.error.response?.status === 404
+  if (
+    userQuery.isError &&
+    axios.isAxiosError(userQuery.error) &&
+    userQuery.error.response?.status === 404
   ) {
-    return (
-      <div className="p-6">
-        <h1 className="text-x1 font-semibold">User not found</h1>
-        <p className="text-muted-foreground">This user doesn't exist</p>
-        <Link to="/friends" className="underline">Back to Friends</Link>
-      </div>
-    );
+    return <ProfileNotFound />;
   }
-
 
   if (userQuery.isError) {
     return (
@@ -64,10 +85,7 @@ export default function UserProfile() {
         <p className="mb-3 text-destructive">
           Could not load this user's profile.
         </p>
-        <Button
-          variant="outline"
-          onClick={() => void userQuery.refetch()}
-        >
+        <Button variant="outline" onClick={() => void userQuery.refetch()}>
           Retry
         </Button>
       </div>
@@ -75,11 +93,7 @@ export default function UserProfile() {
   }
 
   if (meQuery.isError) {
-    return (
-      <p className="p-6 text-destructive">
-        Could not load your account.
-      </p>
-    );
+    return <p className="p-6 text-destructive">Could not load your account.</p>;
   }
 
   const user = userQuery.data;
@@ -95,42 +109,27 @@ export default function UserProfile() {
       </Link>
 
       <div className="space-y-6 rounded-xl border p-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted">
-                {user.avatarUrl && !avatarError ? (
-                  <img
-                    src={user.avatarUrl}
-                    alt={`${user.username}'s avatar`}
-                    className="h-full w-full object-cover"
-                    referrerPolicy="no-referrer"
-                    onError={() => setAvatarError(true)}
-                  />
-                ) : (
-                  <span className="text-2xl font-semibold uppercase">
-                    {user.username.charAt(0)}
-                  </span>
-                )}
-            </div>
+            <UserAvatar
+              username={user.username}
+              avatarUrl={user.avatarUrl}
+              size="h-20 w-20"
+            />
 
             <div>
-                <h1 className="text-2xl font-bold">
-                {user.fullName}
-                </h1>
+              <h1 className="text-2xl font-bold">{user.fullName}</h1>
 
-                <p className="text-muted-foreground">
-                @{user.username}
-                </p>
+              <p className="text-muted-foreground">@{user.username}</p>
             </div>
           </div>
 
-
           {isOwnProfile ? (
             <Link
-                to="/profile"
-                className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+              to="/profile"
+              className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
             >
-                My Profile
+              My Profile
             </Link>
           ) : (
             <FriendshipButton userId={user.id} />
@@ -152,35 +151,35 @@ export default function UserProfile() {
             </p>
           </div>
 
-        <div>
-          <h2 className="font-semibold">Organization</h2>
-          <p className="text-sm text-muted-foreground">
-            {user.organizationName || "Not specified"}
-          </p>
+          <div>
+            <h2 className="font-semibold">Organization</h2>
+            <p className="text-sm text-muted-foreground">
+              {user.organizationName || "Not specified"}
+            </p>
+          </div>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2">
           <h2 className="font-semibold">Skills</h2>
+
           {user.skills.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
+            <ul aria-label="Profile skills" className="flex flex-wrap gap-2">
               {user.skills.map((skill) => (
-                <span
+                <li
                   key={skill}
-                  className="rounded-full bg-seconday px-3 py-1 text-sm"
+                  className="max-w-full break-words rounded-lg bg-secondary px-2.5 py-1 text-sm text-secondary-foreground"
                 >
                   {skill}
-                </span>
+                </li>
               ))}
-            </div>
+            </ul>
           ) : (
             <p className="text-sm text-muted-foreground">
-              NO skills added yet.
+              No skills added yet.
             </p>
           )}
         </div>
-
       </div>
     </div>
-  </div>
   );
 }

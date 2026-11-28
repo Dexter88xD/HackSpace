@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 
 import { searchUsers } from "@/api/users";
 import FriendshipButton from "@/components/friends/FriendshipButton";
+import { UserAvatar } from "../profile/UserAvatar";
 
 export default function UserSearch() {
   const [search, setSearch] = useState("");
@@ -88,19 +89,35 @@ export default function UserSearch() {
           {usersQuery.data.map((user) => (
             <div
               key={user.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3"
+              className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
             >
-              <div>
-                <Link
-                  to={`/users/${user.id}`}
-                  className="font-medium hover:underline"
-                >
-                  @{user.username}
+              {/* LEFT: Avatar + user information */}
+              <div className="flex min-w-0 items-center gap-3">
+                <Link to={`/users/${user.id}`} className="shrink-0">
+                  <UserAvatar
+                    username={user.username}
+                    avatarUrl={user.avatarUrl}
+                  />
                 </Link>
-                <p className="text-sm text-muted-foreground">{user.fullName}</p>
+
+                <div className="min-w-0">
+                  <Link
+                    to={`/users/${user.id}`}
+                    className="block truncate font-semibold hover:underline"
+                  >
+                    @{user.username}
+                  </Link>
+
+                  <p className="truncate text-sm text-muted-foreground">
+                    {user.fullName}
+                  </p>
+                </div>
               </div>
 
-              <FriendshipButton userId={user.id} />
+              {/* RIGHT: Friendship actions */}
+              <div className="flex shrink-0">
+                <FriendshipButton userId={user.id} />
+              </div>
             </div>
           ))}
         </div>
