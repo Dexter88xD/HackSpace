@@ -31,12 +31,6 @@ export function HackathonRankings({ hackathonId, userId, isPublished }: Props) {
       </CardHeader>
 
       <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          {isPublished
-            ? "Final results based on completed jury evaluations."
-            : "Only organisers and administrators can see these provisional results. Rankings are published automatically when evaluation ends."}
-        </p>
-
         {query.isPending && <p role="status">Loading rankings...</p>}
 
         {query.isError && (
@@ -71,12 +65,17 @@ export function HackathonRankings({ hackathonId, userId, isPublished }: Props) {
                       <th scope="col" className="p-3 text-right">
                         Score
                       </th>
-                      <th scope="col" className="p-3 text-center">
-                        Evaluations
-                      </th>
-                      <th scope="col" className="p-3 text-left">
-                        Status
-                      </th>
+                      {!isPublished && (
+                        <>
+                          <th scope="col" className="p-3 text-center">
+                            Evaluations
+                          </th>
+
+                          <th scope="col" className="p-3 text-left">
+                            Status
+                          </th>
+                        </>
+                      )}
                     </tr>
                   </thead>
 
@@ -97,26 +96,25 @@ export function HackathonRankings({ hackathonId, userId, isPublished }: Props) {
                             : `${team.averageScore.toFixed(2)}/10`}
                         </td>
 
-                        <td className="p-3 text-center">
-                          {team.completedEvaluations}
-                        </td>
+                        {!isPublished && (
+                          <>
+                            <td className="p-3 text-center">
+                              {team.completedEvaluations}
+                            </td>
 
-                        <td className="whitespace-nowrap p-3 text-muted-foreground">
-                          {team.status === "EVALUATED"
-                            ? "Evaluated"
-                            : "Not evaluated"}
-                        </td>
+                            <td className="whitespace-nowrap p-3 text-muted-foreground">
+                              {team.status === "EVALUATED"
+                                ? "Evaluated"
+                                : "Not evaluated"}
+                            </td>
+                          </>
+                        )}
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             )}
-
-            <p className="text-xs text-muted-foreground">
-              Only complete jury evaluations contribute to team averages. Teams
-              without a complete evaluation remain unranked.
-            </p>
           </>
         )}
       </CardContent>
