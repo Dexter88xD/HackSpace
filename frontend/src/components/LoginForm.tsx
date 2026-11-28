@@ -49,8 +49,6 @@ export function LoginForm({
   const loginMutation = useMutation({
     mutationFn: login,
     onSuccess: async () => {
-      queryClient.clear();
-
       try {
         const user = await getMe();
 

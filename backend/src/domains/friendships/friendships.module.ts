@@ -6,10 +6,11 @@ import { FriendshipsService } from './friendships.service';
 import { User } from '../users/entities/user.entity';
 import { FriendshipsController } from './friendships.controller';
 import { ChatModule } from '../chat/chat.module';
+import { ChatMember } from '../chat/entities/chat-member.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Friendship, User]),
+    TypeOrmModule.forFeature([Friendship, User, ChatMember]),
     forwardRef(() => ChatModule),
   ],
   controllers: [FriendshipsController],

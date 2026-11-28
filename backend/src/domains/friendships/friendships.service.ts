@@ -16,15 +16,19 @@ import { User } from '../users/entities/user.entity';
 import { FriendResponseDto } from './dto/friend-response.dto';
 import { FriendRequestResponseDto } from './dto/friend-request-response.dto';
 import { PresenceService } from '../chat/presence.service';
+import { ChatRoomType } from '../chat/entities/chat-room.entity';
+import { ChatMember } from '../chat/entities/chat-member.entity';
+import { ChatGateway } from '../chat/chat.gateway';
 
 @Injectable()
 export class FriendshipsService {
   constructor(
+    @Inject(forwardRef(() => ChatGateway))
+    private readonly chatGateway: ChatGateway,
     @Inject(forwardRef(() => PresenceService))
     private readonly presenceService: PresenceService,
     @InjectRepository(Friendship)
     private readonly friendshipRepository: Repository<Friendship>,
-
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
   ) {}
@@ -189,35 +193,93 @@ export class FriendshipsService {
     friendshipId: number,
     currentUserId: number,
   ): Promise<void> {
-    const friendship = await this.friendshipRepository.findOne({
-      where: { id: friendshipId },
-    });
+    const { roomId, userAId, userBId } =
+      await this.friendshipRepository.manager.transaction(async (manager) => {
+        const friendshipRepository = manager.getRepository(Friendship);
+        const chatMemberRepository = manager.getRepository(ChatMember);
 
-    if (!friendship) throw new NotFoundException('Friendship not found');
+        // 1. Find the friendship.
+        const friendship = await friendshipRepository.findOne({
+          where: { id: friendshipId },
+        });
 
-    if (
-      currentUserId !== friendship.requesterId &&
-      currentUserId !== friendship.addresseeId
-    )
-      throw new ForbiddenException('You cannot remove this friend');
+        if (!friendship) {
+          throw new NotFoundException('Friendship not found');
+        }
 
-    if (friendship.status !== FriendshipStatus.ACCEPTED)
-      throw new ConflictException('This friendship is not accepted');
+        // 2. Verify that the current user belongs to this friendship.
+        if (
+          currentUserId !== friendship.requesterId &&
+          currentUserId !== friendship.addresseeId
+        ) {
+          throw new ForbiddenException('You cannot remove this friend');
+        }
 
-    const result = await this.friendshipRepository
-      .createQueryBuilder()
-      .delete()
-      .from(Friendship)
-      .where('id = :friendshipId', { friendshipId })
-      .andWhere('status = :status', { status: FriendshipStatus.ACCEPTED })
-      .andWhere(
-        '(requesterId = :currentUserId OR addresseeId = :currentUserId)',
-        { currentUserId },
-      )
-      .execute();
+        // 3. Verify that the friendship is accepted.
+        if (friendship.status !== FriendshipStatus.ACCEPTED) {
+          throw new ConflictException('This friendship is not accepted');
+        }
 
-    if (result.affected !== 1)
-      throw new ConflictException('This friendship could not be removed');
+        // 4. Get both users' IDs.
+        const userAId = friendship.requesterId;
+        const userBId = friendship.addresseeId;
+
+        // 5. Find their shared private chat.
+        const userAMembership = await chatMemberRepository.findOne({
+          where: {
+            user: { id: userAId },
+            chatRoom: {
+              chatRoomType: ChatRoomType.PRIVATE,
+              members: {
+                user: { id: userBId },
+              },
+            },
+          },
+          relations: { chatRoom: true },
+        });
+
+        // 6. Remove both users from the private chat.
+        if (userAMembership) {
+          await chatMemberRepository.delete({
+            chatRoom: { id: userAMembership.chatRoom.id },
+            user: { id: userAId },
+          });
+
+          await chatMemberRepository.delete({
+            chatRoom: { id: userAMembership.chatRoom.id },
+            user: { id: userBId },
+          });
+        }
+
+        // 7. Delete the friendship.
+        const result = await friendshipRepository
+          .createQueryBuilder()
+          .delete()
+          .from(Friendship)
+          .where('id = :friendshipId', { friendshipId })
+          .andWhere('status = :status', {
+            status: FriendshipStatus.ACCEPTED,
+          })
+          .andWhere(
+            '(requesterId = :currentUserId OR addresseeId = :currentUserId)',
+            { currentUserId },
+          )
+          .execute();
+
+        if (result.affected !== 1) {
+          throw new ConflictException('This friendship could not be removed');
+        }
+        return {
+          roomId: userAMembership?.chatRoom.id ?? null,
+          userAId,
+          userBId,
+        };
+      });
+
+    if (roomId !== null) {
+      await this.chatGateway.removeUserFromRoom(userAId, roomId);
+      await this.chatGateway.removeUserFromRoom(userBId, roomId);
+    }
   }
 
   async getFriends(userID: number): Promise<FriendResponseDto[]> {
@@ -275,6 +337,7 @@ export class FriendshipsService {
         id: request.requester.id,
         username: request.requester.username,
       },
+      isOnline: this.presenceService.isOnline(request.requester.id),
       createdAt: request.createdAt,
     }));
   }
@@ -296,6 +359,7 @@ export class FriendshipsService {
         id: request.addressee.id,
         username: request.addressee.username,
       },
+      isOnline: this.presenceService.isOnline(request.addressee.id),
       createdAt: request.createdAt,
     }));
   }

@@ -9,10 +9,11 @@ import { AuthModule } from '../auth/auth.module';
 import { ChatController } from './chat.controller';
 import { PresenceService } from './presence.service';
 import { FriendshipsModule } from '../friendships/friendships.module';
+import { User } from '../users/entities/user.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ChatRoom, ChatMember, Message]),
+    TypeOrmModule.forFeature([ChatRoom, ChatMember, Message, User]),
     AuthModule,
     forwardRef(() => FriendshipsModule),
   ],

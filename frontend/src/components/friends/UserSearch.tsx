@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-
 import { searchUsers } from "@/api/users";
 import FriendshipButton from "@/components/friends/FriendshipButton";
 
@@ -99,7 +98,7 @@ export default function UserSearch() {
                 </Link>
                 <p className="text-sm text-muted-foreground">{user.fullName}</p>
               </div>
-                
+
               <FriendshipButton userId={user.id} />
             </div>
           ))}

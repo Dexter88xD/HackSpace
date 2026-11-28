@@ -29,6 +29,7 @@ export function useSocket(enabled: boolean) {
       socket.off("disconnect", onDisconnect);
       socket.off("connect_error", onConnectError);
       socket.disconnect();
+      setIsConnected(false);
     };
   }, [enabled]);
 

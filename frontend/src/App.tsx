@@ -19,19 +19,17 @@ import { getMe } from "./api/auth";
 import { useSocket } from "./hooks/useSocket";
 
 function App() {
+  const { data: user, isLoading } = useQuery({
+    queryKey: ["me"],
+    queryFn: getMe,
+    retry: false,
+  });
 
-    const { data: user, isLoading } = useQuery({
-      queryKey: ["me"],
-      queryFn: getMe,
-      retry: false,
-    });
-
-    const isAuthenticated = !!user;
-    const { isConnected } = useSocket(isAuthenticated)
+  const isAuthenticated = !!user;
+  const { isConnected } = useSocket(isAuthenticated);
   return (
-
     <BrowserRouter>
-      <Navbar user={user} isLoading={isLoading}/>
+      <Navbar user={user} isLoading={isLoading} />
 
       <main>
         <Routes>
@@ -79,7 +77,7 @@ function App() {
             path="/hackathons/:id/team"
             element={
               <ProtectedRoute>
-                <HackathonTeam isConnected={isConnected}/>
+                <HackathonTeam isConnected={isConnected} />
               </ProtectedRoute>
             }
           />
@@ -98,15 +96,15 @@ function App() {
             path="/profile"
             element={
               <ProtectedRoute>
-                <Profile/>
+                <Profile />
               </ProtectedRoute>
-            } 
+            }
           />
           <Route
             path="/friends"
             element={
               <ProtectedRoute>
-                <Friends isConnected={isConnected}/>
+                <Friends isConnected={isConnected} />
               </ProtectedRoute>
             }
           />
@@ -117,7 +115,7 @@ function App() {
                 <UserProfile />
               </ProtectedRoute>
             }
-          /> 
+          />
         </Routes>
       </main>
     </BrowserRouter>

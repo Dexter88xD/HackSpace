@@ -14,6 +14,7 @@ export interface FriendRequest {
   id: number;
   user: FriendUser;
   createdAt: string;
+  isOnline: boolean;
 }
 
 export type FriendshipStatus =

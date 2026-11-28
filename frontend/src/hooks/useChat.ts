@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 export function useChat(chatRoomId: number, isConnected: boolean) {
   const queryClient = useQueryClient();
   const [joinError, setJoinError] = useState("");
-  const [isJoined, setIsJoined] = useState(false)
+  const [isJoined, setIsJoined] = useState(false);
   const {
     data: messages,
     isPending,
@@ -25,7 +25,11 @@ export function useChat(chatRoomId: number, isConnected: boolean) {
   useEffect(() => {
     if (!isConnected) return;
 
-    joinChatRoom(chatRoomId, setJoinError, setIsJoined);
+    joinChatRoom(chatRoomId, setJoinError, setIsJoined, () => {
+      queryClient.invalidateQueries({
+        queryKey: ["messages", chatRoomId],
+      });
+    });
 
     function handleNewMessage(newMessage: Message) {
       queryClient.setQueryData<Message[]>(
@@ -40,6 +44,7 @@ export function useChat(chatRoomId: number, isConnected: boolean) {
     socket.on("new-message", handleNewMessage);
     return () => {
       socket.off("new-message", handleNewMessage);
+      socket.emit("leave-chat", { chatRoomId });
     };
   }, [chatRoomId, isConnected, queryClient]);
 

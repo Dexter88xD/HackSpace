@@ -6,6 +6,7 @@ export function joinChatRoom(
   chatRoomId: number,
   setError: (error: string) => void,
   setIsJoined: (isJoined: boolean) => void,
+  onSuccess: () => void,
 ) {
   socket.timeout(5000).emit(
     "join-chat",
@@ -30,7 +31,8 @@ export function joinChatRoom(
       }
 
       setError("");
-      setIsJoined(true)
+      setIsJoined(true);
+      onSuccess();
     },
   );
 }

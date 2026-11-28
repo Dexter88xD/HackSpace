@@ -265,6 +265,7 @@ export default function HackathonTeam({
         <Chat
           chatRoomId={team.chatRoom.id}
           currentUserId={currentUser.id}
+          title="Team Chat"
           isConnected={isConnected}
         />
       </section>

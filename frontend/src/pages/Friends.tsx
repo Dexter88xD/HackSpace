@@ -38,6 +38,7 @@ export default function Friends({ isConnected }: { isConnected: boolean }) {
   const [targetUserId, setTargetUserId] = useState("");
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatRoomId, setChatRoomId] = useState<number>(0);
+  const [chatTitle, setChatTitle] = useState("");
 
   const queryClient = useQueryClient();
   useEffect(() => {
@@ -128,8 +129,10 @@ export default function Friends({ isConnected }: { isConnected: boolean }) {
 
   const privateChatMutation = useMutation({
     mutationFn: getOrCreatePrivateChat,
-    onSuccess: (data) => {
-      console.log("Private chat response:", data);
+    onSuccess: (data, userId) => {
+      const friend = friendsQuery.data?.find((item) => item.user.id === userId);
+
+      setChatTitle(friend?.user.username ?? "Chat");
       setChatRoomId(data.chatRoomId);
       setIsChatOpen(true);
     },
@@ -159,7 +162,7 @@ export default function Friends({ isConnected }: { isConnected: boolean }) {
     actionMutation.mutate({ action, friendshipId });
   }
 
-  if (isChatOpen && chatRoomId != 0 && currentUser) {
+  if (isChatOpen && chatRoomId !== 0 && currentUser) {
     return (
       <section className="w-full max-w-4xl px-4 py-8 flex flex-col items-center">
         <Button
@@ -167,12 +170,13 @@ export default function Friends({ isConnected }: { isConnected: boolean }) {
           onClick={() => setIsChatOpen(false)}
           className="mb-4"
         >
-          ← Back to team
+          ← Back to friends
         </Button>
 
         <Chat
           chatRoomId={chatRoomId}
           currentUserId={currentUser?.id}
+          title={chatTitle}
           isConnected={isConnected}
         />
       </section>
@@ -288,25 +292,32 @@ export default function Friends({ isConnected }: { isConnected: boolean }) {
                   <p className="text-sm text-muted-foreground">
                     User #{item.user.id}
                   </p>
-                  {"isOnline" in item && (
-                    <p className="flex items-center gap-2 text-sm">
-                      <span
-                        className={`h-2 w-2 rounded-full ${
-                          item.isOnline ? "bg-green-500" : "bg-gray-400"
-                        }`}
-                      />
-                      <span className="text-muted-foreground">
-                        {item.isOnline ? "Online" : "Offline"}
-                      </span>
-                    </p>
-                  )}
+                  <p className="flex items-center gap-2 text-sm">
+                    <span
+                      className={`h-2 w-2 rounded-full ${
+                        item.isOnline ? "bg-green-500" : "bg-gray-400"
+                      }`}
+                    />
+
+                    <span className="text-muted-foreground">
+                      {item.isOnline ? "Online" : "Offline"}
+                    </span>
+                  </p>
                 </div>
 
                 {activeTab === "friends" && (
                   <>
                     <MessageCircle
-                      className="cursor-pointer"
-                      onClick={() => privateChatMutation.mutate(item.user.id)}
+                      className={`cursor-pointer ${
+                        privateChatMutation.isPending
+                          ? "pointer-events-none opacity-50"
+                          : ""
+                      }`}
+                      onClick={() => {
+                        if (privateChatMutation.isPending) return;
+
+                        privateChatMutation.mutate(item.user.id);
+                      }}
                     />
                     <Button
                       variant="destructive"

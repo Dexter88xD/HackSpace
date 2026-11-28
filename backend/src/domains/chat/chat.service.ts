@@ -12,6 +12,7 @@ import { Message } from './entities/message.entity';
 import { WsException } from '@nestjs/websockets';
 import { FriendshipsService } from '../friendships/friendships.service';
 import { ChatRoom, ChatRoomType } from './entities/chat-room.entity';
+import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class ChatService {
@@ -117,44 +118,49 @@ export class ChatService {
       throw new ForbiddenException('You can only chat with friends');
     }
 
-    const userMemberships = await this.chatMemberRepository.find({
-      where: {
-        user: { id: userId },
-        chatRoom: {
-          chatRoomType: ChatRoomType.PRIVATE,
-        },
-      },
-      relations: {
-        chatRoom: true,
-      },
-    });
-
-    const friendMemberships = await this.chatMemberRepository.find({
-      where: {
-        user: { id: friendId },
-        chatRoom: {
-          chatRoomType: ChatRoomType.PRIVATE,
-        },
-      },
-      relations: {
-        chatRoom: true,
-      },
-    });
-
-    const friendRoomsIds = new Set(
-      friendMemberships.map((membership) => membership.chatRoom.id),
-    );
-
-    const commonRoom = userMemberships.find((membership) =>
-      friendRoomsIds.has(membership.chatRoom.id),
-    );
-
-    if (commonRoom) {
-      return commonRoom.chatRoom.id;
-    }
     return this.chatRoomRepository.manager.transaction(async (manager) => {
+      await manager.getRepository(User).findOne({
+        where: { id: Math.min(userId, friendId) },
+        lock: { mode: 'pessimistic_write' },
+      });
       const chatRoomRepository = manager.getRepository(ChatRoom);
       const chatMemberRepository = manager.getRepository(ChatMember);
+
+      const userMemberships = await chatMemberRepository.find({
+        where: {
+          user: { id: userId },
+          chatRoom: {
+            chatRoomType: ChatRoomType.PRIVATE,
+          },
+        },
+        relations: {
+          chatRoom: true,
+        },
+      });
+
+      const friendMemberships = await chatMemberRepository.find({
+        where: {
+          user: { id: friendId },
+          chatRoom: {
+            chatRoomType: ChatRoomType.PRIVATE,
+          },
+        },
+        relations: {
+          chatRoom: true,
+        },
+      });
+
+      const friendRoomsIds = new Set(
+        friendMemberships.map((membership) => membership.chatRoom.id),
+      );
+
+      const commonRoom = userMemberships.find((membership) =>
+        friendRoomsIds.has(membership.chatRoom.id),
+      );
+
+      if (commonRoom) {
+        return commonRoom.chatRoom.id;
+      }
 
       const newRoom = chatRoomRepository.create({
         title: `Chat room`,

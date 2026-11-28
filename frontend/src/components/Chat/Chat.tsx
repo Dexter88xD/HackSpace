@@ -6,10 +6,12 @@ import { useEffect, useRef } from "react";
 export default function Chat({
   chatRoomId,
   currentUserId,
+  title,
   isConnected,
 }: {
   chatRoomId: number;
   currentUserId: number;
+  title: string;
   isConnected: boolean;
 }) {
   const { messages, isPending, isError, joinError, isJoined } = useChat(
@@ -43,7 +45,7 @@ export default function Chat({
   return (
     <div className="flex h-[500px] w-full max-w-md flex-col rounded-lg border">
       <div className="shrink-0 border-b p-3">
-        <h3 className="font-semibold">Chat</h3>
+        <h3 className="font-semibold">{title}</h3>
       </div>
 
       {joinError && (
