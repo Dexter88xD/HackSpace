@@ -16,15 +16,32 @@ The following paths are defined in `frontend/src/App.tsx`.
 | `/hackathon-explorer`  | Hackathon Explorer   | Authenticated | Discover, search and filter hackathons                                          |
 | `/hackathons`          | Hackathon Management | Authenticated | Administrators see all hackathons; regular users see hackathons they organise   |
 | `/hackathons/new`      | Create Hackathon     | Authenticated | Create a hackathon with team and file settings; not restricted to `ROLE_ADMIN`                              |
-| `/hackathons/:id` | Hackathon Details | Authenticated | Show hackathon details and phases; edit controls use the backend's `canEdit` flag |
+| `/hackathons/:id` | Hackathon Details | Authenticated | Show lifecycle timeline, phase-specific actions, submissions, jury and rankings; edit controls use `canEdit` |
 | `/hackathons/:id/edit` | Edit Hackathon       | Authenticated | Edit hackathon details and settings; organiser or platform administrator only |
-| `/hackathons/:id/team` | Hackathon Team       | Authenticated | Manage team membership and the team's submission                               |
+| `/hackathons/:id/team` | Hackathon Team       | Authenticated | Manage team membership and submissions with phase-dependent controls                               |
 | `/profile`             | User Profile         | Authenticated | View and manage the user's profile and skills                                   |
 | `/login`               | Login                | Public        | Password sign-in and OAuth initiation                                           |
 | `/register`            | Register             | Public        | Account registration                                                            |
 | `/verify-otp`          | OTP Verification     | Public        | Email verification                                                              |
 
 Frontend `ProtectedRoute` verifies authentication using `GET /api/auth/me`; access controls in the UI do **not** replace backend permission checks.
+
+### Hackathon lifecycle views
+
+The details page (`/hackathons/:id`) uses the saved schedule and current-phase endpoint. Phase start times are inclusive and end times are exclusive. The timeline displays completed steps, the active step and future steps; it is vertical on small screens and horizontal from the `md` breakpoint. Before launch it displays Upcoming, and after the event ends it retains the completed timeline and results.
+
+| State | Details page behavior |
+| --- | --- |
+| Upcoming | Show schedule and upcoming information; no registration actions |
+| `LAUNCH` | Show the registration start time; registration is not open |
+| `REGISTRATION` | Show the deadline and participant registration/unregistration controls, subject to membership and management permissions |
+| `IN_PROGRESS` | Show submission deadline; registered participants with a team see the submission card; teamless participants receive an information message |
+| `EVALUATION` | Show evaluation deadline; assigned judges evaluate finalized submissions; organizers and administrators see provisional rankings |
+| `FINISHED` / after event | Show final results to authenticated users once evaluation ends |
+
+Judge and criteria management remain subject to their respective scheduled cutoffs, including before launch. The My Team link requires verified participant membership. The team page retains the submission card for members to view files and status outside the submission window; the backend's `blocked` response governs mutation availability. Rankings use cards on mobile and a table from `md`; only the preview includes evaluation counts and status.
+
+The details and current-phase queries refresh every 10 seconds on the details page. The team page refreshes current phase and team-related queries every 4 seconds; the shared `useCurrentTime` hook updates local time every 10 seconds. Preview rankings refresh every 10 seconds; published rankings do not have interval polling. Query failures and pending states must not be treated as permission to mutate. Polling is not a real-time guarantee, and backend checks remain authoritative.
 
 ## Backend HTTP endpoints
 
@@ -57,7 +74,7 @@ Paths below are listed relative to the backend `/api` prefix. Through the normal
 | `POST`   | `/hackathons`                   | Authenticated                              | Create a hackathon with default/custom settings; creator becomes `ORGANIZER`    |
 | `PATCH`  | `/hackathons/:id`               | `ORGANIZER` or `ROLE_ADMIN`                | Edit details/settings; `409` if proposed maximum is below an existing team size |
 | `POST`   | `/hackathons/:id/register`      | Authenticated; phase and membership checks | Register to participate                                                         |
-| `DELETE` | `/hackathons/:id/unregister`    | Authenticated; membership checks           | Unregister from a hackathon                                                     |
+| `DELETE` | `/hackathons/:id/unregister`    | Authenticated participant; active registration           | Unregister from a hackathon                                                     |
 | `GET`    | `/hackathons/:id/membership`    | Authenticated                              | Get the current user's hackathon membership                                     |
 
 Hackathon settings use camelCase in JSON: `minTeamMembers`, `maxTeamMembers`,
@@ -77,10 +94,18 @@ membership count; the minimum team size is checked at submission time.
 | `GET`    | `/hackathons/:hackathonId/teams`    | Authenticated                        | List teams and their member counts           |
 | `GET`    | `/hackathons/:hackathonId/teams/me` | Authenticated                        | Get the user's team in the hackathon, if any |
 | `GET`    | `/teams/:id`                        | Authenticated                        | Get a team with its members                  |
-| `POST`   | `/teams/:id/join`                   | Authenticated registered participant | Join an eligible team                        |
+| `PATCH` | `/teams/:id` | Leader or organizer | Edit during registration or in progress |
+| `DELETE` | `/teams/:id` | Leader or organizer | Delete during registration |
+| `POST` | `/teams/:id/join-requests` | Registered participant | Request to join during registration |
+| `GET` | `/hackathons/:hackathonId/join-requests/me` | Authenticated | Read own join requests |
+| `GET` | `/teams/:id/join-requests` | Team leader | Read incoming requests |
+| `POST` | `/join-requests/:id/accept` | Team leader | Accept during registration |
+| `POST` | `/join-requests/:id/reject` | Team leader | Reject a pending request |
+| `DELETE` | `/join-requests/:id` | Request owner | Cancel a pending request |
+| `DELETE` | `/teams/:id/members/:userId` | Team leader | Remove another member, subject to membership restrictions |
 | `DELETE` | `/teams/:id/leave`                  | Authenticated team member            | Leave a team                                 |
 
-Team operations also enforce applicable constraints on membership, team capacity and hackathon state within `TeamsService`.
+Team operations also enforce applicable constraints on membership, team capacity and hackathon state within `TeamsService`. Creation, requesting to join and acceptance require active registration. Leaving and removing members require registration or in progress and no finalized submission; the last member may leave only during registration. Rejecting and canceling pending requests remain available subject to ownership/leader checks. The participant-facing team page exposes edit/delete to leaders; backend organizer permissions remain independent.
 
 ### Team submissions
 
@@ -214,7 +239,7 @@ These skill-specific permissions are enforced in `SkillsService`, including the 
 | `/hackathon-explorer`                | `GET /hackathons`, `GET /hackathons/:id`                                                          |
 | `/hackathons`                        | `GET /hackathons` (admin), `GET /hackathons/mine` (regular user)                                  |
 | `/hackathons/new`                    | `POST /hackathons`                                                                                |
-| `/hackathons/:id`                    | `GET /hackathons/:id`, membership, registration, jury, criteria, evaluation and ranking endpoints |
+| `/hackathons/:id`                    | `GET /hackathons/:id`, `GET /hackathons/:id/current-phase`, membership, registration, own team, submission, jury, criteria, evaluation and ranking endpoints |
 | `/hackathons/:id/edit`               | `GET /hackathons/:id`, `PATCH /hackathons/:id`                                                    |
 | `/hackathons/:id/team`               | Team membership and `/teams/:teamId/submission` endpoints                                         |
 | `/profile`                           | `/users/me/profile` and `/skills` endpoints                                                       |

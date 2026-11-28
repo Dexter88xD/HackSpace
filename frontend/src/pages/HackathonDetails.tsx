@@ -1,5 +1,5 @@
 import { Link, useParams } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { getMe } from "@/api/auth";
 import { getHackathonById } from "@/api/hackathon-management";
 import { isAxiosError } from "axios";
@@ -11,77 +11,31 @@ import { parseHackathonId } from "@/lib/hackathon-id";
 import {
   getHackathonCurrentPhase,
   getHackathonMembership,
-  hackathonRegister,
-  hackathonUnregister,
 } from "@/api/hackathon";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { HackathonPhaseName, HackathonRoleName } from "@/types/hackathon";
-import { JuryManagement } from "@/components/jury/JuryManagement";
 import { JudgeManagement } from "@/components/jury/JudgeManagement";
 import { ScoringCriteriaManagement } from "@/components/jury/ScoringCriteriaManagement";
 import { JuryEvaluation } from "@/components/jury/JuryEvaluation";
 import { HackathonRankings } from "@/components/jury/HackathonRankings";
-import { useEffect, useState } from "react";
+import HackathonPhaseSchedule from "@/components/hackathon/hackathon-phase-schedule";
+import LaunchPhaseView from "@/components/hackathon/phases/launch-phase-view";
+import RegistrationPhaseView from "@/components/hackathon/phases/registration-phase-view";
+import InProgressPhaseView from "@/components/hackathon/phases/in-progress-phase-view";
+import EvaluationPhaseView from "@/components/hackathon/phases/evaluation-phase-view";
+import FinishedPhaseView from "@/components/hackathon/phases/finished-phase-view";
+import { getMyTeam } from "@/api/team";
+import { TeamSubmissionCard } from "@/components/team/TeamSubmissionCard";
+import { useCurrentTime } from "@/hooks/use-current-time";
 
 export default function HackathonDetails() {
   const { id } = useParams<{ id: string }>();
   const hackathonId = parseHackathonId(id);
-  const [now, setNow] = useState(() => Date.now());
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setNow(Date.now());
-    }, 10000);
-
-    return () => window.clearInterval(timer);
-  }, []);
+  const now = useCurrentTime();
 
   const { data: currentUser } = useQuery({
     queryKey: ["me"],
     queryFn: getMe,
     retry: false,
-  });
-
-  const queryClient = useQueryClient();
-
-  const registerMutation = useMutation({
-    mutationFn: async () => {
-      if (hackathonId === null) {
-        throw new Error("Invalid hackathon ID");
-      }
-      return hackathonRegister(hackathonId);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["registration", hackathonId],
-      });
-    },
-  });
-
-  const unregisterMutation = useMutation({
-    mutationFn: async () => {
-      if (hackathonId === null) {
-        throw new Error("Invalid hackathon ID");
-      }
-      return hackathonUnregister(hackathonId);
-    },
-
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["registration", hackathonId],
-      });
-      // Unregistering also removes the user from their team.
-      queryClient.invalidateQueries({ queryKey: ["my-team", hackathonId] });
-    },
   });
 
   const currentUserId = currentUser?.id;
@@ -104,16 +58,53 @@ export default function HackathonDetails() {
     retry: shouldRetryQuery,
   });
 
-  const { data: currentPhase } = useQuery({
+  const {
+    data: currentPhase,
+    isPending: isPhasePending,
+    isError: isPhaseError,
+    refetch: refetchPhase,
+  } = useQuery({
     queryKey: ["phase", hackathonId],
     refetchInterval: 10000,
     queryFn: () => {
-      if (hackathonId === null) throw new Error("Invalid hackathon ID");
+      if (hackathonId === null) {
+        throw new Error("Invalid hackathon ID");
+      }
 
       return getHackathonCurrentPhase(hackathonId);
     },
     enabled: hackathonId !== null,
     retry: shouldRetryQuery,
+  });
+
+  const isInProgress =
+    !isPhasePending &&
+    !isPhaseError &&
+    currentPhase?.phaseName === HackathonPhaseName.IN_PROGRESS &&
+    now >= new Date(currentPhase.startAt).getTime() &&
+    now < new Date(currentPhase.endAt).getTime();
+
+  const isParticipant =
+    isMembershipSuccess &&
+    membership?.isRegistered === true &&
+    membership.role === HackathonRoleName.PARTICIPANT;
+
+  const teamQuery = useQuery({
+    queryKey: ["my-team", hackathonId],
+    queryFn: () => {
+      if (hackathonId === null) {
+        throw new Error("Invalid hackathon ID");
+      }
+
+      return getMyTeam(hackathonId);
+    },
+    enabled:
+      hackathonId !== null &&
+      currentUserId !== undefined &&
+      isInProgress &&
+      isParticipant,
+    retry: shouldRetryQuery,
+    refetchInterval: 4000,
   });
 
   const {
@@ -132,6 +123,7 @@ export default function HackathonDetails() {
     },
     enabled: currentUserId !== undefined && hackathonId !== null,
     retry: shouldRetryQuery,
+    refetchInterval: 10000,
   });
 
   if (hackathonId === null) {
@@ -164,6 +156,9 @@ export default function HackathonDetails() {
   }
 
   const phaseName = currentPhase?.phaseName;
+  const registrationPhase = hackathon.phases.find(
+    (phase) => phase.phaseName === HackathonPhaseName.REGISTRATION,
+  );
 
   const evaluationPhase = hackathon.phases.find(
     (phase) => phase.phaseName === HackathonPhaseName.EVALUATION,
@@ -189,16 +184,28 @@ export default function HackathonDetails() {
     inProgressPhase !== undefined &&
     now < new Date(inProgressPhase.startAt).getTime();
 
-  const canManageJury = canManageJudges || canManageCriteria;
-
   const isEvaluationOpen =
-    phaseName === HackathonPhaseName.EVALUATION && !evaluationEnded;
+    !isPhasePending &&
+    !isPhaseError &&
+    phaseName === HackathonPhaseName.EVALUATION &&
+    evaluationStarted &&
+    !evaluationEnded;
 
   const canEvaluate =
-    isEvaluationOpen && membership?.role === HackathonRoleName.JURY;
+    isEvaluationOpen &&
+    isMembershipSuccess &&
+    membership?.role === HackathonRoleName.JURY;
 
   const canViewRankings =
     evaluationEnded || (hackathon.canEdit && isEvaluationOpen);
+
+  const showEvaluationView = isEvaluationOpen;
+
+  const showFinishedView =
+    evaluationEnded ||
+    (!isPhasePending &&
+      !isPhaseError &&
+      phaseName === HackathonPhaseName.FINISHED);
 
   const phaseLabels: Record<HackathonPhaseName, string> = {
     [HackathonPhaseName.LAUNCH]: "Launch",
@@ -208,8 +215,45 @@ export default function HackathonDetails() {
     [HackathonPhaseName.FINISHED]: "Finished",
   };
 
+  const showLaunchView =
+    !isPhasePending &&
+    !isPhaseError &&
+    !showFinishedView &&
+    phaseName === HackathonPhaseName.LAUNCH &&
+    registrationPhase !== undefined;
+
+  const showRegistrationView =
+    !isPhasePending &&
+    !isPhaseError &&
+    !showFinishedView &&
+    phaseName === HackathonPhaseName.REGISTRATION &&
+    registrationPhase !== undefined &&
+    now >= new Date(registrationPhase.startAt).getTime() &&
+    now < new Date(registrationPhase.endAt).getTime();
+
+  const showInProgressView = isInProgress && !showFinishedView;
+
+  const hasPhaseView =
+    showLaunchView ||
+    showRegistrationView ||
+    showInProgressView ||
+    showEvaluationView ||
+    showFinishedView;
+
+  const phaseLabel = isPhasePending
+    ? "Loading phase"
+    : isPhaseError
+      ? "Phase unavailable"
+      : showFinishedView
+        ? "Finished"
+        : phaseName
+          ? phaseLabels[phaseName]
+          : now < new Date(hackathon.startAt).getTime()
+            ? "Upcoming"
+            : "Phase unavailable";
+
   return (
-    <section className="mx-auto w-full max-w-7xl space-y-5 px-4 py-5 sm:px-6 lg:px-8">
+    <section className="mx-auto w-full max-w-7xl space-y-4 px-4 py-4 sm:px-6 lg:px-8">
       <header className="space-y-3 border-b pb-4">
         <Link
           to="/hackathon-explorer"
@@ -225,16 +269,16 @@ export default function HackathonDetails() {
                 {hackathon.title}
               </h1>
               <span className="rounded-full border bg-muted px-3 py-1 text-xs font-medium">
-                {phaseName ? phaseLabels[phaseName] : "Phase unavailable"}
+                {phaseLabel}
               </span>
             </div>
             <p className="text-sm text-muted-foreground">
-              Organised by {hackathon.organizationName}
+              Organized by {hackathon.organizationName}
             </p>
           </div>
 
           <div className="flex shrink-0 flex-wrap items-center gap-2">
-            {membership?.role === HackathonRoleName.PARTICIPANT && (
+            {isParticipant && (
               <Link
                 to={`/hackathons/${hackathon.id}/team`}
                 className={buttonVariants({
@@ -258,94 +302,13 @@ export default function HackathonDetails() {
                 Edit Hackathon
               </Link>
             )}
-
-            {!hackathon.canEdit &&
-              currentPhase?.phaseName === HackathonPhaseName.REGISTRATION &&
-              (isMembershipPending ? (
-                <div className="flex items-center gap-2">
-                  <Spinner />
-                  <p className="text-sm text-muted-foreground">
-                    Checking membership...
-                  </p>
-                </div>
-              ) : isMembershipError ? (
-                <div className="flex items-center gap-3">
-                  <p className="text-sm text-destructive">
-                    Unable to check your membership.
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="default"
-                    onClick={() => void refetchMembership()}
-                  >
-                    Retry
-                  </Button>
-                </div>
-              ) : isMembershipSuccess ? (
-                !membership?.isRegistered ? (
-                  <Button
-                    variant="default"
-                    size="default"
-                    disabled={
-                      registerMutation.isPending || unregisterMutation.isPending
-                    }
-                    onClick={() => {
-                      unregisterMutation.reset();
-                      registerMutation.mutate();
-                    }}
-                  >
-                    {registerMutation.isPending ? "Registering..." : "Register"}
-                  </Button>
-                ) : membership?.role === HackathonRoleName.PARTICIPANT ? (
-                  <AlertDialog>
-                    <AlertDialogTrigger
-                      render={<Button variant="default" size="default" />}
-                    >
-                      Unregister
-                    </AlertDialogTrigger>
-
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          You will lose your membership in this hackathon and
-                          leave your team.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-
-                      <AlertDialogAction
-                        render={
-                          <Button
-                            variant="default"
-                            size="default"
-                            disabled={
-                              unregisterMutation.isPending ||
-                              registerMutation.isPending
-                            }
-                            onClick={() => {
-                              registerMutation.reset();
-                              unregisterMutation.mutate();
-                            }}
-                          />
-                        }
-                      >
-                        {unregisterMutation.isPending
-                          ? "Unregistering..."
-                          : "Unregister"}
-                      </AlertDialogAction>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                ) : null
-              ) : null)}
           </div>
         </div>
         <dl className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
           <div className="flex flex-wrap items-baseline gap-2">
             <dt className="font-medium">Start</dt>
             <dd className="text-muted-foreground">
-              {new Date(hackathon.startAt).toLocaleString("en-GB", {
+              {new Date(hackathon.startAt).toLocaleString("en-US", {
                 dateStyle: "medium",
                 timeStyle: "short",
               })}
@@ -354,111 +317,173 @@ export default function HackathonDetails() {
           <div className="flex flex-wrap items-baseline gap-2">
             <dt className="font-medium">End</dt>
             <dd className="text-muted-foreground">
-              {new Date(hackathon.endAt).toLocaleString("en-GB", {
+              {new Date(hackathon.endAt).toLocaleString("en-US", {
                 dateStyle: "medium",
                 timeStyle: "short",
               })}
             </dd>
           </div>
         </dl>
-        {(registerMutation.isError || unregisterMutation.isError) && (
-          <div role="alert" className="rounded-md border p-3">
-            {registerMutation.isError && (
-              <p className="text-sm text-destructive">
-                {isAxiosError(registerMutation.error)
-                  ? registerMutation.error.response?.data?.message
-                  : registerMutation.error.message}
-              </p>
-            )}
-            {unregisterMutation.isError && (
-              <p className="text-sm text-destructive text-left sm:text-center">
-                {isAxiosError(unregisterMutation.error)
-                  ? unregisterMutation.error.response?.data?.message
-                  : unregisterMutation.error.message}
-              </p>
-            )}
-          </div>
-        )}
       </header>
 
-      {canManageJury ? (
-        <div className="space-y-5">
-          <section className="space-y-2">
-            <h2 className="font-semibold">About this hackathon</h2>
-
-            <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
-              {hackathon.description || "No description provided."}
+      <section aria-label="Hackathon phase schedule">
+        {isPhasePending ? (
+          <p role="status" className="text-sm text-muted-foreground">
+            Loading current phase...
+          </p>
+        ) : isPhaseError ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <p role="alert" className="text-sm text-destructive">
+              Unable to load the current phase.
             </p>
-          </section>
 
-          <JuryManagement
-            key={hackathon.id}
-            hackathonId={hackathon.id}
-            canManageJudges={canManageJudges}
-            canManageCriteria={canManageCriteria}
+            <Button variant="outline" onClick={() => void refetchPhase()}>
+              Retry
+            </Button>
+          </div>
+        ) : (
+          <HackathonPhaseSchedule
+            phases={hackathon.phases}
+            currentPhaseName={currentPhase?.phaseName ?? null}
+            now={now}
           />
+        )}
+      </section>
+
+      {/* Phase information and hackathon description */}
+      <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2">
+        <div className="min-w-0 [&>*]:h-full">
+          {/* LAUNCH */}
+          {showLaunchView && registrationPhase && (
+            <LaunchPhaseView registrationStartAt={registrationPhase.startAt} />
+          )}
+
+          {/* REGISTRATION */}
+          {showRegistrationView && registrationPhase && (
+            <RegistrationPhaseView
+              key={hackathon.id}
+              hackathonId={hackathon.id}
+              registrationEndAt={registrationPhase.endAt}
+              canEdit={hackathon.canEdit}
+              isRegistered={membership?.isRegistered ?? false}
+              membershipRole={membership?.role ?? null}
+              isMembershipPending={isMembershipPending}
+              isMembershipError={isMembershipError}
+              isMembershipSuccess={isMembershipSuccess}
+              onRetryMembership={() => void refetchMembership()}
+            />
+          )}
+
+          {/* IN_PROGRESS */}
+          {showInProgressView && currentPhase && (
+            <InProgressPhaseView
+              key={hackathon.id}
+              phaseEndAt={currentPhase.endAt}
+              membership={membership}
+              isMembershipPending={isMembershipPending}
+              isMembershipError={isMembershipError}
+              onRetryMembership={() => void refetchMembership()}
+              teamQuery={teamQuery}
+            />
+          )}
+
+          {/* EVALUATION */}
+          {showEvaluationView && evaluationPhase && (
+            <EvaluationPhaseView evaluationEndAt={evaluationPhase.endAt} />
+          )}
+
+          {/* FINISHED */}
+          {showFinishedView && <FinishedPhaseView />}
+
+          {/* Missing or unavailable phase */}
+          {!hasPhaseView && (
+            <section className="space-y-2 rounded-xl border border-border p-4 sm:p-6">
+              <h2 className="text-lg font-semibold">Hackathon status</h2>
+
+              <p className="text-sm text-muted-foreground">
+                {isPhasePending
+                  ? "Loading the current phase..."
+                  : isPhaseError
+                    ? "The current phase is temporarily unavailable."
+                    : now < new Date(hackathon.startAt).getTime()
+                      ? "This hackathon has not started yet."
+                      : "No active phase is currently available."}
+              </p>
+            </section>
+          )}
         </div>
-      ) : (
-        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-          <div className="min-w-0 space-y-4">
-            {canEvaluate && currentUserId !== undefined && (
-              <JuryEvaluation
-                key={`${currentUserId}:${hackathon.id}`}
-                hackathonId={hackathon.id}
-                userId={currentUserId}
-              />
-            )}
 
-            {canViewRankings && currentUserId !== undefined && (
-              <HackathonRankings
-                hackathonId={hackathon.id}
-                userId={currentUserId}
-                isPublished={evaluationEnded}
-              />
-            )}
+        {/* Description */}
+        <section className="min-w-0 space-y-2 rounded-xl border border-border p-4 sm:p-6">
+          <h2 className="text-lg font-semibold">About this hackathon</h2>
 
-            {!canEvaluate && !canViewRankings && (
-              <section className="space-y-2 rounded-lg border p-4">
-                <h2 className="font-semibold">About this hackathon</h2>
+          <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
+            {hackathon.description || "No description provided."}
+          </p>
+        </section>
+      </div>
 
-                <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
-                  {hackathon.description || "No description provided."}
-                </p>
-              </section>
-            )}
+      {/* Jury and evaluation criteria */}
+      <section className="space-y-3">
+        <h2 className="font-semibold">Jury and evaluation criteria</h2>
+
+        <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2">
+          <div className="min-w-0 [&>*]:h-full">
+            <JudgeManagement
+              key={`judges:${hackathon.id}`}
+              hackathonId={hackathon.id}
+              canManage={canManageJudges}
+            />
           </div>
 
-          <aside
-            className="min-w-0 space-y-4"
-            aria-label="Hackathon information"
-          >
-            {(canEvaluate || canViewRankings) && (
-              <section className="space-y-2 rounded-lg border p-4">
-                <h2 className="font-semibold">About this hackathon</h2>
-
-                <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
-                  {hackathon.description || "No description provided."}
-                </p>
-              </section>
-            )}
-
-            <section className="space-y-3">
-              <h2 className="font-semibold">Jury and evaluation criteria</h2>
-
-              <JudgeManagement
-                key={`judges:${hackathon.id}`}
-                hackathonId={hackathon.id}
-                canManage={false}
-              />
-
-              <ScoringCriteriaManagement
-                key={`criteria:${hackathon.id}`}
-                hackathonId={hackathon.id}
-                canManage={false}
-              />
-            </section>
-          </aside>
+          <div className="min-w-0 [&>*]:h-full">
+            <ScoringCriteriaManagement
+              key={`criteria:${hackathon.id}`}
+              hackathonId={hackathon.id}
+              canManage={canManageCriteria}
+            />
+          </div>
         </div>
+      </section>
+
+      {/* Full-width team submission interface */}
+      {showInProgressView &&
+        isParticipant &&
+        teamQuery.isSuccess &&
+        teamQuery.data.team && (
+          <TeamSubmissionCard
+            key={teamQuery.data.team.id}
+            teamId={teamQuery.data.team.id}
+          />
+        )}
+
+      {/* Full-width jury evaluation interface */}
+      {canEvaluate && currentUserId !== undefined && (
+        <JuryEvaluation
+          key={`${currentUserId}:${hackathon.id}`}
+          hackathonId={hackathon.id}
+          userId={currentUserId}
+        />
+      )}
+
+      {/* Full-width rankings */}
+      {canViewRankings && currentUserId !== undefined && (
+        <HackathonRankings
+          hackathonId={hackathon.id}
+          userId={currentUserId}
+          isPublished={evaluationEnded}
+        />
+      )}
+
+      {/* Missing ranking schedule fallback */}
+      {showFinishedView && !evaluationEnded && (
+        <section className="space-y-2 rounded-xl border border-border p-4">
+          <h2 className="font-semibold">Final rankings</h2>
+
+          <p className="text-sm text-muted-foreground">
+            Rankings are currently unavailable.
+          </p>
+        </section>
       )}
     </section>
   );

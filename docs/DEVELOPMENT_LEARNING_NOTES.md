@@ -126,6 +126,16 @@ useForm({
 
 Put reusable validation schemas in `frontend/src/schemas/`; keep forms, API types and backend DTOs aligned. Protecting a React route improves UX but cannot replace backend authorisation.
 
+### Reactive time and phase-specific rendering
+
+`HackathonDetails` and `HackathonTeam` reuse `frontend/src/hooks/use-current-time.ts`. The lazy state initializer (`useState(() => Date.now())`) captures the first timestamp; an effect updates it every 10 seconds by default and clears its interval when the component unmounts or the interval changes. Each mounted hook has its own timer.
+
+A time check alone does not discover changed dates in PostgreSQL. TanStack Query polling refreshes the saved schedule and current phase, while the local clock lets React recalculate elapsed deadlines and completed timeline steps. The details page refreshes both schedule and phase every 10 seconds. The team page polls its current-phase query every 4 seconds. These are separate mechanisms and may update at different times; server-side permission checks remain the final authority.
+
+Phase-dependent actions combine successful query status, the active phase, membership/leadership and submission status. For example, changing membership requires registration or in progress and a successfully loaded, unsubmitted team state. Conditional rendering hides prohibited actions; `isPending` on mutation controls prevents repeated actions while a request is in flight. Neither is a replacement for backend checks.
+
+`HackathonPhaseSchedule` follows the canonical phase order and compares dates to the supplied clock. `HackathonRankings` renders mobile cards and a desktop table from one query result. The preview exposes evaluation counts and status, while published results show rank, team and score. Two presentations do not require two network requests.
+
 ## 6. WebSockets and Socket.IO chat
 
 HackSpace team chat combines HTTP for history with Socket.IO for live updates:

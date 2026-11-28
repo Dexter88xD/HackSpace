@@ -108,6 +108,14 @@ For all protected operations, distinguish `401` (no valid authentication) from `
 - Put form schemas in the existing `src/schemas/` structure when applicable. Match field names, loading/error states and mutation results to the actual backend contract.
 - Protected React routes improve navigation, but **backend guards and domain services must always verify permissions**.
 
+### Phase-dependent interfaces
+
+- Derive phase permissions from successfully loaded phase data and the applicable date window; do not enable controls using stale or failed permission queries.
+- Represent UI permissions as booleans when no explanatory string is rendered. Hide unavailable actions, but preserve pending-mutation safeguards and server-side authorization.
+- Reuse `useCurrentTime` for periodic local-time updates and clean up intervals on unmount. Keep schedule refresh separate from the local clock: the clock cannot discover a server-side schedule edit.
+- Use responsive layouts for dense data (for example ranking cards on mobile and a table on larger screens), preserving the same visible fields and access rules for both presentations.
+- Validate phase transitions without manual reload, role-specific controls, submission locks and mobile layouts. Record untested scenarios explicitly rather than claiming full coverage.
+
 ## 8. Branches, commits, PR reviews and CI
 
 - Create a branch from an up-to-date `main`. Prefer `feat/`, `fix/`, `refactor/`, `docs/`, `chore/` or `ci/` followed by a focused kebab-case description.

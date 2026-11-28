@@ -6,6 +6,7 @@ type JoinRequestListProps = {
   onAccept: (requestId: number) => void;
   onReject: (requestId: number) => void;
   isBusy: boolean;
+  canAccept: boolean;
 };
 
 function JoinRequestList({
@@ -13,6 +14,7 @@ function JoinRequestList({
   onAccept,
   onReject,
   isBusy,
+  canAccept,
 }: JoinRequestListProps) {
   if (requests.length === 0) {
     return (
@@ -32,13 +34,15 @@ function JoinRequestList({
             <p className="text-sm text-muted-foreground">@{request.username}</p>
           </div>
           <div className="flex gap-2">
-            <Button
-              size="sm"
-              disabled={isBusy}
-              onClick={() => onAccept(request.id)}
-            >
-              Accept
-            </Button>
+            {canAccept && (
+              <Button
+                size="sm"
+                disabled={isBusy}
+                onClick={() => onAccept(request.id)}
+              >
+                Accept
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"

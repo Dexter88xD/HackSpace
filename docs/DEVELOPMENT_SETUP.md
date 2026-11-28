@@ -158,6 +158,17 @@ The scripts invoked by `make lint`, `make lint-fix`, `make typecheck`, `make bui
 
 The frontend and backend expose the same `typecheck` script name, but use different TypeScript configurations. The backend application check excludes `*.spec.ts`; Jest runs test files separately. Refer to the guidelines for quality-gate expectations.
 
+### Lifecycle smoke testing (local development only)
+
+Use a disposable hackathon with a valid five-phase schedule and separate organizer, judge and participant accounts. Create it through the UI. Move phase boundaries through the organizer's edit form when possible; for accelerated local QA, use `make db` and inspect `hackathon_phases` for the fixture ID. If adjusting dates directly, use one transaction, keep all phase durations positive, preserve contiguous boundaries, and update the parent hackathon start/end when the outer boundaries change. Never modify a shared or production schedule for QA. Direct SQL bypasses application validation.
+
+1. Verify Upcoming and Launch, then advance to Registration and register participants. Create a team and exercise join requests and member controls.
+2. Advance to In Progress and confirm registration and team creation close automatically. Upload supported files (for example `.txt` and `.csv`), check configured file limits, download and compare file contents, submit, reopen and submit again. Check that finalized submissions prevent membership changes.
+3. Advance to Evaluation; verify judge access to finalized submissions, score every criterion, and check the organizer's preview. Advance to Finished and verify that authenticated users see published rankings. After the final phase ends, all timeline steps should be complete and results should remain visible.
+4. Check mobile and desktop layouts and verify that role-restricted controls are absent. Allow for polling delays when observing automatic transitions in foreground tabs. Use browser developer tools for network-failure checks if needed.
+
+The frontend accepts `.pdf`, `.docx`, `.pptx`, `.txt`, `.csv`, `.jpg`, `.jpeg` and `.png` in the submission file picker. Use real files of the selected type. A submission record is keyed by `team_id`, not a separate submission ID. Submission file metadata is stored in `files` with bucket `submission`.
+
 ## 6. Reset the development database
 
 **Destructive operation:** this deletes local development PostgreSQL data. The reset target now selects the `db_data` volume using **both** the active Docker Compose project name and the `com.docker.compose.volume=db_data` label. It prints the selected project and volume before deletion. Do not run against valuable, shared, staging or production data. This target has not yet been exercised against your local Docker installation; verify it on your machine before relying on it for the team reset.

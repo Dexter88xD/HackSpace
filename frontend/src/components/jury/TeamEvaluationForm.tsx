@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { getMyTeamScores, upsertTeamScores } from "@/api/jury";
@@ -8,10 +8,16 @@ import { shouldRetryQuery } from "@/lib/query-retry";
 import type { CriterionScorePayload, TeamEvaluation } from "@/types/jury";
 import { getJuryError } from "./jury-error";
 
+export type EvaluationStatus = {
+  isDirty: boolean;
+  isSaving: boolean;
+};
+
 type Props = {
   hackathonId: number;
   teamId: number;
   userId: number;
+  onStatusChange: (status: EvaluationStatus) => void;
 };
 
 type ScoreDraft = {
@@ -33,6 +39,7 @@ function EvaluationEditor({
   teamId,
   userId,
   evaluation,
+  onStatusChange,
 }: Props & { evaluation: TeamEvaluation }) {
   const queryClient = useQueryClient();
 
@@ -58,6 +65,23 @@ function EvaluationEditor({
       });
     },
   });
+
+  const isDirty = draft.some((item) => {
+    const existing = saved.scores.find(
+      (criterion) => criterion.criterionId === item.criterionId,
+    );
+
+    return (
+      item.score !== (existing?.score == null ? "" : String(existing.score)) ||
+      item.comment !== (existing?.comment ?? "")
+    );
+  });
+
+  const isSaving = mutation.isPending;
+
+  useEffect(() => {
+    onStatusChange({ isDirty, isSaving });
+  }, [isDirty, isSaving, onStatusChange]);
 
   function updateDraft(
     criterionId: number,
@@ -251,7 +275,12 @@ function EvaluationEditor({
   );
 }
 
-export function TeamEvaluationForm({ hackathonId, teamId, userId }: Props) {
+export function TeamEvaluationForm({
+  hackathonId,
+  teamId,
+  userId,
+  onStatusChange,
+}: Props) {
   const query = useQuery({
     queryKey: ["jury-team-scores", userId, hackathonId, teamId],
     queryFn: () => getMyTeamScores(hackathonId, teamId),
@@ -286,6 +315,7 @@ export function TeamEvaluationForm({ hackathonId, teamId, userId }: Props) {
             teamId={teamId}
             userId={userId}
             evaluation={query.data}
+            onStatusChange={onStatusChange}
           />
         )}
       </CardContent>

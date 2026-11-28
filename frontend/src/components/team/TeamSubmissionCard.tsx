@@ -96,7 +96,7 @@ export function TeamSubmissionCard({ teamId }: { teamId: number }) {
             </Button>
           </div>
         )}
-        {submission && (
+        {query.isSuccess && submission && (
           <>
             <p role="status" className="text-sm">
               {submission.submittedAt
