@@ -33,6 +33,7 @@ export type HackathonFiltersType = {
   limit?: number;
   sortBy?: HackathonSortField;
   sortOrder?: SortOrder;
+  upcomingOnly?: boolean;
 };
 
 export type Hackathon = {
