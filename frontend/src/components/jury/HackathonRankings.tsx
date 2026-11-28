@@ -52,68 +52,103 @@ export function HackathonRankings({ hackathonId, userId, isPublished }: Props) {
                 No eligible teams to rank yet.
               </p>
             ) : (
-              <div className="overflow-x-auto rounded-md border">
-                <table className="w-full text-sm">
-                  <thead className="border-b bg-muted/50">
-                    <tr>
-                      <th scope="col" className="p-3 text-left">
-                        Rank
-                      </th>
-                      <th scope="col" className="p-3 text-left">
-                        Team
-                      </th>
-                      <th scope="col" className="p-3 text-right">
-                        Score
-                      </th>
-                      {!isPublished && (
-                        <>
-                          <th scope="col" className="p-3 text-center">
-                            Evaluations
-                          </th>
+              <>
+                <div className="divide-y rounded-md border md:hidden">
+                  {rankings.map((team) => (
+                    <div key={team.teamId} className="space-y-3 p-3">
+                      <div className="flex items-center gap-3">
+                        <span className="shrink-0 text-sm font-semibold">
+                          {team.rank === null ? "—" : `#${team.rank}`}
+                        </span>
 
-                          <th scope="col" className="p-3 text-left">
-                            Status
-                          </th>
-                        </>
-                      )}
-                    </tr>
-                  </thead>
-
-                  <tbody className="divide-y">
-                    {rankings.map((team) => (
-                      <tr key={team.teamId}>
-                        <td className="p-3 font-semibold">
-                          {team.rank ?? "—"}
-                        </td>
-
-                        <td className="min-w-36 break-words p-3 font-medium">
+                        <span className="min-w-0 flex-1 break-words text-sm font-medium">
                           {team.teamName}
-                        </td>
+                        </span>
 
-                        <td className="whitespace-nowrap p-3 text-right tabular-nums">
+                        <span className="shrink-0 whitespace-nowrap text-sm font-semibold tabular-nums">
                           {team.averageScore === null
                             ? "—"
                             : `${team.averageScore.toFixed(2)}/10`}
-                        </td>
+                        </span>
+                      </div>
 
+                      {!isPublished && (
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                          <span>Evaluations: {team.completedEvaluations}</span>
+
+                          <span>
+                            {team.status === "EVALUATED"
+                              ? "Evaluated"
+                              : "Not evaluated"}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div className="hidden overflow-x-auto rounded-md border md:block">
+                  <table className="w-full text-sm">
+                    <thead className="border-b bg-muted/50">
+                      <tr>
+                        <th scope="col" className="p-3 text-left">
+                          Rank
+                        </th>
+                        <th scope="col" className="p-3 text-left">
+                          Team
+                        </th>
+                        <th scope="col" className="p-3 text-right">
+                          Score
+                        </th>
                         {!isPublished && (
                           <>
-                            <td className="p-3 text-center">
-                              {team.completedEvaluations}
-                            </td>
+                            <th scope="col" className="p-3 text-center">
+                              Evaluations
+                            </th>
 
-                            <td className="whitespace-nowrap p-3 text-muted-foreground">
-                              {team.status === "EVALUATED"
-                                ? "Evaluated"
-                                : "Not evaluated"}
-                            </td>
+                            <th scope="col" className="p-3 text-left">
+                              Status
+                            </th>
                           </>
                         )}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+
+                    <tbody className="divide-y">
+                      {rankings.map((team) => (
+                        <tr key={team.teamId}>
+                          <td className="p-3 font-semibold">
+                            {team.rank ?? "—"}
+                          </td>
+
+                          <td className="min-w-36 break-words p-3 font-medium">
+                            {team.teamName}
+                          </td>
+
+                          <td className="whitespace-nowrap p-3 text-right tabular-nums">
+                            {team.averageScore === null
+                              ? "—"
+                              : `${team.averageScore.toFixed(2)}/10`}
+                          </td>
+
+                          {!isPublished && (
+                            <>
+                              <td className="p-3 text-center">
+                                {team.completedEvaluations}
+                              </td>
+
+                              <td className="whitespace-nowrap p-3 text-muted-foreground">
+                                {team.status === "EVALUATED"
+                                  ? "Evaluated"
+                                  : "Not evaluated"}
+                              </td>
+                            </>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </>
         )}
