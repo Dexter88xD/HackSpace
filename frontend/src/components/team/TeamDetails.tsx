@@ -17,7 +17,7 @@ type TeamDetailsProps = {
   // Only passed when the current user is the leader.
   onRemove?: (userId: number) => void;
   isRemoving?: boolean;
-  removeBlockedReason?: string | null;
+  canRemoveMember?: boolean;
 };
 
 function TeamDetails({
@@ -25,7 +25,7 @@ function TeamDetails({
   actions,
   onRemove,
   isRemoving,
-  removeBlockedReason = null,
+  canRemoveMember = false,
 }: TeamDetailsProps) {
   const memberCount = team.members.length;
 
@@ -70,7 +70,7 @@ function TeamDetails({
                   </p>
                   <p className="text-muted-foreground">@{member.username}</p>
                 </div>
-                {onRemove && !isLeader && removeBlockedReason === null && (
+                {onRemove && !isLeader && canRemoveMember && (
                   <ConfirmButton
                     label="Remove"
                     title={`Remove ${member.fullName}?`}
@@ -78,7 +78,6 @@ function TeamDetails({
                     confirmLabel="Remove"
                     onConfirm={() => onRemove(member.userId)}
                     isPending={!!isRemoving}
-                    disabled={removeBlockedReason !== null}
                     size="sm"
                   />
                 )}

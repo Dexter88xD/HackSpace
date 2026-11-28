@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
@@ -43,6 +43,7 @@ import { MessageCircle } from "lucide-react";
 import { getHackathonCurrentPhase } from "@/api/hackathon";
 import { getSubmission } from "@/api/team-submission";
 import { HackathonPhaseName } from "@/types/hackathon";
+import { useCurrentTime } from "@/hooks/use-current-time";
 
 function errorMessage(error: unknown, fallback: string) {
   return isAxiosError(error)
@@ -116,15 +117,7 @@ export default function HackathonTeam() {
 
   const currentPhase = phaseQuery.data;
 
-  const [now, setNow] = useState(() => Date.now());
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setNow(Date.now());
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, []);
+  const now = useCurrentTime();
 
   const isRegistration =
     phaseQuery.isSuccess &&
@@ -138,48 +131,15 @@ export default function HackathonTeam() {
     now >= new Date(currentPhase.startAt).getTime() &&
     now < new Date(currentPhase.endAt).getTime();
 
-  let deleteBlockedReason: string | null = null;
-  let membershipBlockedReason: string | null = null;
+  const canEditTeam = isRegistration || isInProgress;
 
-  if (phaseQuery.isPending) {
-    deleteBlockedReason = "Checking the current hackathon phase...";
-    membershipBlockedReason = deleteBlockedReason;
-  } else if (phaseQuery.isError) {
-    deleteBlockedReason = "Unable to verify the current hackathon phase.";
-    membershipBlockedReason = deleteBlockedReason;
-  } else {
-    if (!isRegistration) {
-      deleteBlockedReason = "Teams can only be deleted during registration.";
-    }
+  const canChangeMembership =
+    (isRegistration || isInProgress) &&
+    submissionQuery.isSuccess &&
+    !submissionQuery.data?.isSubmitted;
 
-    if (!isRegistration && !isInProgress) {
-      membershipBlockedReason =
-        "Team membership can only change during registration or in progress.";
-    } else if (submissionQuery.isPending) {
-      membershipBlockedReason = "Checking the team submission status...";
-    } else if (submissionQuery.isError) {
-      membershipBlockedReason = "Unable to verify the team submission status.";
-    } else if (submissionQuery.data?.isSubmitted) {
-      membershipBlockedReason =
-        "Withdraw your submission before changing team membership.";
-    }
-  }
-
-  const leaveBlockedReason =
-    membershipBlockedReason ??
-    (isInProgress && team?.members.length === 1
-      ? "The last member can only leave during registration."
-      : null);
-
-  const removeBlockedReason = membershipBlockedReason;
-
-  const editBlockedReason = phaseQuery.isPending
-    ? "Checking the current hackathon phase..."
-    : phaseQuery.isError
-      ? "Unable to verify the current hackathon phase."
-      : !isRegistration && !isInProgress
-        ? "Teams can only be edited during registration or in progress."
-        : null;
+  const canLeaveTeam =
+    canChangeMembership && !(isInProgress && team?.members.length === 1);
 
   const { data: teams } = useQuery({
     queryKey: ["teams", hackathonId],
@@ -368,7 +328,11 @@ export default function HackathonTeam() {
       </Link>
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">
-          {team ? "Your team" : "Join or create a team"}
+          {team
+            ? "Your team"
+            : isRegistration
+              ? "Join or create a team"
+              : "Teams"}
         </h1>
         {team && (
           <MessageCircle
@@ -385,7 +349,7 @@ export default function HackathonTeam() {
 
       {team ? (
         <>
-          {isEditing && isLeader && editBlockedReason === null ? (
+          {isEditing && isLeader && canEditTeam ? (
             <Card>
               <CardHeader>
                 <CardTitle className="text-xl font-semibold">
@@ -401,7 +365,7 @@ export default function HackathonTeam() {
                   }}
                   submitLabel="Save"
                   onSubmit={(values) => {
-                    if (isLeader && editBlockedReason === null) {
+                    if (isLeader && canEditTeam) {
                       updateMutation.mutate({ teamId: team.id, values });
                     }
                   }}
@@ -420,21 +384,20 @@ export default function HackathonTeam() {
                   : undefined
               }
               isRemoving={removeMutation.isPending}
-              removeBlockedReason={removeBlockedReason}
+              canRemoveMember={canChangeMembership}
               actions={
                 <div className="flex max-w-sm flex-col items-end gap-2">
                   <div className="flex flex-wrap justify-end gap-2">
-                    {isLeader && editBlockedReason === null && (
+                    {isLeader && canEditTeam && (
                       <Button
                         variant="outline"
-                        disabled={editBlockedReason !== null}
                         onClick={() => setIsEditing(true)}
                       >
                         Edit
                       </Button>
                     )}
 
-                    {isLeader && deleteBlockedReason === null && (
+                    {isLeader && isRegistration && (
                       <ConfirmButton
                         label="Delete"
                         title="Delete this team?"
@@ -442,11 +405,10 @@ export default function HackathonTeam() {
                         confirmLabel="Delete"
                         onConfirm={() => deleteMutation.mutate(team.id)}
                         isPending={deleteMutation.isPending}
-                        disabled={deleteBlockedReason !== null}
                       />
                     )}
 
-                    {leaveBlockedReason === null && (
+                    {canLeaveTeam && (
                       <ConfirmButton
                         label="Leave"
                         title="Leave this team?"
@@ -458,7 +420,6 @@ export default function HackathonTeam() {
                         confirmLabel="Leave"
                         onConfirm={() => leaveMutation.mutate(team.id)}
                         isPending={leaveMutation.isPending}
-                        disabled={leaveBlockedReason !== null}
                       />
                     )}
                   </div>
@@ -514,9 +475,11 @@ export default function HackathonTeam() {
           <Card>
             <CardHeader>
               <CardTitle className="text-xl font-semibold">Teams</CardTitle>
-              <CardDescription>
-                Ask to join a team. Its leader accepts or rejects you.
-              </CardDescription>
+              {isRegistration && (
+                <CardDescription>
+                  Ask to join a team. Its leader accepts or rejects you.
+                </CardDescription>
+              )}
             </CardHeader>
             <CardContent>
               <TeamList

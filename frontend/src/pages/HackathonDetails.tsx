@@ -17,7 +17,6 @@ import { JudgeManagement } from "@/components/jury/JudgeManagement";
 import { ScoringCriteriaManagement } from "@/components/jury/ScoringCriteriaManagement";
 import { JuryEvaluation } from "@/components/jury/JuryEvaluation";
 import { HackathonRankings } from "@/components/jury/HackathonRankings";
-import { useEffect, useState } from "react";
 import HackathonPhaseSchedule from "@/components/hackathon/hackathon-phase-schedule";
 import LaunchPhaseView from "@/components/hackathon/phases/launch-phase-view";
 import RegistrationPhaseView from "@/components/hackathon/phases/registration-phase-view";
@@ -26,19 +25,12 @@ import EvaluationPhaseView from "@/components/hackathon/phases/evaluation-phase-
 import FinishedPhaseView from "@/components/hackathon/phases/finished-phase-view";
 import { getMyTeam } from "@/api/team";
 import { TeamSubmissionCard } from "@/components/team/TeamSubmissionCard";
+import { useCurrentTime } from "@/hooks/use-current-time";
 
 export default function HackathonDetails() {
   const { id } = useParams<{ id: string }>();
   const hackathonId = parseHackathonId(id);
-  const [now, setNow] = useState(() => Date.now());
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setNow(Date.now());
-    }, 10000);
-
-    return () => window.clearInterval(timer);
-  }, []);
+  const now = useCurrentTime();
 
   const { data: currentUser } = useQuery({
     queryKey: ["me"],
@@ -94,7 +86,6 @@ export default function HackathonDetails() {
 
   const isParticipant =
     isMembershipSuccess &&
-    !isMembershipError &&
     membership?.isRegistered === true &&
     membership.role === HackathonRoleName.PARTICIPANT;
 
@@ -203,7 +194,6 @@ export default function HackathonDetails() {
   const canEvaluate =
     isEvaluationOpen &&
     isMembershipSuccess &&
-    !isMembershipError &&
     membership?.role === HackathonRoleName.JURY;
 
   const canViewRankings =
@@ -283,12 +273,12 @@ export default function HackathonDetails() {
               </span>
             </div>
             <p className="text-sm text-muted-foreground">
-              Organised by {hackathon.organizationName}
+              Organized by {hackathon.organizationName}
             </p>
           </div>
 
           <div className="flex shrink-0 flex-wrap items-center gap-2">
-            {membership?.role === HackathonRoleName.PARTICIPANT && (
+            {isParticipant && (
               <Link
                 to={`/hackathons/${hackathon.id}/team`}
                 className={buttonVariants({
