@@ -45,11 +45,6 @@ function TeamDetails({
         <h3 className="font-semibold">
           Members ({memberCount} / {team.maxMembers})
         </h3>
-        {onRemove && memberCount > 1 && removeBlockedReason && (
-          <p className="mt-1 text-sm text-muted-foreground">
-            Remove: {removeBlockedReason}
-          </p>
-        )}
         {memberCount < team.minMembers && (
           <p className="mt-1 text-muted-foreground">
             This hackathon needs at least {team.minMembers} members per team.
@@ -75,7 +70,7 @@ function TeamDetails({
                   </p>
                   <p className="text-muted-foreground">@{member.username}</p>
                 </div>
-                {onRemove && !isLeader && (
+                {onRemove && !isLeader && removeBlockedReason === null && (
                   <ConfirmButton
                     label="Remove"
                     title={`Remove ${member.fullName}?`}

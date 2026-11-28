@@ -7,6 +7,7 @@ type TeamListProps = {
   onRequest: (teamId: number) => void;
   onCancel: (requestId: number) => void;
   isBusy: boolean;
+  canRequest: boolean;
 };
 
 function TeamList({
@@ -15,11 +16,14 @@ function TeamList({
   onRequest,
   onCancel,
   isBusy,
+  canRequest
 }: TeamListProps) {
   if (teams.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        No teams yet. Create the first one.
+        {canRequest
+          ? "No teams yet. Create the first one."
+          : "No teams available."}
       </p>
     );
   }
@@ -52,7 +56,7 @@ function TeamList({
               >
                 Cancel request
               </Button>
-            ) : (
+            ) : canRequest ? (
               <Button
                 variant="outline"
                 disabled={isFull || isBusy}
@@ -60,7 +64,7 @@ function TeamList({
               >
                 {isFull ? "Full" : "Request to join"}
               </Button>
-            )}
+            ) : null}
           </li>
         );
       })}
