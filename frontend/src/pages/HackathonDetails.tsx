@@ -13,7 +13,6 @@ import {
   getHackathonMembership,
 } from "@/api/hackathon";
 import { HackathonPhaseName, HackathonRoleName } from "@/types/hackathon";
-import { JuryManagement } from "@/components/jury/JuryManagement";
 import { JudgeManagement } from "@/components/jury/JudgeManagement";
 import { ScoringCriteriaManagement } from "@/components/jury/ScoringCriteriaManagement";
 import { JuryEvaluation } from "@/components/jury/JuryEvaluation";
@@ -25,6 +24,8 @@ import RegistrationPhaseView from "@/components/hackathon/phases/registration-ph
 import InProgressPhaseView from "@/components/hackathon/phases/in-progress-phase-view";
 import EvaluationPhaseView from "@/components/hackathon/phases/evaluation-phase-view";
 import FinishedPhaseView from "@/components/hackathon/phases/finished-phase-view";
+import { getMyTeam } from "@/api/team";
+import { TeamSubmissionCard } from "@/components/team/TeamSubmissionCard";
 
 export default function HackathonDetails() {
   const { id } = useParams<{ id: string }>();
@@ -82,6 +83,37 @@ export default function HackathonDetails() {
     },
     enabled: hackathonId !== null,
     retry: shouldRetryQuery,
+  });
+
+  const isInProgress =
+    !isPhasePending &&
+    !isPhaseError &&
+    currentPhase?.phaseName === HackathonPhaseName.IN_PROGRESS &&
+    now >= new Date(currentPhase.startAt).getTime() &&
+    now < new Date(currentPhase.endAt).getTime();
+
+  const isParticipant =
+    isMembershipSuccess &&
+    !isMembershipError &&
+    membership?.isRegistered === true &&
+    membership.role === HackathonRoleName.PARTICIPANT;
+
+  const teamQuery = useQuery({
+    queryKey: ["my-team", hackathonId],
+    queryFn: () => {
+      if (hackathonId === null) {
+        throw new Error("Invalid hackathon ID");
+      }
+
+      return getMyTeam(hackathonId);
+    },
+    enabled:
+      hackathonId !== null &&
+      currentUserId !== undefined &&
+      isInProgress &&
+      isParticipant,
+    retry: shouldRetryQuery,
+    refetchInterval: 4000,
   });
 
   const {
@@ -160,8 +192,6 @@ export default function HackathonDetails() {
     inProgressPhase !== undefined &&
     now < new Date(inProgressPhase.startAt).getTime();
 
-  const canManageJury = canManageJudges || canManageCriteria;
-
   const isEvaluationOpen =
     !isPhasePending &&
     !isPhaseError &&
@@ -186,8 +216,6 @@ export default function HackathonDetails() {
       !isPhaseError &&
       phaseName === HackathonPhaseName.FINISHED);
 
-  const hasResultsPhaseView = showEvaluationView || showFinishedView;
-
   const phaseLabels: Record<HackathonPhaseName, string> = {
     [HackathonPhaseName.LAUNCH]: "Launch",
     [HackathonPhaseName.REGISTRATION]: "Registration",
@@ -196,8 +224,45 @@ export default function HackathonDetails() {
     [HackathonPhaseName.FINISHED]: "Finished",
   };
 
+  const showLaunchView =
+    !isPhasePending &&
+    !isPhaseError &&
+    !showFinishedView &&
+    phaseName === HackathonPhaseName.LAUNCH &&
+    registrationPhase !== undefined;
+
+  const showRegistrationView =
+    !isPhasePending &&
+    !isPhaseError &&
+    !showFinishedView &&
+    phaseName === HackathonPhaseName.REGISTRATION &&
+    registrationPhase !== undefined &&
+    now >= new Date(registrationPhase.startAt).getTime() &&
+    now < new Date(registrationPhase.endAt).getTime();
+
+  const showInProgressView = isInProgress && !showFinishedView;
+
+  const hasPhaseView =
+    showLaunchView ||
+    showRegistrationView ||
+    showInProgressView ||
+    showEvaluationView ||
+    showFinishedView;
+
+  const phaseLabel = isPhasePending
+    ? "Loading phase"
+    : isPhaseError
+      ? "Phase unavailable"
+      : showFinishedView
+        ? "Finished"
+        : phaseName
+          ? phaseLabels[phaseName]
+          : now < new Date(hackathon.startAt).getTime()
+            ? "Upcoming"
+            : "Phase unavailable";
+
   return (
-    <section className="mx-auto w-full max-w-7xl space-y-5 px-4 py-5 sm:px-6 lg:px-8">
+    <section className="mx-auto w-full max-w-7xl space-y-4 px-4 py-4 sm:px-6 lg:px-8">
       <header className="space-y-3 border-b pb-4">
         <Link
           to="/hackathon-explorer"
@@ -213,7 +278,7 @@ export default function HackathonDetails() {
                 {hackathon.title}
               </h1>
               <span className="rounded-full border bg-muted px-3 py-1 text-xs font-medium">
-                {phaseName ? phaseLabels[phaseName] : "Phase unavailable"}
+                {phaseLabel}
               </span>
             </div>
             <p className="text-sm text-muted-foreground">
@@ -252,7 +317,7 @@ export default function HackathonDetails() {
           <div className="flex flex-wrap items-baseline gap-2">
             <dt className="font-medium">Start</dt>
             <dd className="text-muted-foreground">
-              {new Date(hackathon.startAt).toLocaleString("en-GB", {
+              {new Date(hackathon.startAt).toLocaleString("en-US", {
                 dateStyle: "medium",
                 timeStyle: "short",
               })}
@@ -261,7 +326,7 @@ export default function HackathonDetails() {
           <div className="flex flex-wrap items-baseline gap-2">
             <dt className="font-medium">End</dt>
             <dd className="text-muted-foreground">
-              {new Date(hackathon.endAt).toLocaleString("en-GB", {
+              {new Date(hackathon.endAt).toLocaleString("en-US", {
                 dateStyle: "medium",
                 timeStyle: "short",
               })}
@@ -289,155 +354,145 @@ export default function HackathonDetails() {
           <HackathonPhaseSchedule
             phases={hackathon.phases}
             currentPhaseName={currentPhase?.phaseName ?? null}
+            now={now}
           />
         )}
       </section>
 
-      {/* LAUNCH phase view */}
-      {!isPhasePending &&
-        !isPhaseError &&
-        phaseName === HackathonPhaseName.LAUNCH &&
-        registrationPhase && (
-          <LaunchPhaseView registrationStartAt={registrationPhase.startAt} />
-        )}
+      {/* Phase information and hackathon description */}
+      <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2">
+        <div className="min-w-0 [&>*]:h-full">
+          {/* LAUNCH */}
+          {showLaunchView && registrationPhase && (
+            <LaunchPhaseView registrationStartAt={registrationPhase.startAt} />
+          )}
 
-      {/* REGISTRATION phase view */}
-      {!isPhasePending &&
-        !isPhaseError &&
-        !hackathon.canEdit &&
-        phaseName === HackathonPhaseName.REGISTRATION &&
-        registrationPhase && (
-          <RegistrationPhaseView
-            key={hackathon.id}
-            hackathonId={hackathon.id}
-            registrationEndAt={registrationPhase.endAt}
-            isRegistered={membership?.isRegistered ?? false}
-            membershipRole={membership?.role ?? null}
-            isMembershipPending={isMembershipPending}
-            isMembershipError={isMembershipError}
-            isMembershipSuccess={isMembershipSuccess}
-            onRetryMembership={() => void refetchMembership()}
-          />
-        )}
+          {/* REGISTRATION */}
+          {showRegistrationView && registrationPhase && (
+            <RegistrationPhaseView
+              key={hackathon.id}
+              hackathonId={hackathon.id}
+              registrationEndAt={registrationPhase.endAt}
+              canEdit={hackathon.canEdit}
+              isRegistered={membership?.isRegistered ?? false}
+              membershipRole={membership?.role ?? null}
+              isMembershipPending={isMembershipPending}
+              isMembershipError={isMembershipError}
+              isMembershipSuccess={isMembershipSuccess}
+              onRetryMembership={() => void refetchMembership()}
+            />
+          )}
 
-      {/* IN_PROGRESS phase view */}
-      {!isPhasePending &&
-        !isPhaseError &&
-        !evaluationEnded &&
-        currentPhase?.phaseName === HackathonPhaseName.IN_PROGRESS &&
-        now >= new Date(currentPhase.startAt).getTime() &&
-        now < new Date(currentPhase.endAt).getTime() && (
-          <InProgressPhaseView
-            key={hackathon.id}
-            hackathonId={hackathon.id}
-            phaseEndAt={currentPhase.endAt}
-            membership={membership}
-            isMembershipPending={isMembershipPending}
-            isMembershipError={isMembershipError}
-            onRetryMembership={() => void refetchMembership()}
-          />
-        )}
+          {/* IN_PROGRESS */}
+          {showInProgressView && currentPhase && (
+            <InProgressPhaseView
+              key={hackathon.id}
+              phaseEndAt={currentPhase.endAt}
+              membership={membership}
+              isMembershipPending={isMembershipPending}
+              isMembershipError={isMembershipError}
+              onRetryMembership={() => void refetchMembership()}
+              teamQuery={teamQuery}
+            />
+          )}
 
-      {canManageJury ? (
-        <div className="space-y-5">
-          <section className="space-y-2">
-            <h2 className="font-semibold">About this hackathon</h2>
+          {/* EVALUATION */}
+          {showEvaluationView && evaluationPhase && (
+            <EvaluationPhaseView evaluationEndAt={evaluationPhase.endAt} />
+          )}
 
-            <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
-              {hackathon.description || "No description provided."}
-            </p>
-          </section>
+          {/* FINISHED */}
+          {showFinishedView && <FinishedPhaseView />}
 
-          <JuryManagement
-            key={hackathon.id}
-            hackathonId={hackathon.id}
-            canManageJudges={canManageJudges}
-            canManageCriteria={canManageCriteria}
-          />
+          {/* Missing or unavailable phase */}
+          {!hasPhaseView && (
+            <section className="space-y-2 rounded-xl border border-border p-4 sm:p-6">
+              <h2 className="text-lg font-semibold">Hackathon status</h2>
+
+              <p className="text-sm text-muted-foreground">
+                {isPhasePending
+                  ? "Loading the current phase..."
+                  : isPhaseError
+                    ? "The current phase is temporarily unavailable."
+                    : now < new Date(hackathon.startAt).getTime()
+                      ? "This hackathon has not started yet."
+                      : "No active phase is currently available."}
+              </p>
+            </section>
+          )}
         </div>
-      ) : (
-        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-          <div className="min-w-0 space-y-4">
-            {/* EVALUATION phase view */}
-            {showEvaluationView && evaluationPhase && (
-              <EvaluationPhaseView evaluationEndAt={evaluationPhase.endAt}>
-                {canEvaluate && currentUserId !== undefined && (
-                  <JuryEvaluation
-                    key={`${currentUserId}:${hackathon.id}`}
-                    hackathonId={hackathon.id}
-                    userId={currentUserId}
-                  />
-                )}
 
-                {canViewRankings && currentUserId !== undefined && (
-                  <HackathonRankings
-                    hackathonId={hackathon.id}
-                    userId={currentUserId}
-                    isPublished={false}
-                  />
-                )}
-              </EvaluationPhaseView>
-            )}
+        {/* Description */}
+        <section className="min-w-0 space-y-2 rounded-xl border border-border p-4 sm:p-6">
+          <h2 className="text-lg font-semibold">About this hackathon</h2>
 
-            {/* FINISHED phase view */}
-            {showFinishedView && (
-              <FinishedPhaseView>
-                {evaluationEnded && currentUserId !== undefined ? (
-                  <HackathonRankings
-                    hackathonId={hackathon.id}
-                    userId={currentUserId}
-                    isPublished={true}
-                  />
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Rankings are currently unavailable.
-                  </p>
-                )}
-              </FinishedPhaseView>
-            )}
+          <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
+            {hackathon.description || "No description provided."}
+          </p>
+        </section>
+      </div>
 
-            {!hasResultsPhaseView && (
-              <section className="space-y-2 rounded-lg border p-4">
-                <h2 className="font-semibold">About this hackathon</h2>
+      {/* Jury and evaluation criteria */}
+      <section className="space-y-3">
+        <h2 className="font-semibold">Jury and evaluation criteria</h2>
 
-                <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
-                  {hackathon.description || "No description provided."}
-                </p>
-              </section>
-            )}
+        <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2">
+          <div className="min-w-0 [&>*]:h-full">
+            <JudgeManagement
+              key={`judges:${hackathon.id}`}
+              hackathonId={hackathon.id}
+              canManage={canManageJudges}
+            />
           </div>
 
-          <aside
-            className="min-w-0 space-y-4"
-            aria-label="Hackathon information"
-          >
-            {hasResultsPhaseView && (
-              <section className="space-y-2 rounded-lg border p-4">
-                <h2 className="font-semibold">About this hackathon</h2>
-
-                <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
-                  {hackathon.description || "No description provided."}
-                </p>
-              </section>
-            )}
-
-            <section className="space-y-3">
-              <h2 className="font-semibold">Jury and evaluation criteria</h2>
-
-              <JudgeManagement
-                key={`judges:${hackathon.id}`}
-                hackathonId={hackathon.id}
-                canManage={false}
-              />
-
-              <ScoringCriteriaManagement
-                key={`criteria:${hackathon.id}`}
-                hackathonId={hackathon.id}
-                canManage={false}
-              />
-            </section>
-          </aside>
+          <div className="min-w-0 [&>*]:h-full">
+            <ScoringCriteriaManagement
+              key={`criteria:${hackathon.id}`}
+              hackathonId={hackathon.id}
+              canManage={canManageCriteria}
+            />
+          </div>
         </div>
+      </section>
+
+      {/* Full-width team submission interface */}
+      {showInProgressView &&
+        isParticipant &&
+        teamQuery.isSuccess &&
+        teamQuery.data.team && (
+          <TeamSubmissionCard
+            key={teamQuery.data.team.id}
+            teamId={teamQuery.data.team.id}
+          />
+        )}
+
+      {/* Full-width jury evaluation interface */}
+      {canEvaluate && currentUserId !== undefined && (
+        <JuryEvaluation
+          key={`${currentUserId}:${hackathon.id}`}
+          hackathonId={hackathon.id}
+          userId={currentUserId}
+        />
+      )}
+
+      {/* Full-width rankings */}
+      {canViewRankings && currentUserId !== undefined && (
+        <HackathonRankings
+          hackathonId={hackathon.id}
+          userId={currentUserId}
+          isPublished={evaluationEnded}
+        />
+      )}
+
+      {/* Missing ranking schedule fallback */}
+      {showFinishedView && !evaluationEnded && (
+        <section className="space-y-2 rounded-xl border border-border p-4">
+          <h2 className="font-semibold">Final rankings</h2>
+
+          <p className="text-sm text-muted-foreground">
+            Rankings are currently unavailable.
+          </p>
+        </section>
       )}
     </section>
   );

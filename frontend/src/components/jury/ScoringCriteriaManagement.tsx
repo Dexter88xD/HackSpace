@@ -348,13 +348,6 @@ export function ScoringCriteriaManagement({ hackathonId, canManage }: Props) {
           </p>
         )}
 
-        {!canManage && (
-          <p className="text-xs text-muted-foreground">
-            Scoring criteria configuration is locked once the IN_PROGRESS phase
-            begins.
-          </p>
-        )}
-
         {canManage && criteriaQuery.isSuccess && (
           <form
             className="space-y-4 border-t pt-4"

@@ -9,6 +9,7 @@ import {
 type HackathonPhaseScheduleProps = {
   phases: HackathonPhaseResponse[];
   currentPhaseName: HackathonPhaseName | null;
+  now: number;
 };
 
 const PHASE_LABELS: Record<HackathonPhaseName, string> = {
@@ -29,6 +30,7 @@ function formatDate(value: string) {
 export default function HackathonPhaseSchedule({
   phases,
   currentPhaseName,
+  now,
 }: HackathonPhaseScheduleProps) {
   const orderedPhases = PHASE_ORDER.map((phaseName) =>
     phases.find((phase) => phase.phaseName === phaseName),
@@ -48,8 +50,12 @@ export default function HackathonPhaseSchedule({
       </h2>
       <ol className="grid grid-cols-1 md:grid-cols-5">
         {orderedPhases.map((phase, index) => {
-          const isCurrent = index === currentIndex;
-          const isCompleted = currentIndex !== -1 && index < currentIndex;
+          const isCompleted = now >= new Date(phase.endAt).getTime();
+
+          const isCurrent =
+            index === currentIndex &&
+            now >= new Date(phase.startAt).getTime() &&
+            !isCompleted;
           const isFirst = index === 0;
           const isLast = index === orderedPhases.length - 1;
 

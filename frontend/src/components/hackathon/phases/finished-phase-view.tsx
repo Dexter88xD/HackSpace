@@ -1,13 +1,6 @@
 import { Trophy } from "lucide-react";
-import type { ReactNode } from "react";
 
-type FinishedPhaseViewProps = {
-  children?: ReactNode;
-};
-
-export default function FinishedPhaseView({
-  children,
-}: FinishedPhaseViewProps) {
+export default function FinishedPhaseView() {
   return (
     <section
       aria-labelledby="finished-phase-title"
@@ -30,11 +23,6 @@ export default function FinishedPhaseView({
           </p>
         </div>
       </div>
-      {children && (
-        <div className="mt-5 space-y-4 border-t border-border pt-5">
-          {children}
-        </div>
-      )}
     </section>
   );
 }

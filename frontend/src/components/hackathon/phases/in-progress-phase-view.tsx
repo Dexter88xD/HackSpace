@@ -1,29 +1,27 @@
-import { useQuery } from "@tanstack/react-query";
-import { CalendarDays } from "lucide-react";
-import { getMyTeam } from "@/api/team";
-import { TeamSubmissionCard } from "@/components/team/TeamSubmissionCard";
+import { CalendarDays, Info } from "lucide-react";
+import type { getMyTeam } from "@/api/team";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { shouldRetryQuery } from "@/lib/query-retry";
 import { HackathonRoleName } from "@/types/hackathon";
 import type { HackathonMembershipResponse } from "@/types/hackathon";
+import type { UseQueryResult } from "@tanstack/react-query";
 
 type InProgressPhaseViewProps = {
-  hackathonId: number;
   phaseEndAt: string;
   membership: HackathonMembershipResponse | undefined;
   isMembershipPending: boolean;
   isMembershipError: boolean;
   onRetryMembership: () => void;
+  teamQuery: UseQueryResult<Awaited<ReturnType<typeof getMyTeam>>, unknown>;
 };
 
 export default function InProgressPhaseView({
-  hackathonId,
   phaseEndAt,
   membership,
   isMembershipPending,
   isMembershipError,
   onRetryMembership,
+  teamQuery,
 }: InProgressPhaseViewProps) {
   const isParticipant =
     !isMembershipPending &&
@@ -31,22 +29,14 @@ export default function InProgressPhaseView({
     membership?.isRegistered === true &&
     membership.role === HackathonRoleName.PARTICIPANT;
 
-  const teamQuery = useQuery({
-    queryKey: ["my-team", hackathonId],
-    queryFn: () => getMyTeam(hackathonId),
-    enabled: isParticipant,
-    retry: shouldRetryQuery,
-    refetchInterval: 4000,
-  });
-
-  const endDate = new Date(phaseEndAt).toLocaleString("en-GB", {
+  const endDate = new Date(phaseEndAt).toLocaleString("en-US", {
     dateStyle: "medium",
     timeStyle: "short",
   });
 
   return (
-    <section aria-labelledby="in-progress-phase-title" className="space-y-4">
-      <div className="rounded-xl border border-border p-4 sm:p-6">
+    <section aria-labelledby="in-progress-phase-title" className="h-full">
+      <div className="h-full rounded-xl border border-border p-4 sm:p-6">
         <h2 id="in-progress-phase-title" className="text-lg font-semibold">
           Hackathon in progress
         </h2>
@@ -89,9 +79,16 @@ export default function InProgressPhaseView({
             Membership status is unavailable.
           </p>
         ) : !membership.isRegistered ? (
-          <p className="mt-4 rounded-lg bg-muted p-3 text-sm">
-            Registration is closed for this hackathon.
-          </p>
+          <div className="mt-4 flex items-start gap-2 rounded-lg bg-muted p-3">
+            <Info
+              className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+              aria-hidden="true"
+            />
+
+            <p className="text-sm text-muted-foreground">
+              Registration is closed for this hackathon.
+            </p>
+          </div>
         ) : isParticipant ? (
           teamQuery.isPending ? (
             <div className="mt-4 flex items-center gap-2" role="status">
@@ -114,10 +111,17 @@ export default function InProgressPhaseView({
               </Button>
             </div>
           ) : !teamQuery.data?.team ? (
-            <p className="mt-4 rounded-lg bg-muted p-3 text-sm">
-              You are not a member of a team. Only team members can submit a
-              project.
-            </p>
+            <div className="mt-4 flex items-start gap-2 rounded-lg bg-muted p-3">
+              <Info
+                className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                aria-hidden="true"
+              />
+
+              <p className="text-sm text-muted-foreground">
+                You are not a member of a team. Only team members can submit a
+                project.
+              </p>
+            </div>
           ) : (
             <p className="mt-4 text-sm text-muted-foreground">
               Submitting as{" "}
@@ -128,13 +132,6 @@ export default function InProgressPhaseView({
           )
         ) : null}
       </div>
-
-      {isParticipant && teamQuery.isSuccess && teamQuery.data.team && (
-        <TeamSubmissionCard
-          key={teamQuery.data.team.id}
-          teamId={teamQuery.data.team.id}
-        />
-      )}
     </section>
   );
 }

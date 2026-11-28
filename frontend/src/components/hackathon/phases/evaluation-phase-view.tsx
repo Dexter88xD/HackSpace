@@ -1,16 +1,13 @@
 import { CalendarDays, ClipboardCheck } from "lucide-react";
-import type { ReactNode } from "react";
 
 type EvaluationPhaseViewProps = {
   evaluationEndAt: string;
-  children?: ReactNode;
 };
 
 export default function EvaluationPhaseView({
   evaluationEndAt,
-  children,
 }: EvaluationPhaseViewProps) {
-  const endDate = new Date(evaluationEndAt).toLocaleString("en-GB", {
+  const endDate = new Date(evaluationEndAt).toLocaleString("en-US", {
     dateStyle: "medium",
     timeStyle: "short",
   });
@@ -49,11 +46,6 @@ export default function EvaluationPhaseView({
           <p className="text-sm text-muted-foreground">{endDate}</p>
         </div>
       </div>
-      {children && (
-        <div className="mt-5 space-y-4 border-t border-border pt-5">
-          {children}
-        </div>
-      )}
     </section>
   );
 }

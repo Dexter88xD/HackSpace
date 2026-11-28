@@ -24,6 +24,7 @@ type RegistrationPhaseViewProps = {
   isMembershipPending: boolean;
   isMembershipError: boolean;
   isMembershipSuccess: boolean;
+  canEdit: boolean;
   onRetryMembership: () => void;
 };
 
@@ -35,6 +36,7 @@ export default function RegistrationPhaseView({
   isMembershipPending,
   isMembershipError,
   isMembershipSuccess,
+  canEdit,
   onRetryMembership,
 }: RegistrationPhaseViewProps) {
   const queryClient = useQueryClient();
@@ -74,6 +76,14 @@ export default function RegistrationPhaseView({
       ? unregisterMutation.error
       : null;
 
+  const showRegistrationActions =
+    !canEdit &&
+    (isMembershipPending ||
+      isMembershipError ||
+      !isMembershipSuccess ||
+      !isRegistered ||
+      membershipRole === HackathonRoleName.PARTICIPANT);
+
   return (
     <section
       aria-labelledby="registration-phase-title"
@@ -100,92 +110,90 @@ export default function RegistrationPhaseView({
         </div>
       </div>
 
-      <div className="mt-4 border-t border-border pt-4">
-        {isMembershipPending ? (
-          <div className="flex items-center gap-2" role="status">
-            <Spinner />
+      {showRegistrationActions && (
+        <div className="mt-4 border-t border-border pt-4">
+          {isMembershipPending ? (
+            <div className="flex items-center gap-2" role="status">
+              <Spinner />
+              <p className="text-sm text-muted-foreground">
+                Checking membership...
+              </p>
+            </div>
+          ) : isMembershipError ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <p role="alert" className="text-sm text-destructive">
+                Unable to check your membership.
+              </p>
+
+              <Button variant="outline" onClick={onRetryMembership}>
+                Retry
+              </Button>
+            </div>
+          ) : !isMembershipSuccess ? (
             <p className="text-sm text-muted-foreground">
-              Checking membership...
+              Membership status is unavailable.
             </p>
-          </div>
-        ) : isMembershipError ? (
-          <div className="flex flex-wrap items-center gap-3">
-            <p role="alert" className="text-sm text-destructive">
-              Unable to check your membership.
-            </p>
-
-            <Button variant="outline" onClick={onRetryMembership}>
-              Retry
-            </Button>
-          </div>
-        ) : !isMembershipSuccess ? (
-          <p className="text-sm text-muted-foreground">
-            Membership status is unavailable.
-          </p>
-        ) : !isRegistered ? (
-          <Button
-            disabled={isMutating}
-            onClick={() => {
-              unregisterMutation.reset();
-              registerMutation.mutate();
-            }}
-          >
-            {registerMutation.isPending ? "Registering..." : "Register"}
-          </Button>
-        ) : membershipRole === HackathonRoleName.PARTICIPANT ? (
-          <AlertDialog>
-            <AlertDialogTrigger
-              render={<Button variant="default" disabled={isMutating} />}
+          ) : !isRegistered ? (
+            <Button
+              disabled={isMutating}
+              onClick={() => {
+                unregisterMutation.reset();
+                registerMutation.mutate();
+              }}
             >
-              Unregister
-            </AlertDialogTrigger>
-
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  You will lose your membership in this hackathon and leave your
-                  team.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-
-              <AlertDialogAction
-                render={
-                  <Button
-                    variant="default"
-                    disabled={isMutating}
-                    onClick={() => {
-                      registerMutation.reset();
-                      unregisterMutation.mutate();
-                    }}
-                  />
-                }
+              {registerMutation.isPending ? "Registering..." : "Register"}
+            </Button>
+          ) : membershipRole === HackathonRoleName.PARTICIPANT ? (
+            <AlertDialog>
+              <AlertDialogTrigger
+                render={<Button variant="default" disabled={isMutating} />}
               >
-                {unregisterMutation.isPending
-                  ? "Unregistering..."
-                  : "Unregister"}
-              </AlertDialogAction>
-            </AlertDialogContent>
-          </AlertDialog>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            Your current hackathon role does not allow registration changes.
-          </p>
-        )}
+                Unregister
+              </AlertDialogTrigger>
 
-        {mutationError && (
-          <p role="alert" className="mt-3 text-sm text-destructive">
-            {isAxiosError(mutationError)
-              ? String(
-                  mutationError.response?.data?.message ??
-                    mutationError.message,
-                )
-              : mutationError.message}
-          </p>
-        )}
-      </div>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    You will lose your membership in this hackathon and leave
+                    your team.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+
+                <AlertDialogAction
+                  render={
+                    <Button
+                      variant="default"
+                      disabled={isMutating}
+                      onClick={() => {
+                        registerMutation.reset();
+                        unregisterMutation.mutate();
+                      }}
+                    />
+                  }
+                >
+                  {unregisterMutation.isPending
+                    ? "Unregistering..."
+                    : "Unregister"}
+                </AlertDialogAction>
+              </AlertDialogContent>
+            </AlertDialog>
+          ) : null}
+
+          {mutationError && (
+            <p role="alert" className="mt-3 text-sm text-destructive">
+              {isAxiosError(mutationError)
+                ? String(
+                    mutationError.response?.data?.message ??
+                      mutationError.message,
+                  )
+                : mutationError.message}
+            </p>
+          )}
+        </div>
+      )}
     </section>
   );
 }
