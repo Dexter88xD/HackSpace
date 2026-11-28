@@ -6,8 +6,20 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { shouldRetryQuery } from "@/lib/query-retry";
 import { JurySubmissionViewer } from "./JurySubmissionViewer";
-import { TeamEvaluationForm } from "./TeamEvaluationForm";
+import {
+  TeamEvaluationForm,
+  type EvaluationStatus,
+} from "./TeamEvaluationForm";
 import { getJuryError } from "./jury-error";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type Props = {
   hackathonId: number;
@@ -16,6 +28,11 @@ type Props = {
 
 export function JuryEvaluation({ hackathonId, userId }: Props) {
   const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
+  const [evaluationStatus, setEvaluationStatus] = useState<EvaluationStatus>({
+    isDirty: false,
+    isSaving: false,
+  });
+  const [pendingTeamId, setPendingTeamId] = useState<number | null>(null);
 
   const query = useQuery({
     queryKey: ["jury-teams", userId, hackathonId],
@@ -28,6 +45,28 @@ export function JuryEvaluation({ hackathonId, userId }: Props) {
   const selectedTeam = teams.find((team) => team.teamId === selectedTeamId);
 
   const completedTeams = teams.filter((team) => team.isComplete).length;
+
+  function changeSelectedTeam(teamId: number) {
+    setEvaluationStatus({
+      isDirty: false,
+      isSaving: false,
+    });
+
+    setSelectedTeamId((previous) => (previous === teamId ? null : teamId));
+  }
+
+  function selectTeam(teamId: number) {
+    if (evaluationStatus.isSaving) {
+      return;
+    }
+
+    if (evaluationStatus.isDirty) {
+      setPendingTeamId(teamId);
+      return;
+    }
+
+    changeSelectedTeam(teamId);
+  }
 
   return (
     <section className="space-y-4">
@@ -89,17 +128,18 @@ export function JuryEvaluation({ hackathonId, userId }: Props) {
 
                       <Button
                         size="sm"
-                        variant={
-                          selectedTeamId === team.teamId ? "default" : "outline"
-                        }
-                        aria-pressed={selectedTeamId === team.teamId}
-                        onClick={() => setSelectedTeamId(team.teamId)}
+                        variant="outline"
+                        aria-expanded={selectedTeamId === team.teamId}
+                        disabled={evaluationStatus.isSaving}
+                        onClick={() => selectTeam(team.teamId)}
                       >
                         {selectedTeamId === team.teamId
-                          ? "Selected"
+                          ? "Close"
                           : team.isComplete
                             ? "Edit scores"
-                            : "Evaluate"}
+                            : team.scoredCount > 0
+                              ? "Continue evaluation"
+                              : "Evaluate"}
                       </Button>
                     </li>
                   ))}
@@ -125,9 +165,48 @@ export function JuryEvaluation({ hackathonId, userId }: Props) {
             hackathonId={hackathonId}
             teamId={selectedTeam.teamId}
             userId={userId}
+            onStatusChange={setEvaluationStatus}
           />
         </section>
       )}
+
+      <AlertDialog
+        open={pendingTeamId !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingTeamId(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard unsaved changes?</AlertDialogTitle>
+
+            <AlertDialogDescription>
+              You have unsaved evaluation changes. If you continue, these
+              changes will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+
+          <AlertDialogAction
+            render={
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (pendingTeamId !== null) {
+                    changeSelectedTeam(pendingTeamId);
+                    setPendingTeamId(null);
+                  }
+                }}
+              />
+            }
+          >
+            Discard changes
+          </AlertDialogAction>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 }
